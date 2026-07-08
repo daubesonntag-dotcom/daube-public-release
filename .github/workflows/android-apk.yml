@@ -2,10 +2,10 @@ name: Build D-AUBE Android APK
 
 on:
   pull_request:
-    paths: ["app/**", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
+    paths: ["app/**", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
   push:
     branches: [main]
-    paths: ["app/**", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
+    paths: ["app/**", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,17 +27,17 @@ jobs:
       - name: Prepare app
         run: |
           sed -i 's/\.MainActivity/\.LocalMainActivity/' app/src/main/AndroidManifest.xml
-          sed -i 's#</body>#<script src="backend-client.js"></script></body>#' app/src/main/assets/index.html
+          sed -i 's#</body>#<script src="auto-connect.js"></script><script src="backend-client.js"></script></body>#' app/src/main/assets/index.html
       - name: Build APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
       - name: Package
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/DAUBE-Nexus-Interactive.apk
-          sha256sum release/DAUBE-Nexus-Interactive.apk > release/DAUBE-Nexus-Interactive.sha256
-          test -s release/DAUBE-Nexus-Interactive.apk
+          cp app/build/outputs/apk/debug/app-debug.apk release/DAUBE-Nexus-Automatic.apk
+          sha256sum release/DAUBE-Nexus-Automatic.apk > release/DAUBE-Nexus-Automatic.sha256
+          test -s release/DAUBE-Nexus-Automatic.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: DAUBE-Nexus-Interactive-APK
+          name: DAUBE-Nexus-Automatic-APK
           path: release/*
           if-no-files-found: error

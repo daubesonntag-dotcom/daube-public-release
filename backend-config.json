@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "healthPaths": ["/api/ecosystem/status", "/api/health"],
+  "questPath": "/api/v1/quest",
+  "candidates": [
+    "https://daube-sonntag.vercel.app"
+  ],
+  "retry": {
+    "attempts": 3,
+    "delayMs": 1200,
+    "timeoutMs": 5000
+  }
+}

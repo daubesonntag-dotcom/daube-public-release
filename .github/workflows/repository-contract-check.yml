@@ -1,0 +1,38 @@
+name: Public Release Contract
+
+on:
+  pull_request:
+    paths:
+      - "governance/**"
+      - "scripts/validate-public-release-contract.mjs"
+      - ".github/workflows/repository-contract-check.yml"
+      - "AGENTS.md"
+      - "README.md"
+      - "**/*.html"
+      - "**/*.css"
+      - "**/*.js"
+      - "**/*.json"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "53 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-release-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate public repository boundary and secret safety
+        run: node scripts/validate-public-release-contract.mjs

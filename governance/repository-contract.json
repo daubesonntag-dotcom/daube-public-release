@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "repository": "daubesonntag-dotcom/daube-site",
+  "portfolioRepositoryId": "public-release-channel",
+  "role": "public-install-update-and-presentation-channel",
+  "lifecycle": "active",
+  "canonicalFor": [
+    "public-install-surface",
+    "public-release-history",
+    "public-static-assets"
+  ],
+  "mustNotOwn": [
+    "private-business-logic",
+    "credentials",
+    "private-data",
+    "founder-root-policy",
+    "unverified-runtime-artifacts"
+  ],
+  "dependsOn": [
+    "governance-control-plane",
+    "canonical-runtime"
+  ],
+  "acceptsFrom": [
+    "canonical-runtime"
+  ],
+  "publishesTo": [],
+  "releaseAuthority": false,
+  "productionAuthority": false,
+  "publicNoSecrets": true,
+  "dataClassification": "public-static-only",
+  "permittedChangeTiers": [
+    "T0",
+    "T1",
+    "T2"
+  ],
+  "auditOwner": "Founder / Public Release Steward",
+  "centralRegistry": "daubesonntag-dotcom/daube-os:registry/REPOSITORY_PORTFOLIO_REGISTRY.json",
+  "sourceRuntime": "daubesonntag-dotcom/daube-forge-os",
+  "requiredReleaseEvidence": [
+    "sourceCommit",
+    "artifactDigest",
+    "testSummary",
+    "releasePassport",
+    "rollbackReference"
+  ],
+  "exceptionRule": "exceptions-expire-and-never-create-precedent",
+  "truthfulnessRule": "A published static asset proves distribution only; it does not prove backend deployment, production health, customer acceptance or legal compliance."
+}

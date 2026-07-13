@@ -5,6 +5,8 @@ on:
     paths:
       - "governance/**"
       - "scripts/validate-public-release-contract.mjs"
+      - "scripts/validate-public-release-manifest.mjs"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
       - ".github/workflows/repository-contract-check.yml"
       - "AGENTS.md"
       - "README.md"
@@ -36,3 +38,5 @@ jobs:
           node-version: 20
       - name: Validate public repository boundary and secret safety
         run: node scripts/validate-public-release-contract.mjs
+      - name: Validate public release manifest contract
+        run: node scripts/validate-public-release-manifest.mjs

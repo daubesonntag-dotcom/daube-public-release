@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "releaseId": "public-release-YYYYMMDD-sequence",
+  "source": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "commit": "40-character-commit-sha",
+    "releaseHandoffId": "release-YYYYMMDD-sequence"
+  },
+  "artifact": {
+    "digestAlgorithm": "sha256",
+    "digest": "hex-digest",
+    "publishedPaths": [
+      "index.html",
+      "app.js",
+      "styles.css"
+    ]
+  },
+  "verification": {
+    "testSummary": "Exact tests and results.",
+    "secretScan": "passed-or-reference",
+    "publicSmokeTest": "passed-or-reference",
+    "accessibilityReview": "reference",
+    "privacyReview": "reference"
+  },
+  "approval": {
+    "releasePassport": "reference",
+    "approvedBy": "authorized-human-identity",
+    "approvedAt": "YYYY-MM-DDTHH:mm:ssZ"
+  },
+  "rollback": {
+    "rollbackReference": "prior-known-good-public-release",
+    "owner": "Founder / Public Release Steward",
+    "procedure": "Describe restoration procedure."
+  },
+  "claims": {
+    "proven": [
+      "listed-public-artifacts-were-published"
+    ],
+    "notProven": [
+      "private-backend-health",
+      "customer-acceptance",
+      "legal-compliance-outside-reviewed-scope"
+    ]
+  },
+  "exception": null,
+  "auditReference": "append-only-audit-record",
+  "publishedAt": "YYYY-MM-DDTHH:mm:ssZ"
+}

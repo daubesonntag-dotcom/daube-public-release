@@ -70,9 +70,24 @@ function walk(directory) {
 
 walk('.');
 
+const index = fs.readFileSync('index.html', 'utf8');
+const manifest = fs.readFileSync('manifest.webmanifest', 'utf8');
+const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+const robots = fs.readFileSync('robots.txt', 'utf8');
+
+if (!index.includes('<link rel="canonical" href="https://daubesonntag.com/">')) errors.push('public static root must canonicalize to https://daubesonntag.com/');
+if (!index.includes('noindex,nofollow,noarchive,nosnippet')) errors.push('public release channel root must remain noindex/nofollow');
+if (!index.includes('Public release channel')) errors.push('static root must identify itself as the public release channel');
+for (const syntheticFounderMarker of ['D’AUBE Founder OS', 'Founder Operating System', 'System health', 'Agents online', 'GRAND STEWARD ONLINE']) {
+  if (index.includes(syntheticFounderMarker)) errors.push(`synthetic/private Founder preview marker must not return: ${syntheticFounderMarker}`);
+}
+if (/Founder OS/i.test(manifest)) errors.push('public manifest must not advertise a Founder OS install');
+if (/founder-os/i.test(serviceWorker)) errors.push('public service-worker cache must not retain Founder OS identity');
+if (!/^User-agent: \*\s+Disallow: \/$/m.test(robots)) errors.push('robots.txt must disallow indexing of the public release channel');
+
 if (errors.length) {
   for (const error of [...new Set(errors)]) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
 
-console.log('Public release repository contract valid; no prohibited credential files or high-confidence secrets detected.');
+console.log('Public release repository contract valid; canonical/noindex/private-boundary and no-secrets invariants passed.');

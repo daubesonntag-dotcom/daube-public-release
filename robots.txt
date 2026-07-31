@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# Canonical public customer presence:
+# https://daubesonntag.com/

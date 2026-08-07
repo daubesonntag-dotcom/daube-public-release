@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "DAUBE-FOUNDER-SOVEREIGNTY-INHERITANCE-V1",
+  "status": "approved-control-plane-inheritance",
+  "canonicalPolicy": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "path": "config/governance/founder-sovereignty-universal-delegation-v1.json",
+    "policyId": "DAUBE-FOUNDER-SOVEREIGNTY-UNIVERSAL-DELEGATION-V1"
+  },
+  "founderRootPrincipal": {
+    "githubLogin": "daubesonntag-dotcom",
+    "githubUserId": 297018471,
+    "delegable": false,
+    "transferableByAutomation": false
+  },
+  "delegation": {
+    "scope": "all-current-and-future-projects-and-workstreams",
+    "reversibleExecutionAllowedByDefaultWithinGuardrails": true,
+    "founderIdentityTransferred": false,
+    "ownershipTransferred": false,
+    "equalRootAuthorityCreated": false,
+    "selfApprovalAllowed": false
+  },
+  "antiTakeover": {
+    "aiMayClaimFounderIdentity": false,
+    "syntheticFounderApprovalAllowed": false,
+    "shadowFounderAllowed": false,
+    "automationMayChangeFounderRoot": false,
+    "automationMayDisableFounderControls": false,
+    "ambiguousIdentityFailsClosed": true
+  },
+  "founderReserved": [
+    "change-founder-root-principal",
+    "transfer-company-control-or-equity",
+    "transfer-core-ip-ownership",
+    "change-repository-or-organization-ownership",
+    "change-root-secret-custody",
+    "change-bank-beneficiary-or-payout-destination",
+    "new-paid-spend-outside-approved-envelope",
+    "new-recurring-subscription",
+    "binding-legal-commitment",
+    "high-risk-or-irreversible-production-release",
+    "destructive-data-or-infrastructure-action",
+    "weaken-security-privacy-legal-regulated-claim-or-audit-gates"
+  ],
+  "protectedPaths": [
+    ".github/CODEOWNERS",
+    ".github/workflows/founder-sovereignty-inheritance-gate.yml",
+    "config/governance/founder-sovereignty-inheritance-v1.json",
+    "docs/governance/FOUNDER_SOVEREIGNTY_INHERITANCE_V1.md"
+  ],
+  "truthBoundary": "This repository inheritance policy governs internal D’AUBE authority only. GitHub account security, organization ownership, branch/ruleset settings, payment providers, secret managers, contracts and applicable law remain independent external control layers."
+}

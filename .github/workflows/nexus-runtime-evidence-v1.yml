@@ -1,0 +1,127 @@
+name: D'AUBE Nexus Runtime Evidence V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'backend-config.json'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'scripts/nexus-browser-evidence.mjs'
+      - '.github/workflows/nexus-runtime-evidence-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'backend-config.json'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'scripts/nexus-browser-evidence.mjs'
+      - '.github/workflows/nexus-runtime-evidence-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daube-nexus-runtime-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nexus-runtime:
+    name: APK build + rendered mobile asset + real backend outcome
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Android debug APK
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Verify APK contains canonical Nexus assets
+        run: |
+          set -euo pipefail
+          apk='app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$apk"
+          size="$(stat -c%s "$apk")"
+          test "$size" -gt 20000
+          unzip -l "$apk" > apk-files.txt
+          grep -F 'assets/index.html' apk-files.txt
+          grep -F 'assets/backend-client.js' apk-files.txt
+          grep -F 'assets/daube-ds-editorial-monogram.svg' apk-files.txt
+          printf '{"apk":"%s","bytes":%s,"sha256":"%s"}\n' "$apk" "$size" "$(sha256sum "$apk" | cut -d' ' -f1)" > apk-evidence.json
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enforce no fake completion and provider-neutral backend discovery
+        run: |
+          set -euo pipefail
+          if grep -R -E 'AGENTS[^[:alnum:]]*6|Planning[^[:alnum:]]*→[^[:alnum:]]*Building|q\.progress|progress:[[:space:]]*[0-9]+|steps[[:space:]]*=[[:space:]]*\[' app/src/main/assets/index.html app/src/main/assets/backend-client.js; then
+            echo 'Simulated completion/progress contract detected' >&2
+            exit 1
+          fi
+          if grep -R -F 'daube-sonntag.vercel.app' app/src/main/assets backend-config.json; then
+            echo 'Hardcoded Vercel fallback detected' >&2
+            exit 1
+          fi
+          grep -F 'daube-ds-editorial-monogram.svg' app/src/main/assets/index.html
+          grep -F 'Chưa hỗ trợ bởi endpoint hiện tại' app/src/main/assets/index.html
+          grep -F '/api/ecosystem/status' app/src/main/assets/backend-client.js
+          grep -F '/api/v1/quest' app/src/main/assets/backend-client.js
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const config = JSON.parse(await readFile('backend-config.json', 'utf8'));
+          if (!Array.isArray(config.candidates) || config.candidates.length !== 0) throw new Error('backend-config must fail closed with no hardcoded candidate');
+          if (config.policy?.providerNeutral !== true) throw new Error('provider-neutral policy missing');
+          if (config.policy?.hardcodedPaidProviderFallbackAllowed !== false) throw new Error('hardcoded paid-provider fallback must be forbidden');
+          NODE
+
+      - name: Render Nexus mobile asset and prove backend network outcome
+        run: node scripts/nexus-browser-evidence.mjs
+
+      - name: Enforce evidence truth boundary
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const value = JSON.parse(await readFile('.daube/evidence/nexus-browser/evidence.json', 'utf8'));
+          if (value.status !== 'PASS') throw new Error('Nexus rendered evidence is not PASS');
+          if (!value.truthBoundary?.browserAssetRuntimeVerified) throw new Error('browser asset runtime unverified');
+          if (!value.truthBoundary?.backendNetworkOutcomeVerified) throw new Error('backend network outcome unverified');
+          if (value.truthBoundary?.physicalAndroidWebViewDeviceVerified !== false) throw new Error('physical WebView boundary must remain explicit');
+          if (value.truthBoundary?.founderGoldVisualConfirmed !== false) throw new Error('Founder Gold must not be self-declared');
+          if (value.finalState?.system !== 'Online' || value.finalState?.historyCount !== '2') throw new Error('final runtime state mismatch');
+          if (!Array.isArray(value.observedRequests) || !value.observedRequests.some(item => item.method === 'POST' && item.path === '/api/v1/quest')) throw new Error('real quest request missing');
+          NODE
+
+      - name: Upload Nexus runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexus-runtime-${{ github.sha }}
+          path: |
+            .daube/evidence/nexus-browser
+            apk-evidence.json
+            apk-files.txt
+            app/build/outputs/apk/debug/app-debug.apk
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 21

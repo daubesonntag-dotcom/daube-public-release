@@ -3,7 +3,7 @@
   const CONFIG_URL = "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/backend-config.json";
   const DEFAULT_CONFIG = {
     healthPaths: ["/api/ecosystem/status", "/api/health"],
-    candidates: ["https://daube-sonntag.vercel.app"],
+    candidates: [],
     retry: { attempts: 3, delayMs: 1200, timeoutMs: 5000 }
   };
 
@@ -46,6 +46,11 @@
     const config = await loadConfig();
     const saved = clean(localStorage.getItem(ENDPOINT_KEY));
     const candidates = [...new Set([saved, ...(config.candidates || [])].map(clean).filter(Boolean))];
+    if (candidates.length === 0) {
+      window.dispatchEvent(new CustomEvent("daube-backend-offline", { detail: { reason: "NO_VERIFIED_ENDPOINT" } }));
+      return null;
+    }
+
     const attempts = Math.max(1, Number(config.retry?.attempts || 3));
     const delayMs = Math.max(250, Number(config.retry?.delayMs || 1200));
     const timeoutMs = Math.max(1000, Number(config.retry?.timeoutMs || 5000));
@@ -62,7 +67,7 @@
       if (round < attempts - 1) await sleep(delayMs);
     }
 
-    window.dispatchEvent(new CustomEvent("daube-backend-offline"));
+    window.dispatchEvent(new CustomEvent("daube-backend-offline", { detail: { reason: "NO_HEALTHY_ENDPOINT" } }));
     return null;
   }
 

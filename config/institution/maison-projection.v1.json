@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.2.0",
+  "id": "DAUBE-SITE-MAISON-PROJECTION-V1",
+  "canonicalOwner": "daube-forge-os",
+  "canonicalContracts": ["MIC-V7", "MIC-V8", "MIC-V9", "MIC-V10", "MIC-V11", "MIC-V12", "MIC-V13", "MIC-V14", "MIC-V15", "MIC-V16", "MIC-V17", "MIC-V18", "MIC-V19", "MIC-V20", "MIC-V21", "MIC-V22", "MIC-V23", "MIC-V24"],
+  "upstreamState": "verified-integrated",
+  "canonicalEvidenceRefs": [
+    "forge-main-convergence:60ce9311741b336d74db5e971569acbeaefcfa48",
+    "forge-canonical-heartbeat-main:59143cecfbfaaad30b4dbe91c404896fe7cec292",
+    "forge-exact-main-verification:production-release-lease-31329815038",
+    "forge-namespace-bridge-main:a47663e88b60387ca8ab059716a9b80b84349863"
+  ],
+  "productionAdoptionAllowed": false,
+  "domain": "web-product-and-brand-experience",
+  "craftDimensions": ["visual-reference", "interaction-states", "accessibility", "responsive-fit", "performance-and-frame-budget", "browser-device-evidence", "content-claim-evidence", "release-provenance", "rollback-and-reconstruction"],
+  "memoryTriggers": ["major-ux-or-architecture-decision", "repeated-visual-regression", "accessibility-regression", "performance-budget-regression", "public-claim-correction", "hosting-or-runtime-migration"],
+  "continuityDependencies": ["source-repository", "build-toolchain", "hosting-runtime", "critical-assets", "domain-and-routing-config", "rollback-artifacts"],
+  "requiredEvidence": ["exact-revision", "visual-reference-or-diff", "accessibility-evidence", "runtime-or-performance-evidence", "browser-or-device-evidence", "claim-evidence-where-public", "rollback-or-reconstruction-path"],
+  "institutionalLearningInputs": ["visual-regression", "interaction-defect", "accessibility-defect", "performance-regression", "customer-remedy", "trust-debt", "dependency-entropy"],
+  "compoundingInputs": {
+    "portfolio": ["release-candidate", "major-experiment", "site-investment"],
+    "distribution": ["owned-web", "organic-search", "referral", "social-to-owned-conversion"],
+    "customer": ["public-promise", "support-remedy", "accessibility-remedy", "claim-correction"],
+    "supply": ["hosting-runtime", "build-toolchain", "font-license", "media-source", "critical-third-party-script"],
+    "knowledge": ["design-system", "component-library", "content-pattern", "performance-runbook", "golden-page-reference"],
+    "governor": ["quality", "trust", "continuity", "customerOutcome", "distributionPortability", "knowledgeCapital", "operationalReliability", "evidenceStrength", "founderBurden", "recurrenceDebt"]
+  },
+  "authorityBoundary": {
+    "mayCollectEvidence": true,
+    "mayProposeCorrections": true,
+    "mayProposeStandardChanges": true,
+    "mayPromoteProductionWithoutReleaseGate": false,
+    "mayPublishUnsupportedClaims": false,
+    "mayChangeCredentials": false,
+    "maySpend": false,
+    "mayDestructivelyPurgeArchive": false,
+    "mayOverrideCompoundingHardFloor": false
+  },
+  "truthBoundary": {
+    "projectionIsNotCanonicalOwnership": true,
+    "candidateUpstreamDoesNotEqualIntegratedStandard": true,
+    "canonicalUpstreamVerifiedDoesNotEqualProductProductionVerified": true,
+    "goldClaimRequiresExactSubjectEvidence": true,
+    "internalReviewIsNotIndependentCertification": true,
+    "controlledExpandReviewDoesNotAuthorizeSiteReleaseOrSpend": true
+  }
+}

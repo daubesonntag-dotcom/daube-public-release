@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
-const REQUIRED = Array.from({length: 12}, (_, i) => `MIC-V${i + 7}`);
-const HIGH_RISK_FALSE = ['mayPromoteProductionWithoutReleaseGate', 'mayPublishUnsupportedClaims', 'mayChangeCredentials', 'maySpend', 'mayDestructivelyPurgeArchive'];
+const REQUIRED = Array.from({length: 18}, (_, i) => `MIC-V${i + 7}`);
+const HIGH_RISK_FALSE = ['mayPromoteProductionWithoutReleaseGate', 'mayPublishUnsupportedClaims', 'mayChangeCredentials', 'maySpend', 'mayDestructivelyPurgeArchive', 'mayOverrideCompoundingHardFloor'];
 const CREDENTIAL_KEY = /^(api[_-]?key|secret|password|credential|credentials|access[_-]?token|refresh[_-]?token)$/i;
 
 function scan(value, path = '$') {
@@ -20,13 +20,15 @@ export function validateProjection(projection) {
   if (projection.upstreamState !== 'verified-integrated' && projection.productionAdoptionAllowed !== false) throw new Error('candidate upstream cannot enable production adoption');
   if (!Array.isArray(projection.craftDimensions) || projection.craftDimensions.length < 5) throw new Error('insufficient craft dimensions');
   if (!Array.isArray(projection.requiredEvidence) || projection.requiredEvidence.length < 4) throw new Error('insufficient evidence requirements');
+  if (!projection.compoundingInputs?.governor?.includes('quality') || !projection.compoundingInputs?.governor?.includes('trust') || !projection.compoundingInputs?.governor?.includes('continuity')) throw new Error('compounding governor projection incomplete');
   for (const key of HIGH_RISK_FALSE) if (projection.authorityBoundary?.[key] !== false) throw new Error(`high-risk boundary must remain false: ${key}`);
   if (projection.truthBoundary?.projectionIsNotCanonicalOwnership !== true) throw new Error('projection ownership truth boundary missing');
+  if (projection.truthBoundary?.controlledExpandReviewDoesNotAuthorizeSiteReleaseOrSpend !== true) throw new Error('compounding review truth boundary missing');
   return true;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const projection = JSON.parse(fs.readFileSync('config/institution/maison-projection.v1.json', 'utf8'));
   validateProjection(projection);
-  console.log(JSON.stringify({status: 'ok', projection: projection.id, upstreamState: projection.upstreamState, productionAdoptionAllowed: projection.productionAdoptionAllowed}, null, 2));
+  console.log(JSON.stringify({status: 'ok', projection: projection.id, contracts: projection.canonicalContracts.length, upstreamState: projection.upstreamState, productionAdoptionAllowed: projection.productionAdoptionAllowed}, null, 2));
 }

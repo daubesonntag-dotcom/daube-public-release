@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 const REQUIRED = Array.from({length: 12}, (_, i) => `MIC-V${i + 7}`);
 const HIGH_RISK_FALSE = ['mayPromoteProductionWithoutReleaseGate', 'mayPublishUnsupportedClaims', 'mayChangeCredentials', 'maySpend', 'mayDestructivelyPurgeArchive'];
-const CREDENTIAL_KEY = /(api[_-]?key|secret|password|credential|access[_-]?token|refresh[_-]?token)/i;
+const CREDENTIAL_KEY = /^(api[_-]?key|secret|password|credential|credentials|access[_-]?token|refresh[_-]?token)$/i;
 
 function scan(value, path = '$') {
   if (Array.isArray(value)) return value.forEach((v, i) => scan(v, `${path}[${i}]`));

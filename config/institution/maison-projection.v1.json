@@ -1,8 +1,8 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "id": "DAUBE-SITE-MAISON-PROJECTION-V1",
   "canonicalOwner": "daube-forge-os",
-  "canonicalContracts": ["MIC-V7", "MIC-V8", "MIC-V9", "MIC-V10", "MIC-V11", "MIC-V12", "MIC-V13", "MIC-V14", "MIC-V15", "MIC-V16", "MIC-V17", "MIC-V18"],
+  "canonicalContracts": ["MIC-V7", "MIC-V8", "MIC-V9", "MIC-V10", "MIC-V11", "MIC-V12", "MIC-V13", "MIC-V14", "MIC-V15", "MIC-V16", "MIC-V17", "MIC-V18", "MIC-V19", "MIC-V20", "MIC-V21", "MIC-V22", "MIC-V23", "MIC-V24"],
   "upstreamState": "candidate-not-integrated",
   "productionAdoptionAllowed": false,
   "domain": "web-product-and-brand-experience",
@@ -51,6 +51,14 @@
     "trust-debt",
     "dependency-entropy"
   ],
+  "compoundingInputs": {
+    "portfolio": ["release-candidate", "major-experiment", "site-investment"],
+    "distribution": ["owned-web", "organic-search", "referral", "social-to-owned-conversion"],
+    "customer": ["public-promise", "support-remedy", "accessibility-remedy", "claim-correction"],
+    "supply": ["hosting-runtime", "build-toolchain", "font-license", "media-source", "critical-third-party-script"],
+    "knowledge": ["design-system", "component-library", "content-pattern", "performance-runbook", "golden-page-reference"],
+    "governor": ["quality", "trust", "continuity", "customerOutcome", "distributionPortability", "knowledgeCapital", "operationalReliability", "evidenceStrength", "founderBurden", "recurrenceDebt"]
+  },
   "authorityBoundary": {
     "mayCollectEvidence": true,
     "mayProposeCorrections": true,
@@ -59,12 +67,14 @@
     "mayPublishUnsupportedClaims": false,
     "mayChangeCredentials": false,
     "maySpend": false,
-    "mayDestructivelyPurgeArchive": false
+    "mayDestructivelyPurgeArchive": false,
+    "mayOverrideCompoundingHardFloor": false
   },
   "truthBoundary": {
     "projectionIsNotCanonicalOwnership": true,
     "candidateUpstreamDoesNotEqualIntegratedStandard": true,
     "goldClaimRequiresExactSubjectEvidence": true,
-    "internalReviewIsNotIndependentCertification": true
+    "internalReviewIsNotIndependentCertification": true,
+    "controlledExpandReviewDoesNotAuthorizeSiteReleaseOrSpend": true
   }
 }

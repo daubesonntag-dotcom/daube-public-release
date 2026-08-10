@@ -26,6 +26,9 @@ concurrency:
   group: ppe-v3-site-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PPE_EXACT_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   export:
     name: Export exact revision + APK build receipts
@@ -35,6 +38,7 @@ jobs:
       - name: Checkout exact subject revision
         uses: actions/checkout@v5
         with:
+          ref: ${{ env.PPE_EXACT_SUBJECT_SHA }}
           persist-credentials: false
 
       - name: Setup Java 17
@@ -71,7 +75,7 @@ jobs:
 
       - name: Build explicit receipt specification
         env:
-          SUBJECT_SHA: ${{ github.sha }}
+          SUBJECT_SHA: ${{ env.PPE_EXACT_SUBJECT_SHA }}
           APK_DIGEST: ${{ steps.apk.outputs.digest }}
           APK_BYTES: ${{ steps.apk.outputs.bytes }}
         run: |
@@ -109,7 +113,7 @@ jobs:
           PPE_PRODUCT_ID: daube-site
           PPE_EXPORTER_ID: PPE-EXP-DAUBE-SITE-V3
           PPE_REPOSITORY: daubesonntag-dotcom/daube-site
-          PPE_SUBJECT_REVISION: ${{ github.sha }}
+          PPE_SUBJECT_REVISION: ${{ env.PPE_EXACT_SUBJECT_SHA }}
           PPE_RECEIPTS_FILE: .daube/ppe-v3/receipt-spec.json
           PPE_OUTPUT_FILE: dist/ppe-v3/export.json
         run: node scripts/ppe-export-v3.mjs
@@ -119,7 +123,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const value = JSON.parse(fs.readFileSync('dist/ppe-v3/export.json', 'utf8'));
-          if (value.subjectRevision !== process.env.GITHUB_SHA) throw new Error('subject revision mismatch');
+          if (value.subjectRevision !== process.env.PPE_EXACT_SUBJECT_SHA) throw new Error('subject revision mismatch');
           const classes = value.receipts.map((row) => row.evidenceClass).sort();
           if (JSON.stringify(classes) !== JSON.stringify(['build', 'exact-revision'])) throw new Error(`unexpected exported classes: ${classes.join(',')}`);
           if (value.receipts.some((row) => ['browser-device','accessibility','performance','runtime-health','public-claim','security-privacy','rollback'].includes(row.evidenceClass))) throw new Error('unsupported Site evidence was fabricated');
@@ -129,7 +133,7 @@ jobs:
       - name: Upload immutable evidence export
         uses: actions/upload-artifact@v7
         with:
-          name: ppe-v3-site-${{ github.sha }}
+          name: ppe-v3-site-${{ env.PPE_EXACT_SUBJECT_SHA }}
           path: |
             dist/ppe-v3/export.json
             app/build/outputs/apk/debug/app-debug.apk

@@ -3,59 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f4efe6">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
   <meta name="description" content="D’AUBE SONNTAG public static release channel. The canonical customer experience lives at daubesonntag.com.">
   <link rel="canonical" href="https://daubesonntag.com/">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="vendor/daube-design-system/b9bcf25/semantic-tokens.css">
+  <link rel="stylesheet" href="vendor/daube-design-system/b9bcf25/components.css">
+  <link rel="stylesheet" href="assets/public-reference.css">
   <title>D’AUBE SONNTAG — Public Release Channel</title>
-  <style>
-    :root{--paper:#f4efe6;--paper2:#fbf8f1;--ink:#211d18;--muted:#74695e;--line:rgba(53,43,32,.14);--gold:#a87c47}
-    *{box-sizing:border-box}html{background:var(--paper)}body{margin:0;min-height:100svh;color:var(--ink);background:radial-gradient(circle at 16% 0%,#fff 0,transparent 31rem),linear-gradient(180deg,var(--paper2),var(--paper));font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    a{color:inherit}.skip{position:fixed;z-index:10;left:1rem;top:1rem;transform:translateY(-180%);padding:.7rem 1rem;border-radius:999px;background:#211d18;color:#fff;text-decoration:none}.skip:focus{transform:none}
-    .shell{width:min(1180px,calc(100% - 2rem));margin:auto;min-height:100svh;display:flex;flex-direction:column}.topbar{min-height:78px;display:flex;align-items:center;justify-content:space-between;gap:2rem;border-bottom:1px solid var(--line)}
-    .brand{text-decoration:none;display:flex;flex-direction:column;gap:.18rem;letter-spacing:.08em}.brand strong{font-family:Georgia,"Times New Roman",serif;font-weight:500}.brand span,.channel{font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-    main{flex:1;padding:clamp(4rem,11vw,9rem) 0 5rem}.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);gap:clamp(2rem,7vw,7rem);align-items:end}.eyebrow{margin:0 0 1.3rem;color:var(--gold);font-size:.7rem;font-weight:750;letter-spacing:.21em;text-transform:uppercase}.hero h1{max-width:11ch;margin:0;font-family:Georgia,"Times New Roman",serif;font-size:clamp(3.4rem,9vw,8rem);font-weight:400;line-height:.88;letter-spacing:-.055em}.lede{max-width:690px;margin:2rem 0 0;color:#655c53;font-size:clamp(1rem,1.7vw,1.22rem);line-height:1.68}.actions{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:2rem}.actions a{display:inline-flex;align-items:center;gap:1.2rem;min-height:46px;padding:.75rem 1rem;border-radius:999px;text-decoration:none;font-size:.82rem;font-weight:650}.primary{background:#211d18;color:#fff}.secondary{border:1px solid var(--line);background:#ffffff66}
-    .seal{min-height:285px;position:relative;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:1.5rem;border:1px solid var(--line);border-radius:50% 50% 12px 12px;background:radial-gradient(circle at 50% 30%,#fff 0 8%,#ead2af 9% 16%,transparent 17%),radial-gradient(circle at 50% 56%,#cba87755,transparent 42%),linear-gradient(180deg,#e9ddcb,#c7aa83 70%,#796044);color:#fff}.seal:before{content:"";position:absolute;inset:12% 18%;border:1px solid #ffffff99;border-radius:50% 50% 18% 18%}.seal small,.seal strong{position:relative;letter-spacing:.17em;text-transform:uppercase}.seal small{font-size:.62rem}.seal strong{margin-top:.35rem;font-family:Georgia,serif;font-size:1.25rem;font-weight:500}
-    .contract{margin-top:clamp(4rem,9vw,8rem);border:1px solid var(--line);background:#ffffff52}.contract-head{padding:clamp(1.4rem,3vw,2.2rem);border-bottom:1px solid var(--line)}.contract-head p{margin:0 0 .55rem;color:var(--gold);font-size:.67rem;font-weight:750;letter-spacing:.18em;text-transform:uppercase}.contract-head h2{margin:0;font-family:Georgia,serif;font-size:clamp(1.8rem,4vw,3.2rem);font-weight:400}.grid{display:grid;grid-template-columns:repeat(3,1fr)}.grid article{min-height:190px;padding:1.5rem;border-right:1px solid var(--line)}.grid article:last-child{border-right:0}.grid small{color:var(--gold);font-size:.65rem;letter-spacing:.16em}.grid h3{margin:2.7rem 0 .55rem;font-family:Georgia,serif;font-size:1.35rem;font-weight:400}.grid p{margin:0;color:var(--muted);font-size:.83rem;line-height:1.55}
-    footer{display:flex;justify-content:space-between;gap:2rem;padding:1.7rem 0 2.3rem;border-top:1px solid var(--line);color:var(--muted);font-size:.7rem}footer a{text-decoration:none;color:#403930}
-    a:focus-visible{outline:2px solid #211d18;outline-offset:4px}
-    @media(max-width:760px){.shell{width:min(100% - 1.2rem,1180px)}.topbar{min-height:68px}.hero{grid-template-columns:1fr}.hero h1{font-size:clamp(3.2rem,17vw,5.8rem)}.seal{min-height:210px}.grid{grid-template-columns:1fr}.grid article{border-right:0;border-bottom:1px solid var(--line)}.grid article:last-child{border-bottom:0}.actions{display:grid}.actions a{min-height:48px;justify-content:space-between}footer{flex-direction:column}}
-    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-    @media(forced-colors:active){.seal{background:Canvas;color:CanvasText;border:1px solid CanvasText}.primary,.secondary,.contract{border:1px solid CanvasText}}
-  </style>
 </head>
-<body>
-  <a class="skip" href="#main">Skip to content</a>
-  <div class="shell">
-    <header class="topbar">
-      <a class="brand" href="https://daubesonntag.com/" aria-label="Open D’AUBE SONNTAG"><strong>D’AUBE SONNTAG</strong><span>meaning, made visible</span></a>
-      <span class="channel">Public release channel</span>
+<body class="ds-shell">
+  <a class="public-skip" href="#main-content">Skip to content</a>
+
+  <div class="public-shell">
+    <header class="public-header">
+      <a class="public-brand" href="https://daubesonntag.com/" aria-label="Open D’AUBE SONNTAG canonical experience">
+        <strong>D’AUBE SONNTAG</strong>
+        <span>meaning, made visible</span>
+      </a>
+      <span class="public-channel">Public release channel · Platform-pinned</span>
     </header>
-    <main id="main">
-      <section class="hero">
+
+    <main id="main-content" class="public-main">
+      <section class="public-hero" aria-labelledby="public-title">
         <div>
-          <p class="eyebrow">STATIC DISTRIBUTION · NO PRIVATE WORKSPACE</p>
-          <h1>The maison lives elsewhere.</h1>
-          <p class="lede">This public repository is a controlled static release and distribution boundary for D’AUBE. The canonical customer experience, commerce journeys and world anthology live on <strong>daubesonntag.com</strong>. Founder and staff workspaces are intentionally not published here.</p>
-          <div class="actions">
-            <a class="primary" href="https://daubesonntag.com/">Open the maison <span aria-hidden="true">↗</span></a>
-            <a class="secondary" href="https://daubesonntag.com/menu">Public menu <span aria-hidden="true">→</span></a>
+          <p class="public-kicker">PUBLIC SURFACE · CONTROLLED DISTRIBUTION</p>
+          <h1 id="public-title" class="public-title">A governed threshold into D’AUBE.</h1>
+          <p class="public-lede">
+            This repository is intentionally a small public release boundary. The canonical customer experience,
+            commerce journeys and authored worlds remain on <strong>daubesonntag.com</strong>. Shared interface
+            foundations are consumed from the D’AUBE Platform with pinned provenance rather than recreated here.
+          </p>
+          <div class="public-actions">
+            <a class="ds-action" data-variant="primary" href="https://daubesonntag.com/">
+              Enter canonical experience <span aria-hidden="true">↗</span>
+            </a>
+            <a class="ds-action" href="https://daubesonntag.com/menu">
+              Explore public menu <span aria-hidden="true">→</span>
+            </a>
           </div>
         </div>
-        <div class="seal" aria-hidden="true"><small>DAWN · RELEASE</small><strong>D’AUBE SONNTAG</strong></div>
-      </section>
-      <section class="contract" aria-labelledby="contract-title">
-        <header class="contract-head"><p>CHANNEL CONTRACT</p><h2 id="contract-title">One public identity. Clear authority.</h2></header>
-        <div class="grid">
-          <article><small>01 · CANONICAL</small><h3>Customer presence</h3><p>Brand, gift studio, Digital Editions and AILLEURS remain canonical on daubesonntag.com.</p></article>
-          <article><small>02 · PRIVATE</small><h3>Founder workspace</h3><p>No simulated Founder dashboard, internal metrics, privileged controls or private operating surfaces are presented here.</p></article>
-          <article><small>03 · PROVENANCE</small><h3>Static handoff</h3><p>Public artifacts require source provenance, verification, approval and rollback evidence before distribution.</p></article>
+
+        <div class="public-mark" aria-hidden="true">
+          <small>RẠNG ↔ TRONG · AUTO</small>
+          <strong>D’AUBE SONNTAG</strong>
         </div>
       </section>
+
+      <section class="public-contract" aria-labelledby="contract-title">
+        <header class="public-contract__head">
+          <p>REFERENCE CONTRACT</p>
+          <h2 id="contract-title">One interface foundation. Clear authority.</h2>
+        </header>
+        <div class="public-grid">
+          <article class="public-card">
+            <span class="public-card__index">01 · CANONICAL</span>
+            <h3>Customer presence</h3>
+            <p>The canonical public experience belongs to daubesonntag.com, not to this distribution boundary.</p>
+          </article>
+          <article class="public-card">
+            <span class="public-card__index">02 · PLATFORM</span>
+            <h3>Shared foundation</h3>
+            <p>RẠNG/TRONG tokens and reusable shell styles are pinned to a verified Platform source revision.</p>
+          </article>
+          <article class="public-card">
+            <span class="public-card__index">03 · EVIDENCE</span>
+            <h3>Release truth</h3>
+            <p>Repository state proves repository state only. It never self-proves production, customers or revenue.</p>
+          </article>
+        </div>
+      </section>
+
+      <p class="public-provenance">
+        Interface source · D’AUBE Platform · commit b9bcf25 · static CSS snapshot · deployment state unverified
+      </p>
     </main>
-    <footer><span>D’AUBE SONNTAG · Public static release boundary</span><a href="https://daubesonntag.com/">Canonical site: daubesonntag.com</a></footer>
+
+    <footer class="public-footer">
+      <span>D’AUBE SONNTAG · Public static release boundary</span>
+      <a href="https://daubesonntag.com/">Canonical site · daubesonntag.com</a>
+    </footer>
   </div>
 </body>
 </html>

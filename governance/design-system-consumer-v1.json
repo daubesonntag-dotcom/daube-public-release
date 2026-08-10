@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "contract_id": "DAUBE-PUBLIC-SURFACE-DESIGN-SYSTEM-CONSUMER-V1",
+  "programme_issue": 21,
+  "repository": "daubesonntag-dotcom/daube-site",
+  "repository_class": "PUBLIC_SURFACE",
+  "canonical_authority": "public-web-composition",
+  "platform_authority": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "repository_class": "PLATFORM",
+    "source_commit": "b9bcf25ee16846d8a8af743ae2d38f00664496f4",
+    "all_domain_contract": "DAUBE-ALL-DOMAIN-EXPERIENCE-V1"
+  },
+  "vendored_assets": [
+    {
+      "source_path": "packages/design-system/semantic-tokens.css",
+      "source_blob_sha": "780bde2e99262a58c9522ff04add69bfe9fdabc4",
+      "local_path": "vendor/daube-design-system/b9bcf25/semantic-tokens.css",
+      "consumption": "EXACT_VENDOR_SNAPSHOT",
+      "hand_edit_allowed": false
+    },
+    {
+      "source_path": "packages/design-system/components.css",
+      "source_blob_sha": "2bd7e33b824e8ac9b862f93abf35b687f49d0f07",
+      "local_path": "vendor/daube-design-system/b9bcf25/components.css",
+      "consumption": "EXACT_VENDOR_SNAPSHOT",
+      "hand_edit_allowed": false
+    }
+  ],
+  "runtime_adoption": {
+    "source_path": "packages/design-system/runtime.mjs",
+    "source_blob_sha": "a7ff96b7b4f569bc8451ce36d929d3cc21226525",
+    "local_path": null,
+    "state": "DEFERRED_PLATFORM_SAFETY_BLOCKED",
+    "attempted_writes": 2,
+    "bypass_attempts": 0,
+    "current_non_executable_fallback": "CSS_PREFERS_COLOR_SCHEME_AUTO",
+    "explicit_mode_switch": "DEFERRED",
+    "explicit_preference_persistence": "DEFERRED"
+  },
+  "mode_adoption": {
+    "default_preference": "AUTO",
+    "auto_signal": "prefers-color-scheme",
+    "supported_resolved_modes": ["RANG", "TRONG"],
+    "high_contrast": "CSS_MEDIA_SIGNAL",
+    "reduced_motion": "CSS_MEDIA_SIGNAL",
+    "data_saver": "DEFERRED_RUNTIME",
+    "large_text": "USER_AGENT_ZOOM_AND_TEXT_SCALING"
+  },
+  "adoption_state": "CANDIDATE",
+  "deployment_state": "UNVERIFIED",
+  "external_evidence_refs": [],
+  "truth_boundary": "This manifest proves only intended repository consumption and provenance metadata. It does not prove production deployment, canonical daubesonntag.com adoption, customer traffic, Founder Gold acceptance, or external provider state."
+}

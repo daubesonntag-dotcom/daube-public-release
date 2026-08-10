@@ -2,6 +2,14 @@ name: PPE V3 Evidence Export — Site
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'scripts/ppe-export-v3.mjs'
+      - '.github/workflows/ppe-v3-evidence-export.yml'
   push:
     branches: [main]
     paths:

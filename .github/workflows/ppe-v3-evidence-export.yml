@@ -6,16 +6,20 @@ on:
     branches: [main]
     paths:
       - 'app/**'
+      - 'backend-config.json'
       - 'build.gradle'
       - 'settings.gradle'
+      - 'scripts/nexus-browser-evidence.mjs'
       - 'scripts/ppe-export-v3.mjs'
       - '.github/workflows/ppe-v3-evidence-export.yml'
   push:
     branches: [main]
     paths:
       - 'app/**'
+      - 'backend-config.json'
       - 'build.gradle'
       - 'settings.gradle'
+      - 'scripts/nexus-browser-evidence.mjs'
       - 'scripts/ppe-export-v3.mjs'
       - '.github/workflows/ppe-v3-evidence-export.yml'
 
@@ -31,7 +35,7 @@ env:
 
 jobs:
   export:
-    name: Export exact revision + APK build receipts
+    name: Export exact revision + APK build + scoped runtime health receipts
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -73,18 +77,42 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Produce scoped Nexus runtime evidence
+        run: node scripts/nexus-browser-evidence.mjs
+
+      - name: Enforce scoped runtime-health truth boundary
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const value = JSON.parse(await readFile('.daube/evidence/nexus-browser/evidence.json', 'utf8'));
+          if (value.status !== 'PASS') throw new Error('Nexus rendered evidence is not PASS');
+          if (!value.truthBoundary?.browserAssetRuntimeVerified) throw new Error('browser asset runtime unverified');
+          if (!value.truthBoundary?.backendNetworkOutcomeVerified) throw new Error('backend network outcome unverified');
+          if (value.truthBoundary?.physicalAndroidWebViewDeviceVerified !== false) throw new Error('physical WebView boundary must remain explicit');
+          if (value.truthBoundary?.founderGoldVisualConfirmed !== false) throw new Error('Founder Gold must not be self-declared');
+          if (value.finalState?.system !== 'Online' || value.finalState?.historyCount !== '2') throw new Error('final runtime state mismatch');
+          if (!Array.isArray(value.observedRequests) || !value.observedRequests.some(item => item.method === 'POST' && item.path === '/api/v1/quest')) throw new Error('real quest request missing');
+          NODE
+          digest="$(sha256sum .daube/evidence/nexus-browser/evidence.json | cut -d' ' -f1)"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
       - name: Build explicit receipt specification
         env:
           SUBJECT_SHA: ${{ env.PPE_EXACT_SUBJECT_SHA }}
           APK_DIGEST: ${{ steps.apk.outputs.digest }}
           APK_BYTES: ${{ steps.apk.outputs.bytes }}
+          RUNTIME_DIGEST: ${{ steps.runtime.outputs.digest }}
         run: |
           mkdir -p .daube/ppe-v3
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const sha = process.env.SUBJECT_SHA;
-          const digest = process.env.APK_DIGEST;
+          const apkDigest = process.env.APK_DIGEST;
           const bytes = process.env.APK_BYTES;
+          const runtimeDigest = process.env.RUNTIME_DIGEST;
           const receipts = [
             {
               sourceId: 'PPE-SRC-SITE-EXACT-REVISION',
@@ -101,8 +129,17 @@ jobs:
               sourceKind: 'workflow-artifact',
               outcome: 'success',
               producer: 'site-ppe-v3-exporter',
-              immutableRefs: [`git+https://github.com/daubesonntag-dotcom/daube-site@${sha}`, `sha256:${digest}`],
-              limitations: `Debug APK build evidence only (${bytes} bytes); does not prove browser/device matrix, accessibility, performance, runtime health, public claims, security/privacy, rollback, Founder Gold or production approval.`
+              immutableRefs: [`git+https://github.com/daubesonntag-dotcom/daube-site@${sha}`, `sha256:${apkDigest}`],
+              limitations: `Debug APK build evidence only (${bytes} bytes); does not prove browser/device matrix, accessibility, performance, public claims, security/privacy, rollback, Founder Gold or production approval.`
+            },
+            {
+              sourceId: 'PPE-SRC-SITE-RUNTIME-HEALTH',
+              evidenceClass: 'runtime-health',
+              sourceKind: 'runtime-probe',
+              outcome: 'verified',
+              producer: 'site-ppe-v3-exporter',
+              immutableRefs: [`git+https://github.com/daubesonntag-dotcom/daube-site@${sha}`, `sha256:${runtimeDigest}`],
+              limitations: 'Scoped rendered browser-asset runtime and backend network-outcome evidence from the Nexus harness. It explicitly does not prove a physical Android WebView/device matrix, accessibility, performance, Founder Gold, public claims, security/privacy, rollback or overall production approval.'
             }
           ];
           fs.writeFileSync('.daube/ppe-v3/receipt-spec.json', JSON.stringify(receipts, null, 2));
@@ -118,16 +155,16 @@ jobs:
           PPE_OUTPUT_FILE: dist/ppe-v3/export.json
         run: node scripts/ppe-export-v3.mjs
 
-      - name: Enforce truth boundary
+      - name: Enforce exporter class boundary
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const value = JSON.parse(fs.readFileSync('dist/ppe-v3/export.json', 'utf8'));
           if (value.subjectRevision !== process.env.PPE_EXACT_SUBJECT_SHA) throw new Error('subject revision mismatch');
           const classes = value.receipts.map((row) => row.evidenceClass).sort();
-          if (JSON.stringify(classes) !== JSON.stringify(['build', 'exact-revision'])) throw new Error(`unexpected exported classes: ${classes.join(',')}`);
-          if (value.receipts.some((row) => ['browser-device','accessibility','performance','runtime-health','public-claim','security-privacy','rollback'].includes(row.evidenceClass))) throw new Error('unsupported Site evidence was fabricated');
-          console.log('Site PPE-V3 export is partial evidence only; production remains unapproved.');
+          if (JSON.stringify(classes) !== JSON.stringify(['build', 'exact-revision', 'runtime-health'])) throw new Error(`unexpected exported classes: ${classes.join(',')}`);
+          if (value.receipts.some((row) => ['browser-device','accessibility','performance','public-claim','security-privacy','rollback'].includes(row.evidenceClass))) throw new Error('unsupported Site evidence was fabricated');
+          console.log('Site PPE-V3 export contains exact-revision, build and scoped runtime-health evidence only; production remains unapproved.');
           NODE
 
       - name: Upload immutable evidence export
@@ -136,6 +173,8 @@ jobs:
           name: ppe-v3-site-${{ env.PPE_EXACT_SUBJECT_SHA }}
           path: |
             dist/ppe-v3/export.json
+            .daube/evidence/nexus-browser/evidence.json
             app/build/outputs/apk/debug/app-debug.apk
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

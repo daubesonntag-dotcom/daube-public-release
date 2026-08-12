@@ -1,0 +1,40 @@
+{
+  "contract": "DAUBE-CINEMATIC-EMAIL-DIRECTION-V1",
+  "status": "APPROVED_VISUAL_SYSTEM",
+  "directions": [
+    {
+      "id": "founder-note-light",
+      "use": ["founder", "one-to-one", "invitation", "relationship"],
+      "visual": ["ivory", "deep-navy", "muted-gold", "quiet-3d-still-life", "editorial-serif"],
+      "motion": ["slow-parallax", "soft-light-sweep", "subtle-depth"],
+      "cta_max": 1
+    },
+    {
+      "id": "cinematic-launch-dark",
+      "use": ["launch", "premiere", "campaign", "realm-reveal"],
+      "visual": ["deep-navy", "ivory", "gold", "translucent-envelope", "dawn-landscape", "flowing-ribbon"],
+      "motion": ["ribbon-drift", "camera-push", "volumetric-light", "reflection-shift"],
+      "cta_max": 1
+    }
+  ],
+  "responsive": {"mobile_first": true, "single_column_below_px": 760},
+  "email_runtime": {
+    "html": "table-layout + inline-styles + plain-text fallback",
+    "images": "immutable public HTTPS for outbound mail",
+    "javascript": false,
+    "animated_email_fallback": "poster frame"
+  },
+  "accessibility": {
+    "alt_text_required": true,
+    "prefers_reduced_motion": true,
+    "minimum_body_line_height": 1.6,
+    "decorative_motion_must_not_block_copy": true
+  },
+  "quality_gates": [
+    "no-broken-hero",
+    "mobile-no-horizontal-overflow",
+    "single-primary-cta",
+    "readable-with-images-disabled",
+    "reduced-motion-safe"
+  ]
+}

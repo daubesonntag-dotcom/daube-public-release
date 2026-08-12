@@ -9,7 +9,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: android-evidence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -17,6 +21,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -41,3 +47,82 @@ jobs:
           name: DAUBE-Nexus-Automatic-APK
           path: release/*
           if-no-files-found: error
+          retention-days: 14
+
+  virtual-device-evidence:
+    name: Android API ${{ matrix.api-level }} runtime evidence
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 35]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: DAUBE-Nexus-Automatic-APK
+          path: release
+      - name: Run APK on isolated Android virtual device
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euo pipefail
+            evidence="artifacts/device-api-${{ matrix.api-level }}"
+            mkdir -p "$evidence"
+            adb install -r release/DAUBE-Nexus-Automatic.apk | tee "$evidence/install.txt"
+            adb logcat -c
+            adb shell am force-stop com.daubesonntag.nexus
+            adb shell am start -W -n com.daubesonntag.nexus/.LocalMainActivity | tee "$evidence/startup.txt"
+            sleep 4
+            focus="$(adb shell dumpsys window windows | grep -m1 'mCurrentFocus' || true)"
+            printf '%s\n' "$focus" | tee "$evidence/current-focus.txt"
+            printf '%s\n' "$focus" | grep -q 'com.daubesonntag.nexus'
+            pid="$(adb shell pidof com.daubesonntag.nexus | tr -d '\r')"
+            test -n "$pid"
+            printf '%s\n' "$pid" > "$evidence/pid.txt"
+            adb exec-out screencap -p > "$evidence/screenshot.png"
+            adb shell uiautomator dump /sdcard/daube-window.xml >/dev/null 2>&1 || true
+            adb pull /sdcard/daube-window.xml "$evidence/accessibility-window.xml" >/dev/null 2>&1 || true
+            adb logcat --pid="$pid" -d > "$evidence/logcat.txt" || adb logcat -d > "$evidence/logcat.txt"
+            if grep -E 'FATAL EXCEPTION|AndroidRuntime: FATAL|am_crash' "$evidence/logcat.txt"; then
+              echo 'Native crash evidence detected.' >&2
+              exit 1
+            fi
+            adb shell dumpsys meminfo com.daubesonntag.nexus > "$evidence/memory.txt"
+            adb shell dumpsys gfxinfo com.daubesonntag.nexus > "$evidence/gfxinfo.txt"
+            python3 - <<'PY'
+            import json, os
+            api = os.environ.get('MATRIX_API_LEVEL', '${{ matrix.api-level }}')
+            evidence = f'artifacts/device-api-{api}'
+            report = {
+                'schema_version': 1,
+                'api_level': int(api),
+                'package': 'com.daubesonntag.nexus',
+                'activity': '.LocalMainActivity',
+                'foreground_verified': True,
+                'crash_scan': 'PASS',
+                'artifacts': ['startup.txt', 'current-focus.txt', 'screenshot.png', 'accessibility-window.xml', 'logcat.txt', 'memory.txt', 'gfxinfo.txt'],
+            }
+            with open(f'{evidence}/device-evidence.json', 'w', encoding='utf-8') as handle:
+                json.dump(report, handle, indent=2)
+                handle.write('\n')
+            PY
+        env:
+          MATRIX_API_LEVEL: ${{ matrix.api-level }}
+      - name: Upload device evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-device-evidence-api-${{ matrix.api-level }}
+          path: artifacts/device-api-${{ matrix.api-level }}/
+          if-no-files-found: warn
+          retention-days: 14

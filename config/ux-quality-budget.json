@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "contract_id": "DAUBE-PUBLIC-UX-QUALITY-V1",
+  "philosophy": "fast-by-default, accessible-by-default, visible-output-first",
+  "budgets": {
+    "html_max_bytes": 120000,
+    "css_max_bytes": 180000,
+    "image_max_bytes": 500000,
+    "email_html_max_bytes": 120000,
+    "max_primary_cta_per_email": 1
+  },
+  "required": {
+    "doctype": true,
+    "document_language": true,
+    "viewport_meta": true,
+    "single_h1_on_public_pages": true,
+    "image_alt_text": true,
+    "reduced_motion_when_motion_exists": true,
+    "no_local_protocols_in_outgoing_email": true,
+    "no_javascript_in_outgoing_email": true
+  },
+  "cost_policy": {
+    "dependency_free_pr_gate": true,
+    "scheduled_heavy_browser_audit": false,
+    "heavy_audits": "workflow_dispatch or targeted release evidence only"
+  }
+}

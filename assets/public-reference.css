@@ -175,12 +175,13 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  isolation: isolate;
   padding: var(--ds-space-8);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-xl) var(--ds-radius-xl) var(--ds-radius-md) var(--ds-radius-md);
   background:
-    radial-gradient(circle at 50% 24%, color-mix(in srgb, var(--ds-accent-soft) 58%, transparent) 0 12%, transparent 13%),
-    radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--ds-accent) 28%, transparent), transparent 44%),
+    radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--ds-accent-soft) 62%, transparent) 0 10%, transparent 29%),
+    radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--ds-accent) 24%, transparent), transparent 50%),
     linear-gradient(180deg, color-mix(in srgb, var(--ds-surface-elevated) 88%, var(--ds-accent-soft)), color-mix(in srgb, var(--ds-accent) 48%, var(--ds-surface-primary)));
   box-shadow: 0 28px 80px color-mix(in srgb, var(--ds-text-primary) 10%, transparent);
 }
@@ -188,21 +189,90 @@ a:focus-visible {
 .public-mark::before {
   content: "";
   position: absolute;
-  inset: 12% 18%;
-  border: 1px solid color-mix(in srgb, var(--ds-text-primary) 35%, transparent);
-  border-radius: 50% 50% 18% 18%;
+  z-index: -2;
+  inset: 8% 13% 18%;
+  border: 1px solid color-mix(in srgb, var(--ds-text-primary) 28%, transparent);
+  border-radius: 50% 50% 16% 16%;
+  box-shadow:
+    inset 0 0 48px color-mix(in srgb, var(--ds-accent-soft) 16%, transparent),
+    0 0 52px color-mix(in srgb, var(--ds-accent) 12%, transparent);
 }
 
 .public-mark::after {
   content: "";
   position: absolute;
-  width: 44%;
+  z-index: -3;
+  width: 54%;
   aspect-ratio: 1;
-  inset: 17% auto auto 28%;
+  inset: 11% auto auto 23%;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--ds-accent-soft) 16%, transparent);
-  filter: blur(18px);
+  background: color-mix(in srgb, var(--ds-accent-soft) 20%, transparent);
+  filter: blur(22px);
+  animation: public-breathe 6s ease-in-out infinite;
 }
+
+.public-mark__scene {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.public-mark__halo {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-soft) 42%, transparent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+}
+
+.public-mark__halo--outer {
+  width: 74%;
+  aspect-ratio: 1;
+  opacity: 0.32;
+  animation: public-orbit 20s linear infinite;
+}
+
+.public-mark__halo--middle {
+  width: 55%;
+  aspect-ratio: 1;
+  opacity: 0.5;
+  border-style: dashed;
+  animation: public-orbit-reverse 14s linear infinite;
+}
+
+.public-mark__halo--inner {
+  width: 34%;
+  aspect-ratio: 1;
+  opacity: 0.72;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--ds-accent-soft) 22%, transparent);
+  animation: public-pulse 5.5s ease-in-out infinite;
+}
+
+.public-mark__horizon {
+  position: absolute;
+  inset: 57% 10% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ds-accent-soft) 58%, transparent), transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--ds-accent-soft) 30%, transparent);
+  animation: public-horizon 7s ease-in-out infinite;
+}
+
+.public-mark__spark {
+  position: absolute;
+  width: 4px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ds-accent-soft);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ds-accent-soft) 65%, transparent);
+  animation: public-drift 6s ease-in-out infinite;
+}
+
+.public-mark__spark--one { inset: 26% auto auto 22%; animation-delay: -1.5s; }
+.public-mark__spark--two { inset: 38% 20% auto auto; animation-delay: -3.7s; }
+.public-mark__spark--three { inset: auto auto 34% 31%; animation-delay: -4.9s; }
 
 .public-mark small,
 .public-mark strong {
@@ -330,12 +400,46 @@ a:focus-visible {
 
 .public-footer a { text-decoration: none; }
 
+@keyframes public-orbit {
+  from { transform: translate(-50%, -50%) rotate(0deg) scaleX(1); }
+  50% { transform: translate(-50%, -50%) rotate(180deg) scaleX(0.92); }
+  to { transform: translate(-50%, -50%) rotate(360deg) scaleX(1); }
+}
+
+@keyframes public-orbit-reverse {
+  from { transform: translate(-50%, -50%) rotate(360deg) scaleY(0.9); }
+  50% { transform: translate(-50%, -50%) rotate(180deg) scaleY(1); }
+  to { transform: translate(-50%, -50%) rotate(0deg) scaleY(0.9); }
+}
+
+@keyframes public-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.96); opacity: 0.55; }
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.82; }
+}
+
+@keyframes public-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.55; }
+  50% { transform: scale(1.08); opacity: 0.9; }
+}
+
+@keyframes public-horizon {
+  0%, 100% { transform: scaleX(0.78); opacity: 0.38; }
+  50% { transform: scaleX(1); opacity: 0.85; }
+}
+
+@keyframes public-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0.35; }
+  50% { transform: translate3d(0, -18px, 0) scale(1.15); opacity: 0.95; }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .public-card,
   .public-mark,
   .ds-action { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
   .public-card:hover { background: color-mix(in srgb, var(--ds-surface-elevated) 88%, transparent); }
-  .public-mark:hover { transform: translateY(-2px); }
+  .public-mark:hover { transform: translateY(-3px) scale(1.006); }
+  .public-mark:hover .public-mark__halo--outer { animation-duration: 12s; }
+  .public-mark:hover .public-mark__halo--middle { animation-duration: 9s; }
   .ds-action:hover { transform: translateY(-1px); }
 }
 
@@ -353,7 +457,10 @@ a:focus-visible {
   .public-mail-row { grid-template-columns: 1fr; }
 
   .public-title { font-size: clamp(3.1rem, 16vw, 5.8rem); }
-  .public-mark { min-height: 260px; }
+  .public-mark { min-height: 280px; }
+  .public-mark__halo--outer { width: 62%; }
+  .public-mark__halo--middle { width: 47%; }
+  .public-mark__halo--inner { width: 31%; }
 
   .public-card {
     min-height: 0;
@@ -372,7 +479,9 @@ a:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
@@ -386,4 +495,6 @@ a:focus-visible {
     background: Canvas;
     color: CanvasText;
   }
+
+  .public-mark__scene { display: none; }
 }

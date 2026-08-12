@@ -1,0 +1,18 @@
+{
+  "id": "ailleurs-premiere-001",
+  "mode": "dark",
+  "lang": "vi",
+  "subject": "D’AUBE SONNTAG — AILLEURS · Premiere Invitation",
+  "preheader": "Một cánh cửa mới của D’AUBE sắp mở.",
+  "kicker": "AILLEURS · PREMIERE INVITATION",
+  "headline": "Một cánh cửa mới sắp mở.",
+  "body": [
+    "AILLEURS là nơi D’AUBE biến thế giới quan thành trải nghiệm điện ảnh có thể bước vào — với hình ảnh, chuyển động, âm thanh và nhịp kể được thiết kế như một chỉnh thể.",
+    "Bản premiere này giới thiệu hướng mở đầu cho Anthology I · The Thirty-Six Realms: ít giải thích hơn, nhiều cảm giác khám phá hơn, và mỗi chi tiết đều dẫn người xem sâu thêm vào thế giới."
+  ],
+  "quote": "A world should not only be seen. It should feel possible to enter.",
+  "cta_label": "ENTER AILLEURS",
+  "cta_url": "https://daubesonntag.com/",
+  "hero_url": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/cinematic-dark-preview.jpg",
+  "hero_alt": "D’AUBE SONNTAG AILLEURS cinematic premiere"
+}

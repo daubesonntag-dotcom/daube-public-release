@@ -35,7 +35,7 @@ const html = `<!doctype html>
 <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:${theme.panel};border:1px solid ${theme.border};border-radius:22px;overflow:hidden;">
 <tr><td align="center" style="padding:22px 24px 18px;font-family:Arial,Helvetica,sans-serif;"><div style="font-size:13px;letter-spacing:3px;font-weight:700;color:${mode === 'dark' ? '#e0bb76' : '#18283b'};">D’AUBE SONNTAG</div><div style="padding-top:7px;font-size:11px;letter-spacing:1.5px;color:${theme.gold};">meaning, made visible.</div></td></tr>
 <tr><td><img src="${esc(campaign.hero_url)}" width="640" alt="${esc(campaign.hero_alt || campaign.headline)}" style="display:block;width:100%;height:auto;border:0;"></td></tr>
-<tr><td style="padding:40px 38px 10px;font-family:Georgia,'Times New Roman',serif;font-size:42px;line-height:1.06;letter-spacing:-1px;color:${theme.title};">${esc(campaign.headline)}</td></tr>
+<tr><td style="padding:40px 38px 10px;"><h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:42px;line-height:1.06;letter-spacing:-1px;font-weight:400;color:${theme.title};">${esc(campaign.headline)}</h1></td></tr>
 <tr><td style="padding:0 38px 12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;letter-spacing:2.2px;font-weight:700;color:${theme.gold};">${esc(campaign.kicker || 'D’AUBE CORRESPONDENCE')}</td></tr>
 <tr><td style="padding:8px 38px 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;color:${theme.text};">${bodyHtml}</td></tr>
 ${quoteHtml}

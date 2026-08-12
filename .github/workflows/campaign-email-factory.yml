@@ -1,0 +1,57 @@
+name: Campaign Email Factory
+
+on:
+  pull_request:
+    paths:
+      - "campaigns/email/**"
+      - "scripts/render-email-campaign.mjs"
+      - "email-preview/generated/**"
+      - ".github/workflows/campaign-email-factory.yml"
+  push:
+    branches: [main]
+    paths:
+      - "campaigns/email/**"
+      - "scripts/render-email-campaign.mjs"
+      - "email-preview/generated/**"
+      - ".github/workflows/campaign-email-factory.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campaign-email-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Syntax check compiler
+        run: node --check scripts/render-email-campaign.mjs
+      - name: Render AILLEURS premiere campaign
+        run: |
+          node scripts/render-email-campaign.mjs \
+            --input campaigns/email/ailleurs-premiere.json \
+            --out artifacts/campaign-email/ailleurs-premiere-dark.html \
+            --text artifacts/campaign-email/ailleurs-premiere.txt
+      - name: Verify production-safe output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s artifacts/campaign-email/ailleurs-premiere-dark.html
+          test -s artifacts/campaign-email/ailleurs-premiere.txt
+          grep -q 'https://raw.githubusercontent.com/' artifacts/campaign-email/ailleurs-premiere-dark.html
+          grep -q 'https://daubesonntag.com/' artifacts/campaign-email/ailleurs-premiere-dark.html
+          ! grep -Eq 'content://|file://|javascript:' artifacts/campaign-email/ailleurs-premiere-dark.html
+      - name: Upload rendered campaign evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: campaign-email-ailleurs-premiere
+          path: artifacts/campaign-email/
+          retention-days: 7

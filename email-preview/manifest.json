@@ -1,21 +1,22 @@
 {
   "schema_version": 1,
   "system": "D’AUBE SONNTAG Email Visual Directions",
-  "status": "preview_assets_and_email_templates_ready_for_merge",
+  "status": "merged_to_main",
+  "merge_commit": "da4ede24fb4bf8866b0818e3f5c2aac7231aa5bd",
   "directions": [
     {
       "id": "founder-note-light",
       "use_for": ["founder mail", "1:1 business correspondence", "editorial note"],
       "preview_asset": "assets/email/previews/founder-note-light-preview.jpg",
       "template": "email-preview/templates/founder-note-light.html",
-      "post_merge_https_asset": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/founder-note-light-preview.jpg"
+      "https_asset": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/founder-note-light-preview.jpg"
     },
     {
       "id": "cinematic-dark",
       "use_for": ["launch", "invitation", "premiere", "high-impact campaign"],
       "preview_asset": "assets/email/previews/cinematic-dark-preview.jpg",
       "template": "email-preview/templates/cinematic-dark.html",
-      "post_merge_https_asset": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/cinematic-dark-preview.jpg"
+      "https_asset": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/cinematic-dark-preview.jpg"
     }
   ],
   "production_rules": {
@@ -24,7 +25,7 @@
     "email_javascript": false,
     "single_primary_cta": true,
     "static_fallback_required": true,
-    "next_asset_upgrade": "replace preview rasters at the same paths with production-resolution derivatives before public campaign use"
+    "next_asset_upgrade": "replace lightweight preview rasters at the same stable paths with production-resolution derivatives before high-resolution campaign delivery"
   },
   "live_email_send": false,
   "live_site_publish": false

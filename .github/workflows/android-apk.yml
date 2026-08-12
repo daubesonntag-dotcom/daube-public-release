@@ -15,6 +15,9 @@ concurrency:
   group: android-evidence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  ANDROID_EVIDENCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.ANDROID_EVIDENCE_REVISION }}
           persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "$ANDROID_EVIDENCE_REVISION"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -61,7 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.ANDROID_EVIDENCE_REVISION }}
           persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "$ANDROID_EVIDENCE_REVISION"
       - uses: actions/download-artifact@v4
         with:
           name: DAUBE-Nexus-Automatic-APK
@@ -73,9 +82,9 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
           script: |
-            set -euo pipefail
+            set -eu
             evidence="artifacts/device-api-${{ matrix.api-level }}"
             mkdir -p "$evidence"
             adb install -r release/DAUBE-Nexus-Automatic.apk | tee "$evidence/install.txt"
@@ -102,9 +111,11 @@ jobs:
             python3 - <<'PY'
             import json, os
             api = os.environ.get('MATRIX_API_LEVEL', '${{ matrix.api-level }}')
+            revision = os.environ.get('ANDROID_EVIDENCE_REVISION', 'unknown')
             evidence = f'artifacts/device-api-{api}'
             report = {
                 'schema_version': 1,
+                'observed_revision': revision,
                 'api_level': int(api),
                 'package': 'com.daubesonntag.nexus',
                 'activity': '.LocalMainActivity',
@@ -118,6 +129,7 @@ jobs:
             PY
         env:
           MATRIX_API_LEVEL: ${{ matrix.api-level }}
+          ANDROID_EVIDENCE_REVISION: ${{ env.ANDROID_EVIDENCE_REVISION }}
       - name: Upload device evidence
         if: always()
         uses: actions/upload-artifact@v4

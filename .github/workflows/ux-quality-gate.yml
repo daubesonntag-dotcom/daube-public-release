@@ -1,0 +1,53 @@
+name: UX & UI Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - "**/*.html"
+      - "**/*.css"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.png"
+      - "**/*.webp"
+      - "scripts/ux-quality-audit.mjs"
+      - "config/ux-quality-budget.json"
+      - ".github/workflows/ux-quality-gate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/*.html"
+      - "**/*.css"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.png"
+      - "**/*.webp"
+      - "scripts/ux-quality-audit.mjs"
+      - "config/ux-quality-budget.json"
+      - ".github/workflows/ux-quality-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ux-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit UX, accessibility, email safety and asset budgets
+        run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-quality-report
+          path: artifacts/ux-quality-report.json
+          retention-days: 7

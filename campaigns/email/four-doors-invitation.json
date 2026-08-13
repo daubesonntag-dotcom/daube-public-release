@@ -1,0 +1,18 @@
+{
+  "id": "four-doors-invitation-001",
+  "mode": "dark",
+  "lang": "vi",
+  "subject": "D’AUBE SONNTAG — Chọn cánh cửa bạn muốn bước vào",
+  "preheader": "Bốn lối vào D’AUBE: Studio, AILLEURS, VERITAS và Hospitality.",
+  "kicker": "D’AUBE SONNTAG · FOUR DOORS",
+  "headline": "Một hệ sinh thái. Bốn cánh cửa để bắt đầu.",
+  "body": [
+    "D’AUBE không yêu cầu bạn hiểu toàn bộ hệ thống trước khi bước vào. Bạn chỉ cần chọn điều mình muốn trải nghiệm: một món quà được chăm chút, một thế giới điện ảnh để khám phá, một điều khó được giải thích sáng rõ, hoặc một không gian sống và dịch vụ được thiết kế tử tế.",
+    "Four Doors biến cấu trúc phía sau thành một lựa chọn đơn giản ở phía trước — ít thuật ngữ hơn, nhiều định hướng hơn, và mỗi cánh cửa đều dẫn tới một trải nghiệm cụ thể."
+  ],
+  "quote": "Choose the experience first. The system can stay quietly behind it.",
+  "cta_label": "CHỌN CÁNH CỬA",
+  "cta_url": "https://daubesonntag.com/experience-preview/#worlds",
+  "hero_url": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-site/main/assets/email/previews/cinematic-dark-preview.jpg",
+  "hero_alt": "D’AUBE SONNTAG Four Doors invitation with a cinematic portal composition"
+}

@@ -27,6 +27,8 @@ const theme = mode === 'dark'
 const bodyHtml = campaign.body.map(p => `<p style="margin:0 0 16px;">${esc(p)}</p>`).join('');
 const quoteHtml = campaign.quote ? `<tr><td class="email-content" style="padding:0 38px 22px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${mode === 'dark' ? '#132235' : '#17263b'};border-radius:18px;"><tr><td style="padding:24px 26px 10px;font-family:Georgia,'Times New Roman',serif;font-size:23px;line-height:1.4;font-style:italic;color:#f6f0e6;">${esc(campaign.quote)}</td></tr><tr><td style="padding:0 26px 24px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:2px;font-weight:700;color:#d3ad66;">D’AUBE SONNTAG</td></tr></table></td></tr>` : '';
 const preheaderPad = '&#847;&zwnj;&nbsp;'.repeat(18);
+const ctaBgAttr = mode === 'light' ? ` bgcolor="${theme.buttonBg}"` : '';
+const ctaBorder = mode === 'dark' ? '#d5aa62' : theme.buttonBg;
 
 const html = `<!doctype html>
 <html lang="${esc(campaign.lang || 'vi')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="format-detection" content="telephone=no,date=no,address=no,email=no"><title>${esc(campaign.subject)}</title><style>
@@ -39,6 +41,7 @@ a[x-apple-data-detectors],u+#body a,#MessageViewBody a{color:inherit!important;t
   .email-panel{border-radius:0!important;border-left:0!important;border-right:0!important}
   .email-content{padding-left:22px!important;padding-right:22px!important}
   .email-title{font-size:34px!important;line-height:1.08!important;letter-spacing:-.5px!important}
+  .email-cta-table,.email-cta-cell{width:100%!important}
   .email-cta{display:block!important;text-align:center!important;padding:15px 18px!important}
 }
 </style></head>
@@ -52,7 +55,7 @@ a[x-apple-data-detectors],u+#body a,#MessageViewBody a{color:inherit!important;t
 <tr><td class="email-content" style="padding:0 38px 12px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;letter-spacing:2.2px;font-weight:700;color:${theme.gold};">${esc(campaign.kicker || 'D’AUBE CORRESPONDENCE')}</td></tr>
 <tr><td class="email-content" style="padding:8px 38px 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;color:${theme.text};">${bodyHtml}</td></tr>
 ${quoteHtml}
-<tr><td class="email-content" style="padding:0 38px 40px;"><a class="email-cta" href="${esc(campaign.cta_url)}" style="display:inline-block;padding:14px 20px;border:1px solid ${mode === 'dark' ? '#d5aa62' : theme.buttonBg};border-radius:999px;background:${theme.buttonBg};color:${theme.button};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;">${esc(campaign.cta_label)} →</a></td></tr>
+<tr><td class="email-content" style="padding:0 38px 40px;"><table class="email-cta-table" role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td class="email-cta-cell"${ctaBgAttr} style="border:1px solid ${ctaBorder};border-radius:999px;background:${theme.buttonBg};mso-padding-alt:14px 20px;"><a class="email-cta" href="${esc(campaign.cta_url)}" style="display:inline-block;padding:14px 20px;border-radius:999px;background:${theme.buttonBg};color:${theme.button};text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;mso-padding-alt:0;">${esc(campaign.cta_label)} →</a></td></tr></table></td></tr>
 <tr><td class="email-content" style="padding:22px 38px 30px;border-top:1px solid ${theme.border};font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.7;color:${theme.footer};">D’AUBE SONNTAG · meaning, made visible.</td></tr>
 </table></td></tr></table>
 </body></html>`;

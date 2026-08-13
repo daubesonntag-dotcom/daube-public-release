@@ -1,0 +1,44 @@
+/*
+ * Flagship cinematic hero convergence layer.
+ * Reuses the production cinematic asset while preserving the existing portal motion system.
+ */
+
+.public-mark {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ds-canvas) 10%, transparent) 0%,
+      color-mix(in srgb, var(--ds-canvas) 28%, transparent) 52%,
+      color-mix(in srgb, var(--ds-canvas) 86%, transparent) 100%
+    ),
+    url("email/previews/cinematic-dark-preview.jpg") center / cover no-repeat;
+}
+
+.public-mark::before {
+  border-color: color-mix(in srgb, var(--ds-accent-soft) 58%, transparent);
+  box-shadow:
+    inset 0 0 54px color-mix(in srgb, var(--ds-accent-soft) 18%, transparent),
+    0 0 66px color-mix(in srgb, var(--ds-accent) 20%, transparent);
+}
+
+.public-mark::after {
+  opacity: 0.74;
+  mix-blend-mode: screen;
+}
+
+.public-mark__scene {
+  background:
+    linear-gradient(180deg, transparent 0 54%, color-mix(in srgb, var(--ds-canvas) 18%, transparent) 72%, transparent 100%);
+}
+
+@media (max-width: 760px) {
+  .public-mark {
+    background-position: 54% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-mark {
+    background-attachment: scroll;
+  }
+}

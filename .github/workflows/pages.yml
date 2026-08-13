@@ -53,6 +53,51 @@ jobs:
             } >> "${GITHUB_STEP_SUMMARY}"
           fi
 
+      - name: Set up campaign compiler runtime
+        if: steps.pages-preflight.outputs.enabled == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Compile production email campaigns
+        if: steps.pages-preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/render-email-campaign.mjs
+          shopt -s nullglob
+          specs=(campaigns/email/*.json)
+          test "${#specs[@]}" -gt 0
+          mkdir -p email-preview/generated
+
+          for input in "${specs[@]}"; do
+            slug="$(basename "$input" .json)"
+            mode="$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(c.mode)" "$input")"
+            if [[ "$slug" == *-"$mode" ]]; then
+              output_slug="$slug"
+            else
+              output_slug="${slug}-${mode}"
+            fi
+            node scripts/render-email-campaign.mjs \
+              --input "$input" \
+              --out "email-preview/generated/${output_slug}.html"
+          done
+
+      - name: Verify publish-time campaign outputs
+        if: steps.pages-preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          outputs=(email-preview/generated/*.html)
+          test "${#outputs[@]}" -gt 0
+          for html in "${outputs[@]}"; do
+            test -s "$html"
+            grep -q '<h1' "$html"
+            grep -q 'https://' "$html"
+            ! grep -Eqi 'content://|file://|javascript:' "$html"
+          done
+
       - name: Configure GitHub Pages
         if: steps.pages-preflight.outputs.enabled == 'true'
         uses: actions/configure-pages@v6

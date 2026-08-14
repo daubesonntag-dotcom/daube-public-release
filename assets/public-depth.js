@@ -4,7 +4,20 @@
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const animatedElements = portal.querySelectorAll(
+    '.public-mark__halo, .public-mark__horizon, .public-mark__spark'
+  );
   let frame = 0;
+  let isVisible = true;
+
+  const syncMotionState = () => {
+    const shouldRun = isVisible && !document.hidden && !reducedMotion.matches;
+    animatedElements.forEach((element) => {
+      element.style.animationPlayState = shouldRun ? 'running' : 'paused';
+    });
+    portal.dataset.motionState = shouldRun ? 'active' : 'paused';
+    portal.style.willChange = shouldRun && finePointer.matches ? 'transform' : 'auto';
+  };
 
   const reset = () => {
     if (frame) cancelAnimationFrame(frame);
@@ -15,7 +28,7 @@
   };
 
   const update = (event) => {
-    if (reducedMotion.matches || !finePointer.matches) return reset();
+    if (!isVisible || document.hidden || reducedMotion.matches || !finePointer.matches) return reset();
 
     const rect = portal.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
@@ -32,10 +45,30 @@
 
   portal.style.transformOrigin = '50% 58%';
   portal.style.transition = 'transform 180ms ease-out, box-shadow 260ms ease';
-  portal.style.willChange = 'transform';
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (!isVisible) reset();
+        syncMotionState();
+      },
+      { threshold: 0.04 }
+    );
+    observer.observe(portal);
+  }
 
   portal.addEventListener('pointermove', update, { passive: true });
   portal.addEventListener('pointerleave', reset, { passive: true });
-  reducedMotion.addEventListener?.('change', reset);
-  finePointer.addEventListener?.('change', reset);
+  document.addEventListener('visibilitychange', syncMotionState, { passive: true });
+  reducedMotion.addEventListener?.('change', () => {
+    reset();
+    syncMotionState();
+  });
+  finePointer.addEventListener?.('change', () => {
+    reset();
+    syncMotionState();
+  });
+
+  syncMotionState();
 })();

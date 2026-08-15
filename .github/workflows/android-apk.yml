@@ -2,14 +2,21 @@ name: Build D-AUBE Android APK
 
 on:
   pull_request:
-    paths: ["app/**", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
+    paths: ["app/**", "scripts/android-device-evidence.sh", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
   push:
     branches: [main]
-    paths: ["app/**", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
+    paths: ["app/**", "scripts/android-device-evidence.sh", "backend-config.json", "build.gradle", "settings.gradle", ".github/workflows/android-apk.yml"]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: android-evidence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  ANDROID_EVIDENCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   build:
@@ -17,6 +24,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ANDROID_EVIDENCE_REVISION }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "$ANDROID_EVIDENCE_REVISION"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -41,3 +53,44 @@ jobs:
           name: DAUBE-Nexus-Automatic-APK
           path: release/*
           if-no-files-found: error
+          retention-days: 14
+
+  virtual-device-evidence:
+    name: Android API ${{ matrix.api-level }} runtime evidence
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 35]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ANDROID_EVIDENCE_REVISION }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "$ANDROID_EVIDENCE_REVISION"
+      - uses: actions/download-artifact@v4
+        with:
+          name: DAUBE-Nexus-Automatic-APK
+          path: release
+      - name: Run APK on isolated Android virtual device
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          script: sh scripts/android-device-evidence.sh "${{ matrix.api-level }}"
+        env:
+          ANDROID_EVIDENCE_REVISION: ${{ env.ANDROID_EVIDENCE_REVISION }}
+      - name: Upload device evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-device-evidence-api-${{ matrix.api-level }}
+          path: artifacts/device-api-${{ matrix.api-level }}/
+          if-no-files-found: warn
+          retention-days: 14

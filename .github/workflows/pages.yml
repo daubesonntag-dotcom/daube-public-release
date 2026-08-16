@@ -91,6 +91,15 @@ jobs:
             } >> "${GITHUB_STEP_SUMMARY}"
           fi
 
+      - name: Refuse false-green publication
+        if: steps.pages-preflight.outputs.enabled != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          status='${{ steps.pages-preflight.outputs.http_status }}'
+          echo "::error title=GitHub Pages unavailable::Publication is blocked because GitHub Pages is not enabled (API HTTP ${status:-unknown}). A run with no deployed artifact must not report success."
+          exit 1
+
       - name: Set up campaign compiler runtime
         if: steps.pages-preflight.outputs.enabled == 'true'
         uses: actions/setup-node@v7
@@ -150,3 +159,23 @@ jobs:
         if: steps.pages-preflight.outputs.enabled == 'true'
         id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Verify deployed endpoint is actually live
+        if: steps.pages-preflight.outputs.enabled == 'true'
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          test -n "${PAGE_URL}"
+          curl --fail --location --silent --show-error \
+            --retry 6 --retry-delay 2 --retry-all-errors \
+            "${PAGE_URL}" --output /tmp/daube-live.html
+          test -s /tmp/daube-live.html
+          {
+            echo
+            echo '## Live publication verified'
+            echo
+            echo "Endpoint: ${PAGE_URL}"
+            echo 'HTTP retrieval succeeded and returned a non-empty document.'
+          } >> "${GITHUB_STEP_SUMMARY}"

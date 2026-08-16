@@ -63,7 +63,6 @@ jobs:
               echo "Create Pages site status: HTTP ${create_status}."
             } >> "${GITHUB_STEP_SUMMARY}"
 
-            # 201 = created. 409 can mean the site was created concurrently.
             if [[ "${create_status}" == "201" || "${create_status}" == "409" ]]; then
               sleep 2
               status="$(get_pages)"
@@ -71,13 +70,7 @@ jobs:
           fi
 
           if [[ "${status}" == "200" ]]; then
-            build_type="$(python3 - <<'PY'
-import json
-with open('/tmp/pages.json', 'r', encoding='utf-8') as f:
-    data = json.load(f)
-print(data.get('build_type') or '')
-PY
-)"
+            build_type="$(python3 -c "import json; print((json.load(open('/tmp/pages.json', encoding='utf-8')).get('build_type') or ''))")"
             echo 'enabled=true' >> "${GITHUB_OUTPUT}"
             echo "build_type=${build_type}" >> "${GITHUB_OUTPUT}"
             {

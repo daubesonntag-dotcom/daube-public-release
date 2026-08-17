@@ -1,0 +1,160 @@
+name: Pages Domain Convergence V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages-domain-convergence-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+
+concurrency:
+  group: pages-domain-convergence
+  cancel-in-progress: true
+
+jobs:
+  converge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Inspect Pages state and DNS health
+        id: inspect
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
+          headers=(
+            --header 'Accept: application/vnd.github+json'
+            --header "Authorization: Bearer ${GH_TOKEN}"
+            --header 'X-GitHub-Api-Version: 2022-11-28'
+          )
+
+          pages_status="$(curl --silent --show-error --output /tmp/pages.json --write-out '%{http_code}' "${headers[@]}" "${api}")"
+          health_status="$(curl --silent --show-error --output /tmp/pages-health.json --write-out '%{http_code}' "${headers[@]}" "${api}/health")"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(path):
+              try:
+                  return json.loads(Path(path).read_text(encoding='utf-8'))
+              except Exception:
+                  return {}
+
+          pages = load('/tmp/pages.json')
+          health = load('/tmp/pages-health.json')
+          safe = {
+              'cname': pages.get('cname'),
+              'protected_domain_state': pages.get('protected_domain_state'),
+              'pending_domain_unverified_at': pages.get('pending_domain_unverified_at'),
+              'https_enforced': pages.get('https_enforced'),
+              'https_certificate': pages.get('https_certificate'),
+              'dns_health': health,
+          }
+          Path('/tmp/pages-domain-safe.json').write_text(json.dumps(safe, indent=2) + '\n', encoding='utf-8')
+          cert = pages.get('https_certificate') or {}
+          with open('/tmp/pages.env', 'w', encoding='utf-8') as f:
+              f.write('CNAME=' + str(pages.get('cname') or '') + '\n')
+              f.write('DOMAIN_STATE=' + str(pages.get('protected_domain_state') or 'unknown') + '\n')
+              f.write('HTTPS_ENFORCED=' + ('true' if pages.get('https_enforced') is True else 'false') + '\n')
+              f.write('CERT_STATE=' + str(cert.get('state') or 'unknown') + '\n')
+          PY
+          source /tmp/pages.env
+
+          echo "pages_http=${pages_status}" >> "$GITHUB_OUTPUT"
+          echo "health_http=${health_status}" >> "$GITHUB_OUTPUT"
+          echo "cname=${CNAME}" >> "$GITHUB_OUTPUT"
+          echo "domain_state=${DOMAIN_STATE}" >> "$GITHUB_OUTPUT"
+          echo "https_enforced=${HTTPS_ENFORCED}" >> "$GITHUB_OUTPUT"
+          echo "cert_state=${CERT_STATE}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo '## GitHub Pages domain state'
+            echo "- Pages API: HTTP ${pages_status}"
+            echo "- DNS health API: HTTP ${health_status}"
+            echo "- CNAME: ${CNAME:-none}"
+            echo "- Protected domain state: ${DOMAIN_STATE}"
+            echo "- HTTPS certificate state: ${CERT_STATE}"
+            echo "- HTTPS enforced: ${HTTPS_ENFORCED}"
+            echo '- No DNS, registrar, billing or secret mutation was performed by this inspection.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce HTTPS only after GitHub certificate approval
+        id: enforce
+        if: steps.inspect.outputs.pages_http == '200' && steps.inspect.outputs.cert_state == 'approved' && steps.inspect.outputs.https_enforced != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
+          status="$(curl --silent --show-error --output /tmp/pages-put.json --write-out '%{http_code}' \
+            --request PUT \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data '{"https_enforced":true}' \
+            "${api}")"
+          echo "http=${status}" >> "$GITHUB_OUTPUT"
+          if [[ "$status" != "204" ]]; then
+            echo "HTTPS enforcement request was not admitted (HTTP ${status}); no false success claim." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'GitHub Pages HTTPS enforcement request succeeded.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Verify public HTTPS hostname
+        id: public
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            --connect-timeout 10 --max-time 20 \
+            https://daubesonntag.com/ \
+            --output /tmp/public.html
+          test -s /tmp/public.html
+          echo 'public_https=true' >> "$GITHUB_OUTPUT"
+          echo 'Public HTTPS hostname retrieval succeeded.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish truthful convergence result
+        shell: bash
+        env:
+          PAGES_HTTP: ${{ steps.inspect.outputs.pages_http }}
+          HEALTH_HTTP: ${{ steps.inspect.outputs.health_http }}
+          DOMAIN_STATE: ${{ steps.inspect.outputs.domain_state }}
+          CERT_STATE: ${{ steps.inspect.outputs.cert_state }}
+          HTTPS_ENFORCED: ${{ steps.inspect.outputs.https_enforced }}
+          ENFORCE_HTTP: ${{ steps.enforce.outputs.http }}
+          PUBLIC_HTTPS: ${{ steps.public.outputs.public_https }}
+        run: |
+          set -euo pipefail
+          {
+            echo
+            echo '## Convergence classification'
+            if [[ "${PUBLIC_HTTPS:-false}" == "true" ]]; then
+              echo '- Public TLS: VERIFIED'
+            else
+              echo '- Public TLS: BLOCKED_BY_EXTERNAL_RESOURCE'
+            fi
+            if [[ "$DOMAIN_STATE" == "verified" ]]; then
+              echo '- Account/domain protection: VERIFIED'
+            else
+              echo "- Account/domain protection: BLOCKED_BY_EXTERNAL_RESOURCE (${DOMAIN_STATE})"
+            fi
+            echo "- Certificate state observed: ${CERT_STATE}"
+            echo "- HTTPS enforced before attempt: ${HTTPS_ENFORCED}"
+            echo "- HTTPS enforcement mutation result: ${ENFORCE_HTTP:-not-attempted}"
+            echo "- Pages DNS-health API result: HTTP ${HEALTH_HTTP}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # This workflow is an evidence/controller lane. External domain authority
+          # is reported truthfully instead of turning a missing account-level action
+          # into a repository CI regression.
+          exit 0

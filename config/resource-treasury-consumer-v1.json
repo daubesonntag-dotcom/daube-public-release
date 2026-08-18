@@ -1,0 +1,62 @@
+{
+  "id": "DAUBE-SITE-RESOURCE-TREASURY-CONSUMER-V1",
+  "canonicalSource": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "resourceTreasuryCommit": "d079d83bccfdecef1902908790cbbeac726604ba",
+    "treasuryConfig": "config/source-curator/curated-treasury-v1.json",
+    "externalSourcesConfig": "config/source-curator/external-asset-sources-v1.json"
+  },
+  "surfaces": {
+    "homepageHero": {
+      "requiredKinds": ["hero-image-or-render", "optional-video-or-3d", "motion-runtime"],
+      "minimumQuality": "hero",
+      "fallbackPolicy": "brand-typography-and-layout-only",
+      "cssSyntheticArtworkAllowedAsPrimaryHero": false
+    },
+    "manifesto": {
+      "requiredKinds": ["editorial-image-or-3d-object"],
+      "minimumQuality": "premium"
+    },
+    "worlds": {
+      "requiredKinds": ["image-or-render-family", "icons"],
+      "minimumQuality": "premium"
+    },
+    "featuredProject": {
+      "requiredKinds": ["project-media", "optional-video"],
+      "minimumQuality": "hero"
+    },
+    "closing": {
+      "requiredKinds": ["brand-media-or-quiet-motion"],
+      "minimumQuality": "premium"
+    },
+    "globalIcons": {
+      "requiredKinds": ["approved-svg-icons"],
+      "minimumQuality": "utility"
+    },
+    "typography": {
+      "requiredKinds": ["approved-fonts"],
+      "minimumQuality": "premium",
+      "requireVietnameseCoverage": true
+    }
+  },
+  "rules": {
+    "approvedTreasuryAssetRequiredBeforeMediaUse": true,
+    "noExternalHotlinking": true,
+    "requireLocalOrApprovedCdnArtifact": true,
+    "requireProvenanceRecord": true,
+    "requireLicenseEvidence": true,
+    "requireAttributionWhenApplicable": true,
+    "requireChecksum": true,
+    "requireSourceCommit": true,
+    "requireDeclaredSurfaceConsumer": true,
+    "cssGradientsMayAugmentButNotReplaceApprovedHeroMedia": true,
+    "generatedMediaMustCarryGenerationProvenance": true,
+    "thirdPartyBrandMarksNeedTrademarkReview": true
+  },
+  "importLayout": {
+    "root": "assets/treasury",
+    "pattern": "assets/treasury/<source-id>/<asset-id>/<digest-prefix>/<file>",
+    "manifest": "assets/treasury/manifest.json"
+  },
+  "releaseBoundary": "This contract does not itself approve or publish a T2 production-facing artifact. Actual media handoff still requires the public release evidence defined in AGENTS.md."
+}

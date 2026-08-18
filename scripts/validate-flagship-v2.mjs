@@ -31,6 +31,11 @@ requireText("event.key === 'Escape'", js, 'keyboard Escape menu behavior missing
 const registered = new Set(visualPack.assets.map(asset => asset.id));
 const consumed = [...html.matchAll(/data-asset-id="([^"]+)"/g)].map(match => match[1]);
 for (const id of consumed) failIf(!registered.has(id), `unregistered public visual asset: ${id}`);
+
+const registeredMedia = new Set(visualPack.assets.map(asset => asset.mediaUrl));
+const externalMedia = [...html.matchAll(/<(?:img|video)\b[^>]*\bsrc="(https:\/\/[^\"]+)"/g)].map(match => match[1]);
+for (const url of externalMedia) failIf(!registeredMedia.has(url), `external homepage media missing provenance: ${url}`);
+
 for (const asset of visualPack.assets) {
   failIf(!asset.mediaUrl?.startsWith('https://'), `non-HTTPS media URL: ${asset.id}`);
   failIf(!asset.sourcePage?.startsWith('https://'), `missing HTTPS source page: ${asset.id}`);

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "releaseId": "public-release-20260819-flagship-v2",
+  "source": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "commit": "dc4eab95711cb379880742fe9f948b28303b99f6",
+    "releaseHandoffId": "forge-pr-3350-flagship-asset-backed-v2"
+  },
+  "artifact": {
+    "digestAlgorithm": "sha256",
+    "digest": "5dc28541dd7134822f2aa47601a5808b0ba3d335db92c1575ce7011b2b1491ed",
+    "digestProcedure": "sha256 of UTF-8 records sorted by path, each encoded as path + NUL + per-file-sha256 + newline",
+    "publishedPaths": [
+      "index.html",
+      "assets/flagship-v2.css",
+      "assets/flagship-v2.js"
+    ],
+    "fileDigests": {
+      "index.html": "91ccd11f31d7a4f77b1324d520813341965ae78aa52f953424e9e4ec9667d19d",
+      "assets/flagship-v2.css": "44ab655fd6d0af8338203487e539a1772a54a72bff28eb1f1738198e068c9687",
+      "assets/flagship-v2.js": "02dc58797e0063d6c0b2dfb665073379e3cdd0da1e3be2b3821553e7fdd583c5"
+    }
+  },
+  "verification": {
+    "testSummary": "Candidate artifact checks passed before push: no public-mark halo/spark faux hero; no radial/conic gradient artwork; required commerce routes preserved; responsive and reduced-motion rules present; SHA-256 captured for exact candidate payloads. Live deployment is not claimed.",
+    "secretScan": "Candidate public payload string scan passed for obvious API-token/private-key patterns; repository-wide secret-scan execution is not claimed.",
+    "publicSmokeTest": "PENDING_FOUNDER_APPROVED_MERGE_AND_LIVE_DOMAIN_SMOKE_TEST",
+    "accessibilityReview": "Candidate includes skip link, semantic landmarks, keyboard/Escape mobile menu, ARIA-expanded state, meaningful hero/study alt text, decorative empty alt text and reduced-motion behavior; physical-device audit pending live publication.",
+    "privacyReview": "Homepage candidate adds no analytics, cookies, credential fields or private data; provisional visual media are fetched from declared Pexels and Poly Haven HTTPS endpoints."
+  },
+  "approval": {
+    "releasePassport": "PENDING_FOUNDER_APPROVAL",
+    "approvedBy": "PENDING_FOUNDER_APPROVAL",
+    "approvedAt": "PENDING_FOUNDER_APPROVAL"
+  },
+  "rollback": {
+    "rollbackReference": "daube-site@ae64c522827d2b8ea90b0139be033b69c2106485",
+    "owner": "Founder / Public Release Steward",
+    "procedure": "Revert the flagship V2 release PR or restore the public main branch content to ae64c522827d2b8ea90b0139be033b69c2106485, then verify the Pages URL and custom domain response."
+  },
+  "claims": {
+    "proven": [
+      "candidate-public-artifact-digests-computed",
+      "candidate-removes-faux-css-hero-markup",
+      "candidate-preserves-launch-presence-launch-kit-services-and-contact-routes",
+      "canonical-source-commit-recorded"
+    ],
+    "notProven": [
+      "live-daubesonntag-domain-has-updated-before-merge",
+      "private-backend-health",
+      "customer-acceptance",
+      "broad-legal-compliance-outside-reviewed-scope",
+      "provisional-stock-media-are-exclusive-daube-crown-jewel-assets",
+      "physical-device-performance-before-live-publication"
+    ]
+  },
+  "exception": null,
+  "auditReference": "PENDING_DAUBE_SITE_PR_NUMBER",
+  "publishedAt": "PENDING_NOT_PUBLISHED"
+}

@@ -1,6 +1,34 @@
 (() => {
   const MANIFEST_URL = "assets/treasury/manifest.json";
+  const RUNTIME_CSS = "assets/treasury/runtime.css";
   const approved = (item) => item?.state === "approved-local" && typeof item.localPath === "string" && item.localPath.startsWith("assets/treasury/");
+
+  function ensureRuntimeCss() {
+    if (document.querySelector(`link[href="${RUNTIME_CSS}"]`)) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = RUNTIME_CSS;
+    document.head.append(link);
+  }
+
+  function provisionHomepageSlots() {
+    const hero = document.querySelector(".public-mark");
+    if (hero && !hero.dataset.treasurySlot) {
+      hero.dataset.treasurySlot = "homepageHero";
+      hero.dataset.treasuryAlt = "D’AUBE SONNTAG — visual hero";
+    }
+
+    const cardIcons = ["lucide-sparkles", "lucide-orbit", "lucide-gem", "lucide-boxes"];
+    document.querySelectorAll(".public-grid .public-card").forEach((card, index) => {
+      if (card.querySelector("[data-treasury-icon]")) return;
+      const assetId = cardIcons[index];
+      if (!assetId) return;
+      const slot = document.createElement("span");
+      slot.dataset.treasuryIcon = assetId;
+      slot.setAttribute("aria-hidden", "true");
+      card.prepend(slot);
+    });
+  }
 
   function createIcon(item, label) {
     const img = document.createElement("img");
@@ -36,6 +64,7 @@
       const media = candidates.find((item) => ["hero-image", "hero-render", "project-media", "editorial-image"].includes(item.kind));
       if (!media) {
         surface.dataset.treasuryState = "unresolved";
+        if (name === "homepageHero") surface.querySelector(".public-mark__scene")?.remove();
         continue;
       }
       const img = document.createElement("img");
@@ -52,6 +81,8 @@
   }
 
   async function boot() {
+    ensureRuntimeCss();
+    provisionHomepageSlots();
     try {
       const response = await fetch(MANIFEST_URL, { cache: "no-cache" });
       if (!response.ok) throw new Error(`manifest HTTP ${response.status}`);

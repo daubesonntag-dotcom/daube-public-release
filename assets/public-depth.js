@@ -1,12 +1,13 @@
+import("./treasury/runtime.js").catch((error) => {
+  console.warn("D’AUBE Resource Treasury bootstrap unavailable", error);
+});
+
 (() => {
   const portal = document.querySelector('.public-mark');
   if (!portal) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const animatedElements = portal.querySelectorAll(
-    '.public-mark__halo, .public-mark__horizon, .public-mark__spark, .public-mark__scene::before'
-  );
   let frame = 0;
   let isVisible = true;
 

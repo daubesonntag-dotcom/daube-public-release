@@ -1,0 +1,62 @@
+{
+  "schema": "daube.site.treasury-intake-plan.v1",
+  "manifest": "assets/treasury/manifest.json",
+  "items": [
+    {
+      "assetId": "lucide-sparkles",
+      "sourceId": "lucide",
+      "sourceRepo": "lucide-icons/lucide",
+      "sourcePath": "icons/sparkles.svg",
+      "sourceCommit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+      "licenseSpdx": "ISC",
+      "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+      "attribution": "Lucide Icons and Contributors",
+      "consumer": ["globalIcons", "worlds"],
+      "qualityTier": "utility",
+      "kind": "svg-icon",
+      "approved": true
+    },
+    {
+      "assetId": "lucide-orbit",
+      "sourceId": "lucide",
+      "sourceRepo": "lucide-icons/lucide",
+      "sourcePath": "icons/orbit.svg",
+      "sourceCommit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+      "licenseSpdx": "ISC",
+      "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+      "attribution": "Lucide Icons and Contributors",
+      "consumer": ["globalIcons", "worlds"],
+      "qualityTier": "utility",
+      "kind": "svg-icon",
+      "approved": true
+    },
+    {
+      "assetId": "lucide-gem",
+      "sourceId": "lucide",
+      "sourceRepo": "lucide-icons/lucide",
+      "sourcePath": "icons/gem.svg",
+      "sourceCommit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+      "licenseSpdx": "ISC",
+      "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+      "attribution": "Lucide Icons and Contributors",
+      "consumer": ["globalIcons", "worlds"],
+      "qualityTier": "utility",
+      "kind": "svg-icon",
+      "approved": true
+    },
+    {
+      "assetId": "lucide-boxes",
+      "sourceId": "lucide",
+      "sourceRepo": "lucide-icons/lucide",
+      "sourcePath": "icons/boxes.svg",
+      "sourceCommit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+      "licenseSpdx": "ISC",
+      "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+      "attribution": "Lucide Icons and Contributors",
+      "consumer": ["globalIcons", "worlds"],
+      "qualityTier": "utility",
+      "kind": "svg-icon",
+      "approved": true
+    }
+  ]
+}

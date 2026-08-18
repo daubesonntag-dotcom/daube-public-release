@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "DAUBE-PUBLIC-FLAGSHIP-VISUAL-PACK-V2",
+  "canonicalSourceCommit": "dc4eab95711cb379880742fe9f948b28303b99f6",
+  "status": "provisional-public-candidate",
+  "policy": {
+    "primaryVisualsMustBeAssetBacked": true,
+    "cssMayGenerateFlagshipArtwork": false,
+    "licensedStockMayBeClaimedExclusive": false,
+    "founderReferenceMediaMayBeRedistributed": false,
+    "promotionToCrownJewelRequiresFounderApproval": true
+  },
+  "assets": [
+    {
+      "id": "pexels-pavilion-30220228",
+      "provider": "Pexels",
+      "kind": "image",
+      "role": ["hero-architecture-primary", "ailleurs-territory"],
+      "sourcePage": "https://www.pexels.com/photo/serene-chinese-pavilion-reflected-in-tranquil-lake-30220228/",
+      "mediaUrl": "https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "rightsPosture": "licensed-ingredient-not-exclusive"
+    },
+    {
+      "id": "pexels-pavilion-3243022",
+      "provider": "Pexels",
+      "kind": "image",
+      "role": ["erina-territory"],
+      "sourcePage": "https://www.pexels.com/photo/photo-of-ancient-structure-during-daytime-3243022/",
+      "mediaUrl": "https://images.pexels.com/photos/3243022/pexels-photo-3243022.jpeg?auto=compress&dpr=1&h=750&w=1260",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "rightsPosture": "licensed-ingredient-not-exclusive"
+    },
+    {
+      "id": "pexels-white-fabric-4623748",
+      "provider": "Pexels",
+      "kind": "video",
+      "role": ["hero-fabric-motion-veil"],
+      "sourcePage": "https://www.pexels.com/video/white-fabric-blown-by-wind-4623748/",
+      "mediaUrl": "https://videos.pexels.com/video-files/4623748/4623748-hd_1080_1922_24fps.mp4",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "rightsPosture": "licensed-ingredient-not-exclusive"
+    },
+    {
+      "id": "pexels-glass-refraction-6602733",
+      "provider": "Pexels",
+      "kind": "video",
+      "role": ["manifesto-crystal-refraction"],
+      "sourcePage": "https://www.pexels.com/video/light-refraction-though-textured-glass-6602733/",
+      "mediaUrl": "https://videos.pexels.com/video-files/6602733/6602733-hd_1920_1080_30fps.mp4",
+      "license": "Pexels License",
+      "licenseUrl": "https://www.pexels.com/license/",
+      "rightsPosture": "licensed-ingredient-not-exclusive"
+    },
+    {
+      "id": "polyhaven-misty-dawn",
+      "provider": "Poly Haven",
+      "kind": "image-from-hdri",
+      "role": ["crystal-poster", "dawn-atmosphere-study"],
+      "sourcePage": "https://polyhaven.com/a/misty_dawn",
+      "mediaUrl": "https://cdn.polyhaven.com/asset_img/primary/misty_dawn.png?height=760&quality=95",
+      "license": "CC0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "rightsPosture": "cc0"
+    },
+    {
+      "id": "polyhaven-xiequ-yuan",
+      "provider": "Poly Haven",
+      "kind": "image-from-hdri",
+      "role": ["hospitality-territory", "water-court-study"],
+      "sourcePage": "https://polyhaven.com/a/xiequ_yuan",
+      "mediaUrl": "https://cdn.polyhaven.com/asset_img/primary/xiequ_yuan.png?height=760&quality=95",
+      "license": "CC0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "rightsPosture": "cc0"
+    },
+    {
+      "id": "polyhaven-chinese-garden",
+      "provider": "Poly Haven",
+      "kind": "image-from-hdri",
+      "role": ["veritas-territory", "garden-light-study"],
+      "sourcePage": "https://polyhaven.com/a/chinese_garden",
+      "mediaUrl": "https://cdn.polyhaven.com/asset_img/primary/chinese_garden.png?height=760&quality=95",
+      "license": "CC0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "rightsPosture": "cc0"
+    },
+    {
+      "id": "polyhaven-white-home-studio",
+      "provider": "Poly Haven",
+      "kind": "image-from-hdri",
+      "role": ["refilum-territory"],
+      "sourcePage": "https://polyhaven.com/a/white_home_studio",
+      "mediaUrl": "https://cdn.polyhaven.com/asset_img/primary/white_home_studio.png?height=760&quality=95",
+      "license": "CC0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "rightsPosture": "cc0"
+    },
+    {
+      "id": "polyhaven-modern-buildings",
+      "provider": "Poly Haven",
+      "kind": "image-from-hdri",
+      "role": ["digital-studio-territory"],
+      "sourcePage": "https://polyhaven.com/a/modern_buildings",
+      "mediaUrl": "https://cdn.polyhaven.com/asset_img/primary/modern_buildings.png?height=760&quality=95",
+      "license": "CC0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "rightsPosture": "cc0"
+    }
+  ],
+  "founderReferences": [
+    {
+      "name": "25981(1).mp4",
+      "sha256": "6857735c19e48f623f51790fe1aae898cfd5a0c5299748e0cb0230ba23a04141",
+      "use": "art-direction-reference-only",
+      "redistributable": false
+    },
+    {
+      "name": "26088(1).mp4",
+      "sha256": "dbda03b36e66b91f1d4b1a47bffc96dbc42dcaf558d5b0ac54415e01ee5c5953",
+      "use": "art-direction-reference-only",
+      "redistributable": false
+    }
+  ],
+  "limitations": [
+    "Remote Pexels and Poly Haven media are provisional public dependencies, not exclusive D’AUBE masters.",
+    "Final D’AUBE-authored AVIF/WebP/WebM masters are still pending Founder visual approval and self-hosted optimization.",
+    "Founder reference video bytes remain private and are not published here."
+  ]
+}

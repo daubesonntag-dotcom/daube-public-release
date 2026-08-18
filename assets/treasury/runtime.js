@@ -1,7 +1,8 @@
 (() => {
-  const MANIFEST_URL = "assets/treasury/manifest.json";
-  const RUNTIME_CSS = "assets/treasury/runtime.css";
+  const MANIFEST_URL = "/assets/treasury/manifest.json";
+  const RUNTIME_CSS = "/assets/treasury/runtime.css";
   const approved = (item) => item?.state === "approved-local" && typeof item.localPath === "string" && item.localPath.startsWith("assets/treasury/");
+  const localUrl = (value) => value.startsWith("/") ? value : `/${value}`;
 
   function ensureRuntimeCss() {
     if (document.querySelector(`link[href="${RUNTIME_CSS}"]`)) return;
@@ -32,7 +33,7 @@
 
   function createIcon(item, label) {
     const img = document.createElement("img");
-    img.src = item.localPath;
+    img.src = localUrl(item.localPath);
     img.alt = label || "";
     img.width = 24;
     img.height = 24;
@@ -68,7 +69,7 @@
         continue;
       }
       const img = document.createElement("img");
-      img.src = media.localPath;
+      img.src = localUrl(media.localPath);
       img.alt = surface.dataset.treasuryAlt || "";
       img.decoding = "async";
       img.fetchPriority = name === "homepageHero" ? "high" : "auto";

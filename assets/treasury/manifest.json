@@ -1,9 +1,9 @@
 {
   "schema": "daube.site.resource-treasury.v1",
-  "version": 1,
+  "version": 2,
   "canonicalTreasury": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
-    "commit": "d079d83bccfdecef1902908790cbbeac726604ba"
+    "commit": "eedb54487c81612be9da683d8bcff9c4d2f03d7d"
   },
   "heroReady": false,
   "artifacts": [
@@ -89,6 +89,90 @@
         "licenseSpdx": "ISC",
         "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
         "attribution": "Lucide Icons and Contributors"
+      }
+    },
+    {
+      "assetId": "heroicons-sparkles",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "polished-ui",
+      "consumers": ["servicesHero", "launchPresence"],
+      "localPath": "assets/treasury/heroicons/heroicons-sparkles/a2f417f15d2d/sparkles.svg",
+      "bytes": 1313,
+      "sha256": "a2f417f15d2dfaad87103d93a4c8e42c0bff21e7821efdd6629cafbaeda20880",
+      "source": {
+        "repository": "tailwindlabs/heroicons",
+        "path": "src/24/outline/sparkles.svg",
+        "commit": "616b7a4dbbf3d011760af8066262cd5c6b3868f3",
+        "url": "https://raw.githubusercontent.com/tailwindlabs/heroicons/616b7a4dbbf3d011760af8066262cd5c6b3868f3/src/24/outline/sparkles.svg"
+      },
+      "rights": {
+        "licenseSpdx": "MIT",
+        "licenseEvidence": "assets/treasury/heroicons/LICENSE.txt",
+        "attribution": "Tailwind Labs, Inc."
+      }
+    },
+    {
+      "assetId": "tabler-brush",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "visual-design",
+      "consumers": ["visualCommunication", "services"],
+      "localPath": "assets/treasury/tabler/tabler-brush/4b9fa0b70f28/brush.svg",
+      "bytes": 526,
+      "sha256": "4b9fa0b70f28551158ba43393b28645483362bb76a98f7654f88318109f998fb",
+      "source": {
+        "repository": "tabler/tabler-icons",
+        "path": "icons/outline/brush.svg",
+        "commit": "183e715d5a81ba1959e285f69c08235fe34b04ce",
+        "url": "https://raw.githubusercontent.com/tabler/tabler-icons/183e715d5a81ba1959e285f69c08235fe34b04ce/icons/outline/brush.svg"
+      },
+      "rights": {
+        "licenseSpdx": "MIT",
+        "licenseEvidence": "assets/treasury/tabler/LICENSE.txt",
+        "attribution": "Paweł Kuna and Tabler Icons contributors"
+      }
+    },
+    {
+      "assetId": "phosphor-magic-wand",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "creative-ui",
+      "consumers": ["servicesFinalCta", "creativeTools"],
+      "localPath": "assets/treasury/phosphor/phosphor-magic-wand/8416f1e98011/magic-wand.svg",
+      "bytes": 1308,
+      "sha256": "8416f1e98011feb635e2aabc147e3da5166c795d5f95faf42eb081f9034baf4d",
+      "source": {
+        "repository": "phosphor-icons/core",
+        "path": "raw/regular/magic-wand.svg",
+        "commit": "2b75f3ad12b420c9504ef05df8d2564a28f8500e",
+        "url": "https://raw.githubusercontent.com/phosphor-icons/core/2b75f3ad12b420c9504ef05df8d2564a28f8500e/raw/regular/magic-wand.svg"
+      },
+      "rights": {
+        "licenseSpdx": "MIT",
+        "licenseEvidence": "assets/treasury/phosphor/LICENSE.txt",
+        "attribution": "Phosphor Icons"
+      }
+    },
+    {
+      "assetId": "iconoir-design-pencil",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "design-system",
+      "consumers": ["servicesHero", "designSystem"],
+      "localPath": "assets/treasury/iconoir/iconoir-design-pencil/2d984d80f660/design-pencil.svg",
+      "bytes": 608,
+      "sha256": "2d984d80f66030cb6655333fb56eed4d732c4b5b11d91bbc8d6e6844a43a5f1b",
+      "source": {
+        "repository": "iconoir-icons/iconoir",
+        "path": "icons/regular/design-pencil.svg",
+        "commit": "d7dfa4d0341df0670bfed9fc24221c9d7ef2112e",
+        "url": "https://raw.githubusercontent.com/iconoir-icons/iconoir/d7dfa4d0341df0670bfed9fc24221c9d7ef2112e/icons/regular/design-pencil.svg"
+      },
+      "rights": {
+        "licenseSpdx": "MIT",
+        "licenseEvidence": "assets/treasury/iconoir/LICENSE.txt",
+        "attribution": "Luca Burgio and Iconoir contributors"
       }
     }
   ],

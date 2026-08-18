@@ -1,169 +1,242 @@
 <!doctype html>
-<html lang="vi" data-daube-mode="light">
+<html lang="vi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="color-scheme" content="light">
-  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
-  <meta name="description" content="D’AUBE SONNTAG — thiết kế hiện diện số, visual communication và sản phẩm số có chủ đích. Khám phá Launch Presence và RẠNG TRONG — Launch Kit 01.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f2f0e9">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="description" content="D’AUBE SONNTAG — creative technology ecosystem cho phần mềm, sản phẩm số, dịch vụ, thế giới, câu chuyện và vật liệu. Meaning, made visible.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="D’AUBE SONNTAG">
-  <meta property="og:title" content="D’AUBE SONNTAG — meaning, made visible.">
-  <meta property="og:description" content="Thiết kế hiện diện số và sản phẩm số có chủ đích — để ý nghĩa được làm thành hình.">
+  <meta property="og:title" content="D’AUBE SONNTAG — Creative Technology Ecosystem">
+  <meta property="og:description" content="Meaning, made visible. Phần mềm, sản phẩm số, dịch vụ và những thế giới được art-direct như một chỉnh thể.">
   <meta property="og:url" content="https://daubesonntag.com/">
-  <meta property="og:image" content="https://daubesonntag.com/assets/email/previews/cinematic-dark-preview.jpg">
-  <meta property="og:image:alt" content="D’AUBE SONNTAG — meaning, made visible.">
+  <meta property="og:image" content="https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260">
+  <meta property="og:image:alt" content="Thủy đình phản chiếu trên mặt hồ trong sương — visual direction study của D’AUBE SONNTAG">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="D’AUBE SONNTAG — meaning, made visible.">
-  <meta name="twitter:description" content="Thiết kế hiện diện số và sản phẩm số có chủ đích.">
-  <meta name="twitter:image" content="https://daubesonntag.com/assets/email/previews/cinematic-dark-preview.jpg">
+  <meta name="twitter:title" content="D’AUBE SONNTAG — Creative Technology Ecosystem">
+  <meta name="twitter:description" content="Meaning, made visible.">
+  <meta name="twitter:image" content="https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260">
   <link rel="canonical" href="https://daubesonntag.com/">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="preload" as="image" href="assets/email/previews/cinematic-dark-preview.jpg" fetchpriority="high">
-  <link rel="stylesheet" href="vendor/daube-design-system/b9bcf25/semantic-tokens.css">
-  <link rel="stylesheet" href="vendor/daube-design-system/b9bcf25/components.css">
-  <link rel="stylesheet" href="assets/public-reference.css">
-  <link rel="stylesheet" href="assets/public-cinematic-hero.css">
-  <link rel="stylesheet" href="assets/commerce-v1.css">
-  <script defer src="assets/public-depth.js"></script>
-  <title>D’AUBE SONNTAG — meaning, made visible.</title>
+  <link rel="preconnect" href="https://images.pexels.com" crossorigin>
+  <link rel="preconnect" href="https://videos.pexels.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.polyhaven.com" crossorigin>
+  <link rel="preload" as="image" href="https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260" fetchpriority="high">
+  <link rel="stylesheet" href="assets/flagship-v2.css">
+  <script defer src="assets/flagship-v2.js"></script>
+  <title>D’AUBE SONNTAG — Creative Technology Ecosystem</title>
 </head>
-<body class="ds-shell">
-  <a class="public-skip" href="#main-content">Đi tới nội dung chính</a>
+<body>
+  <a class="skip-link" href="#main-content">Đi tới nội dung chính</a>
 
-  <div class="public-shell">
-    <header class="public-header">
-      <a class="public-brand" href="./" aria-label="Trang chủ D’AUBE SONNTAG">
-        <strong>D’AUBE SONNTAG</strong>
-        <span>meaning, made visible.</span>
-      </a>
-      <nav class="commerce-nav" aria-label="Điều hướng chính">
-        <a href="./" aria-current="page">Home</a>
-        <a href="#about">D’AUBE</a>
-        <a href="services/">Services</a>
-        <a href="launch-kit-01/">Launch Kit 01</a>
-        <a href="contact/">Contact</a>
-      </nav>
-    </header>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="D’AUBE SONNTAG — Trang chủ">
+      <strong>D’AUBE SONNTAG</strong>
+      <span>RẠNG TRONG · meaning, made visible.</span>
+    </a>
+    <nav class="desktop-nav" aria-label="Điều hướng chính">
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="services/">Services</a>
+      <a href="launch-kit-01/">Digital product</a>
+      <a href="contact/">Contact</a>
+    </nav>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Mở menu">
+      <span></span><span></span>
+    </button>
+  </header>
 
-    <main id="main-content" class="public-main">
-      <section class="public-hero" aria-labelledby="public-title">
+  <nav id="mobile-menu" class="mobile-menu" aria-label="Điều hướng trên điện thoại" hidden>
+    <a href="#ecosystem">Ecosystem</a>
+    <a href="services/">Services</a>
+    <a href="launch-kit-01/">Digital product</a>
+    <a href="contact/">Contact</a>
+  </nav>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">D’AUBE SONNTAG · CREATIVE TECHNOLOGY ECOSYSTEM</p>
+        <h1 id="hero-title">Many forms,<br><em>one dawn.</em></h1>
+        <p class="lede">
+          Một hệ sinh thái nơi phần mềm, sản phẩm số, dịch vụ, thế giới, câu chuyện, tri thức và vật liệu
+          được art-direct như một chỉnh thể — để ý niệm kết lấy dung hình, để ý nghĩa rạng thành hiện hữu.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-dark" href="launch-presence/">Bắt đầu một dự án <span aria-hidden="true">↗</span></a>
+          <a class="button button-line" href="launch-kit-01/">Xem Launch Kit 01 <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-notes" aria-label="Nguyên tắc visual">
+          <span><b>01</b> Asset-backed imagery</span>
+          <span><b>02</b> Founder-led direction</span>
+          <span><b>03</b> Motion after composition</span>
+        </div>
+      </div>
+
+      <figure class="hero-media" data-asset-id="pexels-pavilion-30220228">
+        <img src="https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260" alt="Thủy đình Á Đông phản chiếu trên mặt hồ tĩnh, phía sau là núi phủ sương" fetchpriority="high">
+        <div class="fabric-window" aria-hidden="true">
+          <video data-ambient-video data-play-mode="visible" muted loop playsinline preload="none" src="https://videos.pexels.com/video-files/4623748/4623748-hd_1080_1922_24fps.mp4"></video>
+        </div>
+        <figcaption>
+          <span>SUNDAY DAWN · WATER COURT · MATERIAL LIGHT</span>
+          <small>Visual study — original D’AUBE master in development.</small>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="offers" aria-labelledby="offers-title">
+      <header class="section-head">
         <div>
-          <p class="public-kicker">D’AUBE SONNTAG · CREATIVE &amp; DIGITAL ECOSYSTEM</p>
-          <h1 id="public-title" class="public-title">Ý nghĩa, được làm thành hình.</h1>
-          <p class="public-lede">
-            D’AUBE tạo nên những hiện diện số, visual communication và sản phẩm digital có chủ đích — rõ để sử dụng,
-            đủ đẹp để được nhớ, và đủ thực tế để đưa một dự án ra thế giới.
-          </p>
-          <div class="public-actions">
-            <a class="ds-action" data-variant="primary" href="launch-presence/">
-              Bắt đầu một dự án <span aria-hidden="true">→</span>
-            </a>
-            <a class="ds-action" href="launch-kit-01/">
-              Xem Launch Kit 01 <span aria-hidden="true">→</span>
-            </a>
-          </div>
+          <p class="eyebrow">COMMERCE · START HERE</p>
+          <h2 id="offers-title">Từ ý niệm đến thứ có thể dùng, bán và nhớ.</h2>
         </div>
+        <p>
+          D’AUBE hiện nhận dự án digital và cung cấp sản phẩm số. Mọi yêu cầu được xác nhận scope trước khi gửi hướng dẫn thanh toán.
+        </p>
+      </header>
 
-        <div class="public-mark" role="img" aria-label="Một ngưỡng cửa phát sáng của D’AUBE SONNTAG">
-          <div class="public-mark__scene" aria-hidden="true">
-            <span class="public-mark__halo public-mark__halo--outer"></span>
-            <span class="public-mark__halo public-mark__halo--middle"></span>
-            <span class="public-mark__halo public-mark__halo--inner"></span>
-            <span class="public-mark__horizon"></span>
-            <span class="public-mark__spark public-mark__spark--one"></span>
-            <span class="public-mark__spark public-mark__spark--two"></span>
-            <span class="public-mark__spark public-mark__spark--three"></span>
-          </div>
-          <small>RẠNG TRONG · DIGITAL PRESENCE</small>
-          <strong>D’AUBE SONNTAG</strong>
-        </div>
-      </section>
-
-      <section class="commerce-section" aria-labelledby="offers-title">
-        <div class="commerce-section__head">
+      <div class="offer-grid">
+        <article class="offer-card">
           <div>
-            <p class="commerce-eyebrow">START HERE</p>
-            <h2 id="offers-title">Hai cách để bắt đầu.</h2>
+            <p class="eyebrow">SERVICE #001</p>
+            <h3>Launch Presence</h3>
+            <p>Landing page có art direction, responsive, CTA, SEO metadata cơ bản và hai vòng chỉnh sửa.</p>
           </div>
-          <p>Thuê D’AUBE dựng hiện diện số cho bạn, hoặc bắt đầu nhanh với một bộ công cụ digital có sẵn.</p>
-        </div>
+          <div class="offer-bottom">
+            <strong>3.900.000đ</strong>
+            <a href="launch-presence/">Xem dịch vụ <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
 
-        <div class="commerce-offer-grid">
-          <article class="commerce-offer">
-            <p class="commerce-eyebrow">SERVICE #001</p>
-            <h2>Launch Presence</h2>
-            <p>Một landing page hoàn chỉnh với art direction, responsive, CTA, metadata SEO cơ bản và hai vòng chỉnh sửa.</p>
-            <div class="commerce-price">
-              <strong>3.900.000đ</strong>
-              <a class="commerce-link" href="launch-presence/">Xem dịch vụ <span aria-hidden="true">→</span></a>
-            </div>
-          </article>
-
-          <article class="commerce-offer">
-            <p class="commerce-eyebrow">DIGITAL PRODUCT #001</p>
-            <h2>RẠNG TRONG — Launch Kit 01</h2>
-            <p>Landing-page starter, ba hướng visual, mini brand system, copy framework, social assets, prompts và launch checklist.</p>
-            <div class="commerce-price">
-              <strong>290.000đ</strong>
-              <a class="commerce-link" href="launch-kit-01/">Xem sản phẩm <span aria-hidden="true">→</span></a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="commerce-section" aria-labelledby="process-title">
-        <div class="commerce-section__head">
+        <article class="offer-card offer-card-dark">
           <div>
-            <p class="commerce-eyebrow">HOW IT WORKS</p>
-            <h2 id="process-title">Ít bước. Rõ trạng thái.</h2>
+            <p class="eyebrow">DIGITAL PRODUCT #001</p>
+            <h3>RẠNG TRONG — Launch Kit 01</h3>
+            <p>Landing-page starter, visual directions, mini brand system, copy framework, social assets, prompts và launch checklist.</p>
           </div>
-          <p>D’AUBE không công khai QR hay thông tin thanh toán trên website. Hướng dẫn thanh toán chỉ được gửi sau khi yêu cầu hoặc đơn hàng được xác nhận.</p>
-        </div>
-        <div class="commerce-steps">
-          <article class="commerce-step"><span>01 · REQUEST</span><h3>Gửi yêu cầu.</h3><p>Chọn dịch vụ hoặc sản phẩm và gửi brief bằng form V1.</p></article>
-          <article class="commerce-step"><span>02 · CONFIRM</span><h3>D’AUBE xác nhận.</h3><p>Bạn nhận mã tham chiếu và hướng dẫn tiếp theo qua email chức năng của D’AUBE.</p></article>
-          <article class="commerce-step"><span>03 · CREATE</span><h3>Thanh toán rồi bắt đầu.</h3><p>Sau xác nhận thanh toán, sản phẩm được giao hoặc dự án chính thức khởi động.</p></article>
-        </div>
-      </section>
+          <div class="offer-bottom">
+            <strong>290.000đ</strong>
+            <a href="launch-kit-01/">Xem sản phẩm <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </div>
+    </section>
 
-      <section id="about" class="public-contract" aria-labelledby="worlds-title">
-        <header class="public-contract__head">
-          <p>D’AUBE · CREATIVE ECOSYSTEM</p>
-          <h2 id="worlds-title">Một hệ sinh thái, nhiều cánh cửa.</h2>
-        </header>
-        <div class="public-grid">
-          <a class="public-card" href="experience-preview/#studio" style="text-decoration:none">
-            <span class="public-card__index">01 · STUDIO</span><h3>Thiết kế và trải nghiệm có cảm giác riêng.</h3><p>Visual, vật liệu, digital presence và những chi tiết biến ý tưởng thành một thứ có thể chạm tới.</p>
-          </a>
-          <a class="public-card" href="experience-preview/#ailleurs" style="text-decoration:none">
-            <span class="public-card__index">02 · AILLEURS</span><h3>Kể chuyện bằng những thế giới có chiều sâu.</h3><p>Realm điện ảnh, hoạt hình, CGI và narrative experience được xây như những nơi có thể bước vào.</p>
-          </a>
-          <a class="public-card" href="experience-preview/#veritas" style="text-decoration:none">
-            <span class="public-card__index">03 · VERITAS</span><h3>Làm điều khó trở nên sáng rõ.</h3><p>Kiến thức, hệ thống và ý tưởng phức tạp được tổ chức thành hình ảnh, cấu trúc và trải nghiệm dễ hiểu.</p>
-          </a>
-          <a class="public-card" href="experience-preview/#hospitality" style="text-decoration:none">
-            <span class="public-card__index">04 · HOSPITALITY</span><h3>Thiết kế cả cách một trải nghiệm được cảm nhận.</h3><p>Không gian, dịch vụ, nhịp tương tác và cảm giác được coi như một hệ thống thống nhất.</p>
-          </a>
-        </div>
-      </section>
+    <section class="crystal" aria-labelledby="crystal-title">
+      <div class="crystal-media" data-asset-id="pexels-glass-refraction-6602733">
+        <img src="https://cdn.polyhaven.com/asset_img/primary/misty_dawn.png?height=760&quality=95" alt="" loading="lazy">
+        <video data-ambient-video data-play-mode="visible" muted loop playsinline preload="none" src="https://videos.pexels.com/video-files/6602733/6602733-hd_1920_1080_30fps.mp4" aria-hidden="true"></video>
+      </div>
+      <div class="crystal-copy">
+        <p class="eyebrow">MANIFESTO · CRYSTAL / REFRACTION</p>
+        <h2 id="crystal-title">Meaning is not decoration. It changes what light reveals.</h2>
+        <p>
+          Crystal, water, paper, fabric và architecture là ngôn ngữ vật liệu — không phải hiệu ứng dùng để che một composition yếu.
+          Motion chỉ xuất hiện khi nó mang thông tin về vật chất, không gian hoặc câu chuyện.
+        </p>
+        <a class="text-link" href="experience-preview/">Đi vào experience atlas <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
 
-      <section class="commerce-section commerce-final-cta" aria-labelledby="final-cta-title">
+    <section id="ecosystem" class="territories" aria-labelledby="ecosystem-title">
+      <header class="section-head">
         <div>
-          <p class="commerce-eyebrow">PROJECT INTAKE</p>
-          <h2 id="final-cta-title">Có một ý tưởng cần thành hình?</h2>
-          <p>Gửi một brief ngắn. D’AUBE sẽ xác nhận scope trước khi bất kỳ yêu cầu thanh toán nào được gửi.</p>
+          <p class="eyebrow">CREATIVE TERRITORIES</p>
+          <h2 id="ecosystem-title">One ecosystem. Distinct worlds.</h2>
         </div>
-        <a class="ds-action" data-variant="primary" href="launch-presence/#project-form">Bắt đầu một dự án <span aria-hidden="true">→</span></a>
-      </section>
+        <p>
+          Mỗi territory có visual plate, vật liệu và nhịp riêng. Không dùng một khối CSS rồi đổi màu để giả thành nhiều thế giới.
+        </p>
+      </header>
 
-      <p class="public-provenance">Public release channel · D’AUBE SONNTAG</p>
-    </main>
+      <div class="territory-grid">
+        <a class="territory-card" href="services/" data-asset-id="polyhaven-modern-buildings">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/modern_buildings.png?height=760&quality=95" alt="" loading="lazy">
+          <div><span>01 · DIGITAL STUDIO</span><h3>Software & systems</h3><p>Sản phẩm số, platform, automation và dịch vụ digital.</p></div>
+        </a>
+        <a class="territory-card territory-wide" href="experience-preview/#ailleurs" data-asset-id="pexels-pavilion-30220228">
+          <img src="https://images.pexels.com/photos/30220228/pexels-photo-30220228/free-photo-of-serene-chinese-pavilion-reflected-in-tranquil-lake.png?dpr=1&h=750&w=1260" alt="" loading="lazy">
+          <div><span>02 · AILLEURS</span><h3>Worlds & stories</h3><p>Worldbuilding, spatial narrative, cinema và những nơi có thể bước vào.</p></div>
+        </a>
+        <a class="territory-card" href="experience-preview/#veritas" data-asset-id="polyhaven-chinese-garden">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/chinese_garden.png?height=760&quality=95" alt="" loading="lazy">
+          <div><span>03 · VERITAS</span><h3>Knowledge made spatial</h3><p>Khoa học, nghệ thuật và hệ thống phức tạp được làm cho sáng rõ.</p></div>
+        </a>
+        <a class="territory-card" href="experience-preview/#studio" data-asset-id="polyhaven-white-home-studio">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/white_home_studio.png?height=760&quality=95" alt="" loading="lazy">
+          <div><span>04 · Re:FILUM</span><h3>Material intelligence</h3><p>Textile, footwear, material futures và product visualization.</p></div>
+        </a>
+        <a class="territory-card territory-wide" href="experience-preview/#hospitality" data-asset-id="polyhaven-xiequ-yuan">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/xiequ_yuan.png?height=760&quality=95" alt="" loading="lazy">
+          <div><span>05 · HOSPITALITY</span><h3>Places with meaning</h3><p>Không gian, dịch vụ, nhịp tương tác và cảm giác được thiết kế như một chỉnh thể.</p></div>
+        </a>
+        <a class="territory-card" href="experience-preview/" data-asset-id="pexels-pavilion-3243022">
+          <img src="https://images.pexels.com/photos/3243022/pexels-photo-3243022.jpeg?auto=compress&dpr=1&h=750&w=1260" alt="" loading="lazy">
+          <div><span>06 · ERINA</span><h3>Intelligence with presence</h3><p>AI, continuity, character và những hệ thống biết giữ ngữ cảnh.</p></div>
+        </a>
+      </div>
+    </section>
 
-    <footer class="public-footer">
-      <span>D’AUBE SONNTAG · RẠNG TRONG</span>
+    <section class="studies" aria-labelledby="studies-title">
+      <header class="section-head">
+        <div>
+          <p class="eyebrow">WORLD MATERIAL STUDIES</p>
+          <h2 id="studies-title">Atmosphere before spectacle.</h2>
+        </div>
+        <p>Look-development plates dùng để khóa ánh sáng, mặt nước, stone tone và chiều sâu trước khi scene nguyên bản D’AUBE được promote.</p>
+      </header>
+      <div class="study-grid">
+        <figure data-asset-id="polyhaven-xiequ-yuan">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/xiequ_yuan.png?height=760&quality=95" alt="Pavilion và hồ nước dùng làm study cho phản chiếu và chiều sâu" loading="lazy">
+          <figcaption><span>01 · WATER COURT</span><small>Still water · architecture · reflected light</small></figcaption>
+        </figure>
+        <figure data-asset-id="polyhaven-chinese-garden">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/chinese_garden.png?height=760&quality=95" alt="Khu vườn Á Đông dùng làm study cho ánh sáng tự nhiên và cây cối" loading="lazy">
+          <figcaption><span>02 · GARDEN LIGHT</span><small>Foliage · pavilion · natural contrast</small></figcaption>
+        </figure>
+        <figure data-asset-id="polyhaven-misty-dawn">
+          <img src="https://cdn.polyhaven.com/asset_img/primary/misty_dawn.png?height=760&quality=95" alt="Bình minh phủ sương dùng làm study cho atmosphere" loading="lazy">
+          <figcaption><span>03 · DAWN ATMOSPHERE</span><small>Mist · horizon · quiet luminosity</small></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="process" aria-labelledby="process-title">
+      <header class="section-head">
+        <div>
+          <p class="eyebrow">HOW IT WORKS</p>
+          <h2 id="process-title">Ít bước. Rõ trạng thái.</h2>
+        </div>
+        <p>D’AUBE không công khai thông tin thanh toán nhạy cảm trên homepage. Hướng dẫn thanh toán được gửi sau khi yêu cầu hoặc đơn hàng được xác nhận.</p>
+      </header>
+      <ol class="process-grid">
+        <li><span>01 · REQUEST</span><h3>Gửi brief.</h3><p>Chọn dịch vụ hoặc sản phẩm và gửi yêu cầu.</p></li>
+        <li><span>02 · CONFIRM</span><h3>Xác nhận scope.</h3><p>D’AUBE phản hồi phạm vi, trạng thái và bước tiếp theo.</p></li>
+        <li><span>03 · CREATE</span><h3>Bắt đầu thực hiện.</h3><p>Sau xác nhận thanh toán, sản phẩm được giao hoặc dự án chính thức khởi động.</p></li>
+      </ol>
+    </section>
+
+    <section class="final-cta" aria-labelledby="final-title">
+      <div>
+        <p class="eyebrow">PROJECT INTAKE</p>
+        <h2 id="final-title">Có một ý tưởng cần thành hình?</h2>
+        <p>Gửi một brief ngắn. D’AUBE sẽ xác nhận scope trước khi có bất kỳ yêu cầu thanh toán nào.</p>
+      </div>
+      <a class="button button-light" href="launch-presence/#project-form">Bắt đầu một dự án <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div><strong>D’AUBE SONNTAG</strong><span>Creative Technology Ecosystem · RẠNG TRONG</span></div>
+    <nav aria-label="Điều hướng chân trang">
+      <a href="services/">Services</a>
+      <a href="launch-kit-01/">Launch Kit 01</a>
+      <a href="contact/">Contact</a>
       <a href="mailto:hello@daubesonntag.com">hello@daubesonntag.com</a>
-    </footer>
-  </div>
+    </nav>
+    <small>© 2026 D’AUBE SONNTAG · meaning, made visible.</small>
+  </footer>
 </body>
 </html>

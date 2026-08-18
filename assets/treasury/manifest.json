@@ -1,0 +1,97 @@
+{
+  "schema": "daube.site.resource-treasury.v1",
+  "version": 1,
+  "canonicalTreasury": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "commit": "d079d83bccfdecef1902908790cbbeac726604ba"
+  },
+  "heroReady": false,
+  "artifacts": [
+    {
+      "assetId": "lucide-boxes",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "utility",
+      "consumers": ["globalIcons", "worlds"],
+      "localPath": "assets/treasury/lucide/lucide-boxes/7e301f6c3833/boxes.svg",
+      "bytes": 824,
+      "sha256": "7e301f6c38337389f5a96675d14cb9d8ef8a613329e99c3dfcf7c635bdd1faae",
+      "source": {
+        "repository": "lucide-icons/lucide",
+        "path": "icons/boxes.svg",
+        "commit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+        "url": "https://raw.githubusercontent.com/lucide-icons/lucide/86eb89c794cb941bf24eb16d5ef432faabaac7be/icons/boxes.svg"
+      },
+      "rights": {
+        "licenseSpdx": "ISC",
+        "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+        "attribution": "Lucide Icons and Contributors"
+      }
+    },
+    {
+      "assetId": "lucide-gem",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "utility",
+      "consumers": ["globalIcons", "worlds"],
+      "localPath": "assets/treasury/lucide/lucide-gem/377618223555/gem.svg",
+      "bytes": 425,
+      "sha256": "377618223555b2847b553a81f6974c76b7ce14d1207bcc0e98baa27a6a36d40e",
+      "source": {
+        "repository": "lucide-icons/lucide",
+        "path": "icons/gem.svg",
+        "commit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+        "url": "https://raw.githubusercontent.com/lucide-icons/lucide/86eb89c794cb941bf24eb16d5ef432faabaac7be/icons/gem.svg"
+      },
+      "rights": {
+        "licenseSpdx": "ISC",
+        "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+        "attribution": "Lucide Icons and Contributors"
+      }
+    },
+    {
+      "assetId": "lucide-orbit",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "utility",
+      "consumers": ["globalIcons", "worlds"],
+      "localPath": "assets/treasury/lucide/lucide-orbit/e2b8b7d7f820/orbit.svg",
+      "bytes": 418,
+      "sha256": "e2b8b7d7f82044181860cbc2dab9b7e8d3c4778fbbce9a62f5c4038175f4faf4",
+      "source": {
+        "repository": "lucide-icons/lucide",
+        "path": "icons/orbit.svg",
+        "commit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+        "url": "https://raw.githubusercontent.com/lucide-icons/lucide/86eb89c794cb941bf24eb16d5ef432faabaac7be/icons/orbit.svg"
+      },
+      "rights": {
+        "licenseSpdx": "ISC",
+        "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+        "attribution": "Lucide Icons and Contributors"
+      }
+    },
+    {
+      "assetId": "lucide-sparkles",
+      "kind": "svg-icon",
+      "state": "approved-local",
+      "qualityTier": "utility",
+      "consumers": ["globalIcons", "worlds"],
+      "localPath": "assets/treasury/lucide/lucide-sparkles/f5499f33f09d/sparkles.svg",
+      "bytes": 567,
+      "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8",
+      "source": {
+        "repository": "lucide-icons/lucide",
+        "path": "icons/sparkles.svg",
+        "commit": "86eb89c794cb941bf24eb16d5ef432faabaac7be",
+        "url": "https://raw.githubusercontent.com/lucide-icons/lucide/86eb89c794cb941bf24eb16d5ef432faabaac7be/icons/sparkles.svg"
+      },
+      "rights": {
+        "licenseSpdx": "ISC",
+        "licenseEvidence": "assets/treasury/lucide/LICENSE.txt",
+        "attribution": "Lucide Icons and Contributors"
+      }
+    }
+  ],
+  "unresolvedSurfaces": ["homepageHero", "manifesto", "featuredProject", "closing", "typography"],
+  "truthBoundary": "Only approved-local artifacts with checksum, pinned provenance, rights evidence and a declared consumer may be rendered. Missing hero media must remain a typography/layout fallback."
+}

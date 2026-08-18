@@ -1,5 +1,13 @@
 User-agent: *
-Disallow: /
+Allow: /
 
-# Canonical public customer presence:
-# https://daubesonntag.com/
+# Public customer surfaces are crawlable.
+# Internal/release/preview surfaces stay out of search discovery.
+Disallow: /email-preview/
+Disallow: /campaigns/
+Disallow: /governance/
+Disallow: /config/
+Disallow: /docs/
+Disallow: /app/
+
+Sitemap: https://daubesonntag.com/sitemap.xml

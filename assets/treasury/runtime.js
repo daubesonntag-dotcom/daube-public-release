@@ -3,12 +3,19 @@
   const RUNTIME_CSS = "/assets/treasury/runtime.css";
   const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
   const consumersOf = (item) => Array.isArray(item?.consumers) ? item.consumers : (Array.isArray(item?.consumerTargets) ? item.consumerTargets : []);
-  const approved = (item) => ["approved-local", "approved-cdn", "hero"].includes(item?.state) && typeof (item.localPath || item.cdnPath) === "string";
+  const safeLocalPath = (value) => typeof value === "string" && value.startsWith("assets/treasury/") && !value.includes("..") && !value.includes("\\");
+  const safeCdnPath = (value) => typeof value === "string" && /^https:\/\//i.test(value);
+  const approved = (item) => {
+    if (item?.state === "approved-local") return safeLocalPath(item.localPath);
+    if (["approved-cdn", "hero"].includes(item?.state)) return safeLocalPath(item.localPath) || safeCdnPath(item.cdnPath);
+    return false;
+  };
   const assetUrl = (item, key = null) => {
     const value = key ? item?.[key] : (item?.localPath || item?.cdnPath);
     if (typeof value !== "string" || !value) return null;
-    if (/^https:\/\//i.test(value)) return value;
-    return value.startsWith("/") ? value : `/${value}`;
+    if (safeCdnPath(value)) return value;
+    if (safeLocalPath(value)) return `/${value}`;
+    return null;
   };
   const familyOf = (item) => item?.typeFamily || ({
     "svg-icon": "visual",
@@ -19,12 +26,20 @@
     "animated-image": "visual",
     "video": "video",
     "hero-video": "video",
+    "video-loop": "video",
     "audio": "audio",
     "music": "audio",
+    "sfx": "audio",
+    "ui-sound": "audio",
     "3d-model": "3d",
     "hdri": "3d",
+    "scene": "3d",
     "vfx": "vfx-cgi",
-    "cgi": "vfx-cgi"
+    "cgi": "vfx-cgi",
+    "particle-system": "vfx-cgi",
+    "motion": "motion",
+    "lottie": "motion",
+    "rive": "motion"
   }[item?.kind] || null);
 
   function ensureRuntimeCss() {
@@ -55,8 +70,10 @@
   }
 
   function createIcon(item, label) {
+    const src = assetUrl(item);
+    if (!src) return null;
     const img = document.createElement("img");
-    img.src = assetUrl(item);
+    img.src = src;
     img.alt = label || "";
     img.width = 24;
     img.height = 24;
@@ -71,18 +88,21 @@
     const byId = new Map(artifacts.filter(approved).map((item) => [item.assetId, item]));
     for (const slot of document.querySelectorAll("[data-treasury-icon]")) {
       const item = byId.get(slot.dataset.treasuryIcon);
-      if (!item || item.kind !== "svg-icon") {
+      const icon = item?.kind === "svg-icon" ? createIcon(item, slot.dataset.treasuryIconLabel || "") : null;
+      if (!icon) {
         slot.dataset.treasuryState = "unresolved";
         continue;
       }
-      slot.replaceChildren(createIcon(item, slot.dataset.treasuryIconLabel || ""));
+      slot.replaceChildren(icon);
       slot.dataset.treasuryState = "ready";
     }
   }
 
   function createImage(item, surface, name) {
+    const src = assetUrl(item);
+    if (!src) return null;
     const img = document.createElement("img");
-    img.src = assetUrl(item);
+    img.src = src;
     img.alt = surface.dataset.treasuryAlt || "";
     img.decoding = "async";
     img.loading = name === "homepageHero" ? "eager" : "lazy";
@@ -95,8 +115,10 @@
   }
 
   function createVideo(item, surface, name) {
+    const src = assetUrl(item);
+    if (!src) return null;
     const video = document.createElement("video");
-    video.src = assetUrl(item);
+    video.src = src;
     video.poster = assetUrl(item, "posterPath") || "";
     video.className = "treasury-media treasury-video";
     video.dataset.treasuryAsset = item.assetId;
@@ -129,6 +151,15 @@
     return img;
   }
 
+  function canRenderSurfaceMedia(item) {
+    const family = familyOf(item);
+    if (family === "visual" || family === "video") return Boolean(assetUrl(item));
+    if (["3d", "vfx-cgi", "motion"].includes(family)) {
+      return Boolean(assetUrl(item, "posterPath") || assetUrl(item, "previewPath") || assetUrl(item, "thumbnailPath"));
+    }
+    return false;
+  }
+
   function createSurfaceMedia(item, surface, name) {
     const family = familyOf(item);
     if (family === "visual") return createImage(item, surface, name);
@@ -148,11 +179,10 @@
     const usable = artifacts.filter(approved);
     for (const surface of document.querySelectorAll("[data-treasury-slot]")) {
       const name = surface.dataset.treasurySlot;
-      const candidates = usable
+      const media = usable
         .filter((item) => consumersOf(item).includes(name))
-        .filter((item) => ["visual", "video", "motion", "3d", "vfx-cgi"].includes(familyOf(item)))
-        .sort((a, b) => mediaRank(b, name) - mediaRank(a, name));
-      const media = candidates.find((item) => createSurfaceMedia(item, surface, name));
+        .filter(canRenderSurfaceMedia)
+        .sort((a, b) => mediaRank(b, name) - mediaRank(a, name))[0];
       if (!media) {
         surface.dataset.treasuryState = "unresolved";
         if (name === "homepageHero") surface.querySelector(".public-mark__scene")?.remove();
@@ -176,12 +206,13 @@
     const byId = new Map(usable.map((item) => [item.assetId, item]));
     for (const slot of document.querySelectorAll("[data-treasury-audio]")) {
       const item = byId.get(slot.dataset.treasuryAudio);
-      if (!item) {
+      const src = item ? assetUrl(item) : null;
+      if (!item || !src) {
         slot.dataset.treasuryState = "unresolved";
         continue;
       }
       const audio = document.createElement("audio");
-      audio.src = assetUrl(item);
+      audio.src = src;
       audio.preload = "none";
       audio.controls = true;
       audio.autoplay = false;

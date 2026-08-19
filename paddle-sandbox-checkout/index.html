@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>D’AUBE Paddle Sandbox Checkout</title>
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  <style>
+    :root{color-scheme:light;--ink:#0d2138;--muted:#5f738c;--line:#d6e8f7;--blue:#1769e8;--good:#16734a;--warn:#9a5a0a}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 18% 0,#dff5ff 0,transparent 42%),linear-gradient(180deg,#eef9ff,#fff 58%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--ink)}
+    .wrap{width:min(100%,860px);margin:auto;padding:40px 18px 84px}.brand{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:#4b6d93}.card{margin-top:22px;padding:clamp(22px,5vw,38px);border:1px solid var(--line);border-radius:30px;background:#ffffffdf;backdrop-filter:blur(18px);box-shadow:0 30px 90px #4a9ee526}.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border-radius:999px;background:#e9f6ff;color:#235b91;font-weight:750;font-size:12px}h1{font-family:Georgia,serif;font-size:clamp(40px,8vw,68px);line-height:.98;font-weight:500;margin:16px 0 18px;letter-spacing:-.03em}p{line-height:1.68;color:var(--muted)}.grid{display:grid;grid-template-columns:1fr auto;gap:13px;border-top:1px solid var(--line);padding-top:20px;margin-top:22px}.grid b{text-align:right}.amount{font-size:26px;color:#0c417e}.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef7ff;padding:7px 9px;border-radius:10px}label{display:block;margin-top:24px;font-weight:750}input{width:100%;margin-top:8px;padding:15px 16px;border:1px solid #c7def2;border-radius:15px;background:#fff;font:inherit;outline:none}input:focus{border-color:#69aaf2;box-shadow:0 0 0 4px #78b6ff20}.btn{width:100%;margin-top:18px;padding:16px 18px;border:0;border-radius:17px;background:linear-gradient(180deg,#2879ef,#0d5ddd);color:#fff;font-weight:850;font-size:16px;box-shadow:0 14px 32px #1769e833}.btn:disabled{opacity:.5;box-shadow:none}.status{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#f6fbff;white-space:pre-wrap;font-size:14px;line-height:1.55}.status.good{border-color:#bce8d2;background:#eefbf4;color:var(--good)}.status.warn{border-color:#f0d4aa;background:#fff9ef;color:var(--warn)}.fine{font-size:12px;margin-top:15px}.hidden{display:none}@media(max-width:560px){.grid{grid-template-columns:1fr}.grid b{text-align:left}.card{border-radius:24px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">D’AUBE SONNTAG · PAYMENT INTEGRATION LAB</div>
+    <section class="card">
+      <span class="pill">SANDBOX · ZERO REAL MONEY</span>
+      <h1>Checkout thật.<br>Tiền thử nghiệm.</h1>
+      <p>Trang ẩn này chỉ dùng để chứng minh chuỗi Paddle Checkout → transaction → signed webhook → Paddle API reconciliation → test entitlement. Không giao hàng thật, không tính doanh thu thật.</p>
+      <div class="grid">
+        <span>Product</span><b id="product">Đang tải…</b>
+        <span>Price</span><b id="amount" class="amount">—</b>
+        <span>Test order</span><b id="code" class="code">—</b>
+      </div>
+      <label>Email cho Paddle Sandbox
+        <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+      </label>
+      <button id="pay" class="btn" disabled>Preparing sandbox checkout…</button>
+      <div id="status" class="status">Đang kiểm tra Paddle sandbox bootstrap…</div>
+      <p class="fine">D’AUBE không nhận PAN/CVV/PIN/OTP. Trạng thái xanh chỉ xuất hiện sau khi server nhận webhook có chữ ký hợp lệ và đối soát transaction qua Paddle API.</p>
+    </section>
+  </main>
+<script>
+(() => {
+  const API='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/paddle-sandbox-checkout';
+  const $=id=>document.getElementById(id);
+  const status=$('status'), pay=$('pay');
+  let boot=null, polling=false;
+  function show(text,kind=''){status.textContent=text;status.className='status'+(kind?' '+kind:'');}
+  function money(minor,currency){const n=Number(minor);return Number.isFinite(n)?new Intl.NumberFormat('en-US',{style:'currency',currency}).format(n/100):`${minor} ${currency}`;}
+  async function poll(){
+    if(polling||!boot)return; polling=true;
+    for(let i=0;i<60;i++){
+      try{
+        const r=await fetch(`${API}?status=${encodeURIComponent(boot.publicCode)}`,{cache:'no-store'});const j=await r.json();
+        if(j?.entitlement?.state==='test_granted'){
+          show(`VERIFIED ✅\nTransaction: ${j.entitlement.transaction_id}\nSigned webhook + Paddle API reconciliation + sandbox test entitlement đều PASS.`, 'good');pay.disabled=true;polling=false;return;
+        }
+        if(j?.reconciliation){
+          const x=j.reconciliation;
+          show(`Server reconciliation đang xử lý…\ntransaction=${x.transaction_id||'—'}\nverified=${Boolean(x.completed_verified)}\npriceMatched=${Boolean(x.expected_price_matched)}\nreason=${x.failure_reason||'none'}`);
+        }
+      }catch{}
+      await new Promise(r=>setTimeout(r,2000));
+    }
+    polling=false;show(status.textContent+'\n\nChưa có authoritative completion. Có thể checkout chưa hoàn tất hoặc Paddle chưa deliver webhook.', 'warn');
+  }
+  async function init(){
+    try{
+      const r=await fetch(`${API}?bootstrap=1`,{cache:'no-store'});boot=await r.json();
+      if(!r.ok||!boot?.ok)throw new Error(boot?.error||`bootstrap_${r.status}`);
+      $('product').textContent=boot.productName;$('amount').textContent=money(boot.amountMinor,boot.currency);$('code').textContent=boot.publicCode;
+      if(!window.Paddle)throw new Error('paddle_js_unavailable');
+      Paddle.Environment.set('sandbox');
+      Paddle.Initialize({
+        token:boot.clientToken,
+        checkout:{settings:{displayMode:'overlay',theme:'light',locale:'en'}},
+        eventCallback:(e)=>{
+          if(e?.name==='checkout.completed'){show('Paddle checkout completed. Đang chờ server verification…');poll();}
+          else if(e?.name)show(`Checkout event: ${e.name}\nChờ authoritative server verification…`);
+        }
+      });
+      pay.disabled=false;pay.textContent='Open Paddle Sandbox checkout';show('Ready ✅\nBootstrap, client-side token và $5 sandbox price đều sẵn sàng.');
+      if(new URLSearchParams(location.search).has('_ptxn')){show('Transaction payment link detected. Paddle đang mở checkout…');poll();}
+    }catch(e){show(`Bootstrap chưa sẵn sàng: ${e?.message||e}\nKhông có credential server nào bị lộ.`, 'warn');}
+  }
+  pay.addEventListener('click',()=>{
+    if(!boot)return;
+    const email=$('email').value.trim();
+    const cfg={
+      items:[{priceId:boot.priceId,quantity:1}],
+      customData:{daube_env:'sandbox',daube_public_code:boot.publicCode,daube_product_code:boot.productCode,daube_price_code:boot.priceCode},
+      settings:{displayMode:'overlay',theme:'light',locale:'en'}
+    };
+    if(email)cfg.customer={email};
+    try{Paddle.Checkout.open(cfg);show('Paddle Sandbox checkout opened. Hoàn tất test payment rồi chờ server verification…');poll();}
+    catch(e){show(`Checkout chưa mở được: ${e?.message||e}\nNếu Paddle báo default payment link, hãy đặt default link của Sandbox về chính trang này rồi thử lại.`, 'warn');}
+  });
+  init();
+})();
+</script>
+</body>
+</html>

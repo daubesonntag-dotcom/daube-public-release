@@ -1,55 +1,28 @@
 {
   "id": "DAUBE-SITE-RESOURCE-TREASURY-CONSUMER-V1",
-  "version": "5.0",
+  "version": "5.1",
   "canonicalSource": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
-    "resourceTreasuryCommit": "581727154c5cf0763774d29c11dad6ffd16b6ec4",
+    "resourceTreasuryCommit": "f80c3556a7e5efee8104c9718a68920be9a78bb0",
     "registryIndex": "config/source-curator/registries-v4.json",
     "resourceTypes": "config/source-curator/resource-types-v4.json",
     "sourceNetwork": "config/source-curator/source-network-v5.json",
     "familyPolicies": "config/source-curator/universal-family-policies-v5.json",
+    "realInventory": "config/source-curator/real-inventory-v5.json",
     "resourceRecipes": "config/source-curator/resource-recipes-v5.json",
     "resourceRecipeSchema": "schemas/resource-treasury/resource-recipe-v5.schema.json",
     "resourceLineageSchema": "schemas/resource-treasury/resource-lineage-v5.schema.json"
   },
   "surfaces": {
-    "homepageHero": {
-      "requiredKinds": ["hero-image-or-render", "optional-video-or-3d", "motion-runtime"],
-      "minimumQuality": "hero",
-      "fallbackPolicy": "brand-typography-and-layout-only",
-      "cssSyntheticArtworkAllowedAsPrimaryHero": false
-    },
-    "manifesto": {
-      "requiredKinds": ["editorial-image-or-3d-object"],
-      "minimumQuality": "premium"
-    },
-    "worlds": {
-      "requiredKinds": ["image-or-render-family", "icons", "optional-pattern-atmosphere"],
-      "minimumQuality": "premium"
-    },
-    "featuredProject": {
-      "requiredKinds": ["project-media", "optional-video"],
-      "minimumQuality": "hero"
-    },
-    "closing": {
-      "requiredKinds": ["brand-media-or-quiet-motion"],
-      "minimumQuality": "premium"
-    },
-    "globalIcons": {
-      "requiredKinds": ["approved-svg-icons"],
-      "minimumQuality": "utility"
-    },
-    "typography": {
-      "requiredKinds": ["approved-fonts"],
-      "minimumQuality": "premium",
-      "requireVietnameseCoverage": true
-    },
-    "recipeOutputs": {
-      "requiredKinds": ["approved-rendered-output"],
-      "minimumQuality": "surface-specific",
-      "recipeDefinitionIsRenderable": false,
-      "mustResolveOutputAssetThroughManifest": true
-    }
+    "homepageHero": {"requiredKinds": ["hero-image-or-render", "optional-video-or-3d", "motion-runtime"], "minimumQuality": "hero", "fallbackPolicy": "brand-typography-and-layout-only", "cssSyntheticArtworkAllowedAsPrimaryHero": false},
+    "manifesto": {"requiredKinds": ["editorial-image-or-3d-object"], "minimumQuality": "premium"},
+    "worlds": {"requiredKinds": ["image-or-render-family", "icons", "optional-pattern-atmosphere"], "minimumQuality": "premium"},
+    "featuredProject": {"requiredKinds": ["project-media", "optional-video"], "minimumQuality": "hero"},
+    "closing": {"requiredKinds": ["brand-media-or-quiet-motion"], "minimumQuality": "premium"},
+    "globalIcons": {"requiredKinds": ["approved-svg-icons"], "minimumQuality": "utility"},
+    "typography": {"requiredKinds": ["approved-fonts"], "minimumQuality": "premium", "requireVietnameseCoverage": true},
+    "recipeOutputs": {"requiredKinds": ["approved-rendered-output"], "minimumQuality": "surface-specific", "recipeDefinitionIsRenderable": false, "mustResolveOutputAssetThroughManifest": true},
+    "treasuryRuntimeFixture": {"requiredKinds": ["approved-byte-backed-fixture"], "minimumQuality": "utility", "publicBrandSurface": false}
   },
   "familyRouting": {
     "directMediaFamilies": ["visual", "pattern", "audio", "video", "motion", "typography"],
@@ -75,15 +48,12 @@
     "archiveMetadataDoesNotImplyReusableImage": true,
     "aiModelAndApiRecordsDoNotBecomeBrowserDependenciesAutomatically": true,
     "rendererMediatedFamiliesRequireApprovedRuntimeAndFallback": true,
+    "utilityFixturesNeverSatisfyBrandOrHeroSurfaces": true,
     "cssGradientsMayAugmentButNotReplaceApprovedHeroMedia": true,
     "generatedMediaMustCarryGenerationProvenance": true,
     "thirdPartyBrandMarksNeedTrademarkReview": true,
     "audioAutoplayAllowed": false
   },
-  "importLayout": {
-    "root": "assets/treasury",
-    "pattern": "assets/treasury/<source-id>/<asset-id>/<digest-prefix>/<file>",
-    "manifest": "assets/treasury/manifest.json"
-  },
-  "releaseBoundary": "This contract routes V5 resources into safe site consumption but does not itself approve or publish a T2 production-facing artifact. Actual media or recipe output still requires an approved manifest entry and the public release evidence defined in AGENTS.md."
+  "importLayout": {"root": "assets/treasury", "pattern": "assets/treasury/<source-id>/<asset-id>/<digest-prefix>/<file>", "manifest": "assets/treasury/manifest.json"},
+  "releaseBoundary": "This contract routes V5.1 resources into safe site consumption but does not itself approve a utility fixture for D’AUBE brand surfaces. Actual media or recipe output still requires an approved manifest entry and the public release evidence defined in AGENTS.md."
 }

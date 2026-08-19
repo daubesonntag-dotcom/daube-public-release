@@ -1,5 +1,5 @@
 User-agent: *
 Disallow: /
 
-# Canonical public customer presence:
+# Canonical public release channel:
 # https://daubesonntag.com/

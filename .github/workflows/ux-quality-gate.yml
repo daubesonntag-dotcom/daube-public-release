@@ -12,6 +12,7 @@ on:
       - "**/*.webp"
       - "scripts/ux-quality-audit.mjs"
       - "config/ux-quality-budget.json"
+      - "tests/founder-visual-lock-homepage.test.mjs"
       - ".github/workflows/ux-quality-gate.yml"
   push:
     branches: [main]
@@ -25,6 +26,7 @@ on:
       - "**/*.webp"
       - "scripts/ux-quality-audit.mjs"
       - "config/ux-quality-budget.json"
+      - "tests/founder-visual-lock-homepage.test.mjs"
       - ".github/workflows/ux-quality-gate.yml"
   workflow_dispatch:
 
@@ -44,6 +46,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      - name: Verify Founder Visual Lock homepage contract
+        run: node --test tests/founder-visual-lock-homepage.test.mjs
       - name: Audit UX, accessibility, email safety and asset budgets
         run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
       - name: Upload audit evidence

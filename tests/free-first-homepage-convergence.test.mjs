@@ -6,68 +6,60 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "
 const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 const index = read("index.html");
-const css = read("assets/free-first-homepage-v1.css");
-const js = read("assets/free-first-homepage-v1.js");
+const css = read("assets/maison-homepage-v2.css");
+const js = read("assets/maison-homepage-v2.js");
 const agents = read("AGENTS.md");
-
+const lock = JSON.parse(read(".daube/visual-locks/homepage-approved-mockup-v2.json"));
 const policyRevision = "dc85d60e9222e70a270048321b5252e072a72d9d";
 
-test("public homepage inherits the canonical Free-First policy without replacing Founder Visual Lock", () => {
+test("approved homepage inherits canonical Free-First governance", () => {
   assert.ok(index.includes(policyRevision));
-  assert.match(index, /data-public-homepage="founder-visual-lock-10-scene"/);
-  assert.match(index, /data-free-first-source-pack="DAUBE-FLAGSHIP-VISUAL-PACK-V1"/);
   assert.match(agents, /free-first-operating-policy-v1\.json/);
   assert.match(agents, /REAL ASSET BEFORE FAKE CSS ART/);
+  assert.match(agents, /APPROVED HOMEPAGE MOCKUP V2/);
+  assert.equal(lock.freeFirstPolicyRevision, policyRevision);
 });
 
-test("primary CSS-made placeholder artwork was removed from homepage markup", () => {
-  for (const obsolete of ["fv-orbit", "fv-orbit-core", "fv-ring", "fv-crystal", "fv-spectrum", "fv-system-map"]) {
-    assert.equal(index.includes(obsolete), false, `obsolete CSS-art surface remains in markup: ${obsolete}`);
+test("homepage uses ten local visual assets rather than remote stock substitutions", () => {
+  const assets = ["rang-trong-atelier.svg","obsidian-cinema.svg","celestial-threshold.svg","porcelain-index.svg","jade-intelligence.svg","lacquer-vermilion.svg","monsoon-glass.svg","silk-paper.svg","neo-civic-monument.svg","future-maison.svg"];
+  for (const name of assets) {
+    const path = `assets/homepage-v2/scenes/${name}`;
+    assert.ok(exists(path), `missing local scene visual ${name}`);
+    assert.ok(index.includes(path), `homepage does not use local scene visual ${name}`);
   }
-  assert.match(index, /fv-manifesto-media/);
-  assert.match(index, /fv-universe-media/);
-  assert.match(index, /fv-system-index/);
-});
-
-test("existing self-hosted OSS treasury assets are reused before adding another icon library", () => {
-  const iconPaths = [
-    "assets/treasury/iconoir/iconoir-design-pencil/2d984d80f660/design-pencil.svg",
-    "assets/treasury/tabler/tabler-brush/4b9fa0b70f28/brush.svg",
-    "assets/treasury/lucide/lucide-sparkles/f5499f33f09d/sparkles.svg",
-    "assets/treasury/lucide/lucide-gem/377618223555/gem.svg",
-    "assets/treasury/lucide/lucide-boxes/7e301f6c3833/boxes.svg",
-    "assets/treasury/lucide/lucide-orbit/e2b8b7d7f820/orbit.svg",
-    "assets/treasury/heroicons/heroicons-sparkles/a2f417f15d2d/sparkles.svg",
-    "assets/treasury/phosphor/phosphor-magic-wand/8416f1e98011/magic-wand.svg"
-  ];
-
-  for (const path of iconPaths) {
-    assert.ok(exists(path), `missing self-hosted treasury asset: ${path}`);
-    assert.ok(index.includes(path), `homepage does not consume treasury asset: ${path}`);
+  for (const remote of ["polyhaven.com", "pexels.com", "unsplash.com", "pixabay.com"]) {
+    assert.equal(index.includes(remote), false, `remote stock provider leaked into approved homepage: ${remote}`);
   }
 });
 
-test("motion stays browser-native, progressive and reduced-motion aware", () => {
-  assert.match(index, /assets\/free-first-homepage-v1\.js/);
-  assert.match(index, /assets\/free-first-homepage-v1\.css/);
+test("CSS is composition and typography, not primary chapter artwork", () => {
+  assert.match(index, /<img src="assets\/homepage-v2\/scenes\/rang-trong-atelier\.svg"/);
+  assert.equal(index.includes("fv-orbit"), false);
+  assert.equal(index.includes("fv-crystal"), false);
+  assert.equal(index.includes("fv-spectrum"), false);
+  assert.equal(index.includes("fv-system-map"), false);
+  assert.equal(/background-image:\s*url\(/.test(css), false);
+});
+
+test("motion remains browser-native, progressive, and reduced-motion aware", () => {
   assert.match(js, /IntersectionObserver/);
-  assert.match(js, /prefers-reduced-motion: reduce/);
-  assert.match(js, /requestAnimationFrame/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(js, /requestAnimationFrame|pointermove/);
+  assert.match(js, /prefers-reduced-motion/);
+  assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
   assert.equal(/from\s+["'](?:gsap|three|motion)/.test(js), false);
+  assert.equal(index.includes("cdn.jsdelivr.net"), false);
+  assert.equal(index.includes("unpkg.com"), false);
 });
 
-test("non-critical remote media remains lazy while the Founder hero remains local and priority-loaded", () => {
-  assert.match(index, /assets\/founder-visual-lock\/01-hero-dawn\.webp[^>]*fetchpriority="high"/);
-  for (const host of ["cdn.polyhaven.com", "images.pexels.com"]) {
-    const remoteTags = index.match(new RegExp(`<img[^>]+${host.replaceAll('.', '\\.')}[^>]*>`, "g")) || [];
-    assert.ok(remoteTags.length > 0, `expected existing registered remote source: ${host}`);
-    for (const tag of remoteTags) assert.match(tag, /loading="lazy"/);
-  }
+test("critical first chapter is eager and later scene media is lazy", () => {
+  assert.match(index, /rang-trong-atelier\.svg" alt="" fetchpriority="high"/);
+  const lazy = index.match(/loading="lazy" decoding="async"/g) || [];
+  assert.equal(lazy.length, 9);
 });
 
-test("Founder canonical scene marker and public truth boundaries survive the visual convergence", () => {
-  assert.match(index, /03 \/ WORLDS IN ORBIT/);
-  assert.match(index, /name="robots" content="noindex,nofollow,noarchive,nosnippet"/);
-  assert.doesNotMatch(index.toLowerCase(), /award-winning|commerce live/);
+test("approved visual lock prevents stock-portfolio and generic SaaS fallback", () => {
+  assert.equal(lock.rules.stockPortfolioSubstitutionAllowed, false);
+  assert.equal(lock.rules.genericSaasAllowed, false);
+  assert.equal(lock.rules.fakeCssPrimaryArtworkAllowed, false);
+  assert.equal(lock.rules.localSceneVisualRequired, true);
 });

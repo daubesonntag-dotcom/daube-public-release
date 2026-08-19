@@ -5,7 +5,7 @@
   <application
     android:allowBackup="true"
     android:usesCleartextTraffic="false"
-    android:label="D'AUBE Nexus"
+    android:label="D'AUBE Preview"
     android:theme="@android:style/Theme.Material.Light.NoActionBar">
     <activity
       android:name=".MainActivity"

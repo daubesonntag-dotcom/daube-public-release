@@ -4,27 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
-  <meta name="daube-source-revision" content="7730b2fc7e5716fa258532fc34d2608f2288af4a" />
+  <meta name="daube-source-revision" content="abcea58961c912a43f97a4c2722de8a9d79c59bd" />
   <title>Payment Review Preview — D’AUBE SONNTAG</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 <main class="payment-confirmation-page" data-payment-confirmation-preview>
+  <div class="payment-confirmation-aurora" aria-hidden="true"></div>
   <div class="payment-preview-banner"><strong>DESIGN PREVIEW</strong> · No payment is processed on this static page. The real checkout remains provider-gated.</div>
+
   <header class="payment-confirmation-header">
     <a href="/" class="payment-confirmation-brand" aria-label="D’AUBE SONNTAG"><span class="payment-confirmation-mark" aria-hidden="true">✦</span><strong>D’AUBE SONNTAG</strong></a>
-    <nav class="payment-confirmation-steps" aria-label="Checkout progress"><span>Order</span><i>/</i><b aria-current="step">Payment</b><i>/</i><span>Confirmation</span></nav>
     <div class="payment-confirmation-secure"><span aria-hidden="true">♢</span><span><strong>Secure checkout</strong><small>Provider-hosted payment</small></span></div>
+    <nav class="payment-confirmation-steps" aria-label="Checkout progress">
+      <span class="payment-confirmation-step payment-confirmation-step-done"><i aria-hidden="true">✓</i><small>Order</small></span>
+      <span class="payment-confirmation-step-line" aria-hidden="true"></span>
+      <b class="payment-confirmation-step payment-confirmation-step-current" aria-current="step"><i aria-hidden="true">2</i><small>Payment</small></b>
+      <span class="payment-confirmation-step-line" aria-hidden="true"></span>
+      <span class="payment-confirmation-step"><i aria-hidden="true">3</i><small>Confirmation</small></span>
+    </nav>
   </header>
 
   <section class="payment-confirmation-shell">
     <article class="payment-confirmation-card">
-      <div class="payment-confirmation-title">
+      <div class="payment-confirmation-title payment-confirmation-glass-section">
         <span class="payment-confirmation-icon" aria-hidden="true">▣</span>
         <div><p>PAYMENT REVIEW</p><h1>Confirm your payment</h1><span>Review the order and payment route before continuing to the provider.</span></div>
       </div>
 
-      <section class="payment-confirmation-section">
+      <section class="payment-confirmation-section payment-confirmation-glass-section">
         <p class="payment-confirmation-kicker">ORDER SUMMARY</p>
         <div class="payment-confirmation-order">
           <div class="payment-confirmation-product-art" aria-hidden="true"><span>D’AUBE</span><strong>DIGITAL<br />EDITION</strong><small>DS-CREATIVE-001</small></div>
@@ -34,14 +42,14 @@
         <div class="payment-confirmation-order-meta"><div><span aria-hidden="true">✓</span><span><small>Order number</small><strong>DS-A1B2C3D4</strong></span></div><div><span aria-hidden="true">✉</span><span><small>Customer contact</small><strong>alex@example.test</strong></span></div></div>
       </section>
 
-      <section class="payment-confirmation-section">
+      <section class="payment-confirmation-section payment-confirmation-glass-section">
         <p class="payment-confirmation-kicker">CUSTOMER DETAILS</p>
-        <div class="payment-confirmation-customer"><span class="payment-confirmation-avatar" aria-hidden="true">A</span><div><strong>Alex Morgan</strong><span>alex@example.test</span><small>+84 900 000 000</small></div><button type="button" data-preview-action>Edit order details</button></div>
+        <div class="payment-confirmation-customer"><span class="payment-confirmation-avatar" aria-hidden="true">A</span><div><strong>Alex Morgan</strong><span>alex@example.test</span><small>+84 900 000 000</small></div><button type="button" data-preview-action>Edit details</button></div>
       </section>
 
-      <section class="payment-confirmation-section">
+      <section class="payment-confirmation-section payment-confirmation-glass-section">
         <p class="payment-confirmation-kicker">PAYMENT METHOD</p>
-        <div class="payment-confirmation-methods" aria-label="Payment route"><span class="active">▰ Cards</span><span><strong class="payment-confirmation-paypal">P</strong> PayPal</span><span>▱ Wallets</span><span>♢ Provider checkout</span></div>
+        <div class="payment-confirmation-methods" aria-label="Payment route classes offered by provider"><span>▰ Cards</span><span><strong class="payment-confirmation-paypal">P</strong> PayPal</span><span>▱ Wallets</span><span class="active">♢ Provider checkout</span></div>
         <div class="payment-confirmation-provider"><span class="payment-confirmation-provider-icon" aria-hidden="true">♢</span><div><small>Payment handled by</small><strong>PayPal / approved provider</strong><span>Available methods are determined securely by the provider for your account, device, region and currency.</span></div><code>DSA1B2C3D4</code></div>
       </section>
 
@@ -50,7 +58,7 @@
     </article>
 
     <aside class="payment-confirmation-aside">
-      <section><p class="payment-confirmation-kicker">PAYMENT ASSURANCE</p><div class="payment-confirmation-assurance"><span>♢</span><div><strong>Provider-hosted checkout</strong><p>Sensitive payment credentials stay with the payment provider.</p></div></div><div class="payment-confirmation-assurance"><span>✉</span><div><strong>Clear order reference</strong><p>Your provider payment is tied to reference <b>DSA1B2C3D4</b>.</p></div></div><div class="payment-confirmation-assurance"><span>✓</span><div><strong>Settlement verified</strong><p>Delivery and revenue state only advance after authoritative reconciliation.</p></div></div></section>
+      <section class="payment-confirmation-assurance-group"><p class="payment-confirmation-kicker">PAYMENT ASSURANCE</p><div class="payment-confirmation-assurance"><span>♢</span><div><strong>Provider-hosted checkout</strong><p>Sensitive payment credentials stay with the payment provider.</p></div></div><div class="payment-confirmation-assurance"><span>✉</span><div><strong>Clear order reference</strong><p>Your provider payment is tied to reference <b>DSA1B2C3D4</b>.</p></div></div><div class="payment-confirmation-assurance"><span>✓</span><div><strong>Settlement verified</strong><p>Delivery and revenue state only advance after authoritative reconciliation.</p></div></div></section>
       <section class="payment-confirmation-overview"><p class="payment-confirmation-kicker">ORDER OVERVIEW</p><div><span>Total amount</span><strong>249.000 ₫<small> VND</small></strong></div><div><span>Provider</span><b>Provider-hosted checkout</b></div><div><span>Confirmation</span><b class="payment-confirmation-instant">◷ After verified settlement</b></div></section>
       <footer><span aria-hidden="true">▣</span><span>Opening a provider is not proof of payment. D’AUBE confirms payment only after provider or bank evidence is reconciled.</span></footer>
     </aside>

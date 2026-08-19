@@ -6,11 +6,11 @@
   "canonicalRuntimeSource": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
     "branch": "agent/multi-rail-payment-orchestration",
-    "revision": "abcea58961c912a43f97a4c2722de8a9d79c59bd",
+    "revision": "175f64b7b18a5b9a5f5c621f88290e15bda9ffcb",
     "pullRequest": 3364
   },
   "publicArtifactDigests": {
-    "indexHtmlGitBlobSha": "d49783d4c4d925ef58663f982fce9807e0828da2",
+    "indexHtmlGitBlobSha": "63f61db45ea218455def414fd87cb663157a425b",
     "styleCssGitBlobSha": "8736d1d925a3d2a22741edffb3c1398d16218f24"
   },
   "visualDirection": {
@@ -47,10 +47,11 @@
       "no console/page/http errors"
     ]
   },
-  "exactHeadBrowserExecution": {
+  "lastExactHeadBrowserExecution": {
     "workflowRunId": 32235605355,
     "initialJobId": 96014752928,
     "retryJobId": 96014976280,
+    "sourceRevision": "abcea58961c912a43f97a4c2722de8a9d79c59bd",
     "result": "INFRASTRUCTURE_BLOCKED_BEFORE_RUNNER",
     "stepsObserved": null,
     "logRetrieval": "404 BlobNotFound",

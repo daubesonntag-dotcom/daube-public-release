@@ -6,23 +6,26 @@
   "canonicalRuntimeSource": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
     "branch": "agent/multi-rail-payment-orchestration",
-    "revision": "175f64b7b18a5b9a5f5c621f88290e15bda9ffcb",
+    "revision": "772aa6d8a0137f5c98767e6542465a01a26c7349",
     "pullRequest": 3364
   },
   "publicArtifactDigests": {
-    "indexHtmlGitBlobSha": "63f61db45ea218455def414fd87cb663157a425b",
-    "styleCssGitBlobSha": "8736d1d925a3d2a22741edffb3c1398d16218f24"
+    "indexHtmlGitBlobSha": "1aa4b32974cb32a1a457480b90c7ee316315cccf",
+    "baseStyleCssGitBlobSha": "8736d1d925a3d2a22741edffb3c1398d16218f24",
+    "mobileReferenceCssGitBlobSha": "6dcf30cc39de24714d5a562275e7249f0977eae6"
   },
   "visualDirection": {
-    "name": "mobile-first airy blue glass",
+    "name": "approved reference — luminous mobile blue glass",
     "traits": [
+      "independent floating glass cards instead of one heavy outer mobile card",
       "sky-blue to ice-blue to white gradient",
-      "frosted translucent panels",
-      "aurora light layers",
-      "soft inner highlights",
-      "fine blue-white edges",
-      "glossy blue primary action",
-      "dedicated mobile hierarchy"
+      "stronger frosted translucency and luminous white edges",
+      "aurora light layers and soft blue bloom",
+      "centered brand / secure indicator / circular progress stepper",
+      "single-row four-class provider method selector at 390/430",
+      "three-column assurance and order overview at 390/430",
+      "glossy deep-blue to cyan primary action",
+      "compact 360/320 fallback without horizontal overflow"
     ]
   },
   "qaContract": {
@@ -48,25 +51,22 @@
     ]
   },
   "lastExactHeadBrowserExecution": {
-    "workflowRunId": 32235605355,
-    "initialJobId": 96014752928,
-    "retryJobId": 96014976280,
-    "sourceRevision": "abcea58961c912a43f97a4c2722de8a9d79c59bd",
+    "workflowRunId": 32244372571,
+    "jobId": 96041598954,
+    "sourceRevision": "772aa6d8a0137f5c98767e6542465a01a26c7349",
     "result": "INFRASTRUCTURE_BLOCKED_BEFORE_RUNNER",
     "stepsObserved": null,
-    "logRetrieval": "404 BlobNotFound",
     "screenshotArtifactProduced": false,
-    "claim": "No exact-head browser PASS is claimed because the runner never started."
+    "claim": "No exact-head browser PASS is claimed because the GitHub Actions runner did not expose executable steps."
   },
   "approval": {
-    "kind": "founder-explicit-public-preview-request",
-    "recordedAt": "2026-08-19T15:59:00+07:00",
-    "scope": "Show the approved mobile-first glass payment confirmation direction publicly while keeping payment actions disabled and preserving production truth boundaries."
+    "kind": "founder-explicit-reference-refinement",
+    "recordedAt": "2026-08-19T17:44:00+07:00",
+    "scope": "Refine mobile visual implementation to more closely match the Founder-selected luminous glass reference while preserving the approved desktop layout and payment truth boundaries."
   },
   "rollback": {
     "repository": "daubesonntag-dotcom/daube-site",
-    "previousMainRevision": "e596c44bc534b80af121e2c31fea09d001ca2fa7",
-    "method": "revert the isolated mobile payment-preview refinement commits; no homepage or backend route is changed"
+    "method": "remove payment-preview/mobile-reference.css and its link from payment-preview/index.html; no homepage or backend route is changed"
   },
   "accountableReleaseOwner": "Founder / D’AUBE SONNTAG",
   "limitations": [

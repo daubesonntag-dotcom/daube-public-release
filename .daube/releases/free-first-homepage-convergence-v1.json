@@ -1,0 +1,155 @@
+{
+  "schema": "daube.public-artifact-handoff.v1",
+  "id": "DAUBE-FREE-FIRST-HOMEPAGE-CONVERGENCE-V1",
+  "status": "release-candidate",
+  "source": {
+    "canonicalPolicyRepository": "daubesonntag-dotcom/daube-forge-os",
+    "freeFirstPolicyCommit": "dc85d60e9222e70a270048321b5252e072a72d9d",
+    "founderVisualSourceCommit": "a92c4f30ed06205585dabc9fa1f35cb294b049fe",
+    "sourcePack": "config/assets/flagship-visual-pack-v1.json",
+    "publicImplementationRepository": "daubesonntag-dotcom/daube-site",
+    "publicImplementationCommit": "df4d2b8f6e4125a54ea80702938d8c19b7867b8e",
+    "pullRequest": 76
+  },
+  "publicTarget": {
+    "repository": "daubesonntag-dotcom/daube-site",
+    "branch": "agent/free-first-homepage-convergence",
+    "channel": "existing GitHub Pages production path after protected merge",
+    "canonicalDomain": "https://daubesonntag.com/",
+    "indexingPolicy": "noindex-nofollow-until-public-release-governance-explicitly-opens-indexing"
+  },
+  "approval": {
+    "kind": "founder-explicit-full-execution",
+    "directive": "FULL EXECUTION — D’AUBE FREE-FIRST OPERATING POLICY; do not stop at report when safe executable work is available",
+    "recordedDate": "2026-08-20",
+    "releaseOwner": "daubesonntag-dotcom"
+  },
+  "rollback": {
+    "publicRepositoryRef": "main@6c88346926fd01b1b70a120cc1b5ecf4712d8fcb",
+    "strategy": "Revert the PR #76 merge or restore the prior index/AGENTS/workflow state. This convergence does not mutate DNS, payment, database or backend authority."
+  },
+  "artifact": {
+    "publicRevisionBeforeEvidenceMetadata": "df4d2b8f6e4125a54ea80702938d8c19b7867b8e",
+    "changedRuntimePaths": [
+      "index.html",
+      "assets/free-first-homepage-v1.css",
+      "assets/free-first-homepage-v1.js"
+    ],
+    "changedGovernanceAndEvidencePaths": [
+      "AGENTS.md",
+      ".github/workflows/ux-quality-gate.yml",
+      "tests/free-first-homepage-convergence.test.mjs",
+      "scripts/homepage-browser-evidence.mjs"
+    ],
+    "verificationBundle": {
+      "workflowRunId": 32291955021,
+      "artifactId": 9379808711,
+      "artifactName": "ux-quality-report",
+      "sha256": "379080c798740ff67ae68a5ab2bee73d139f1ca08dee6a0d21301b3aded49c1f"
+    }
+  },
+  "browserEvidence": {
+    "program": "DAUBE-FREE-FIRST-HOMEPAGE-BROWSER-EVIDENCE-V1",
+    "status": "PASS",
+    "scrollRevealExercisedBeforeCapture": true,
+    "desktop": {
+      "viewport": "1440x1000",
+      "horizontalOverflowPx": -15,
+      "unrevealedCopyCount": 0,
+      "unrevealedCardCount": 0,
+      "screenshotSha256": "abf2d1f2a8a3c67969b75482f074c34d933d5f1e4ecfc0a56fec781d09eb28dc"
+    },
+    "mobile": {
+      "viewport": "390x844",
+      "horizontalOverflowPx": 0,
+      "unrevealedCopyCount": 0,
+      "unrevealedCardCount": 0,
+      "screenshotSha256": "53c44e510592bab3d165bf41d8c66887daa67a607ff6968c3bc835d3c9eac3de"
+    },
+    "reducedMotion": {
+      "viewport": "390x844",
+      "reducedMotionClass": true,
+      "unrevealedCopyCount": 0,
+      "unrevealedCardCount": 0
+    },
+    "renderAssertions": {
+      "founderSceneCount": 10,
+      "h1Count": 1,
+      "obsoleteFakeCssArtworkCount": 0,
+      "treasuryIconCount": 8,
+      "loadedTreasuryIconCount": 8,
+      "freeFirstCssLoaded": true,
+      "freeFirstJsLoaded": true
+    }
+  },
+  "verification": {
+    "exactImplementationRevision": "df4d2b8f6e4125a54ea80702938d8c19b7867b8e",
+    "runs": [
+      {
+        "name": "UX & UI Quality Gate",
+        "runId": 32291955021,
+        "conclusion": "success",
+        "proof": [
+          "Founder Visual Lock homepage contract passed",
+          "Free-First homepage convergence regression passed",
+          "UX/accessibility/email-safety/asset-budget audit passed with 0 errors, 0 warnings, 0 findings",
+          "desktop/mobile/reduced-motion Chromium render evidence passed",
+          "browser screenshots and evidence were uploaded"
+        ]
+      },
+      {
+        "name": "Founder Sovereignty Inheritance Gate",
+        "runId": 32291954924,
+        "conclusion": "success"
+      },
+      {
+        "name": "Public Release Contract",
+        "runId": 32291955047,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "reuseEvidence": {
+    "createdParallelAssetRegistry": false,
+    "canonicalAssetAuthority": "daube-forge-os/config/assets/asset-universe-v1.json",
+    "canonicalSourceAuthority": "daube-forge-os/config/game-studio/asset-source-registry-v1.json",
+    "reusedLocalTreasury": true,
+    "reusedSelfHostedOssIcons": 8,
+    "reusedFounderHero": true,
+    "addedLargeMotionOr3dDependency": false,
+    "motionImplementation": "browser-native IntersectionObserver + requestAnimationFrame because the current motion requirement does not justify another runtime dependency"
+  },
+  "externalIngredients": [
+    {
+      "provider": "Poly Haven",
+      "license": "CC0",
+      "role": "existing provisional public composition plates registered by the canonical visual pack"
+    },
+    {
+      "provider": "Pexels",
+      "license": "Pexels License",
+      "role": "existing provisional selected-work composition plate registered by the canonical visual pack"
+    }
+  ],
+  "claims": {
+    "provenBeforeMerge": [
+      "canonical Free-First policy is merged in daube-forge-os",
+      "public agent contract inherits the canonical policy by reference",
+      "primary orbit/crystal/spectrum/system-map CSS-art markup is absent from the homepage DOM",
+      "existing self-hosted OSS Treasury icons are consumed by the homepage",
+      "desktop, mobile and reduced-motion local Chromium renders pass the evidence gate",
+      "Founder Visual Lock sequence and source-revision contract remain intact",
+      "public repository boundary and sovereignty gates pass"
+    ],
+    "notProvenBeforeMerge": [
+      "GitHub Pages deployment for this PR revision",
+      "canonical-domain retrieval of this PR revision",
+      "Founder subjective gold-visual acceptance",
+      "final self-hosted migration of every provisional external Poly Haven/Pexels composition plate",
+      "dynamic API runtime on the apex domain",
+      "live checkout, customers, revenue, awards, partnerships or press",
+      "external legal, security or accessibility certification"
+    ]
+  },
+  "truthBoundary": "This release candidate proves the Free-First public presentation convergence on the PR implementation revision using repository gates and local Chromium browser evidence. It does not claim production publication until the protected merge triggers the existing Pages workflow and that workflow verifies a live endpoint. It also does not claim that all provisional external media has already been migrated to optimized self-hosted derivatives."
+}

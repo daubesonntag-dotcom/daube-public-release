@@ -1,0 +1,66 @@
+name: Verify Live Founder Homepage Readback
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/verify-live-founder-homepage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verify exact released homepage from public endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha='a92c4f30ed06205585dabc9fa1f35cb294b049fe'
+          expected_copy='Meaning, made visible.'
+          urls=(
+            'https://daubesonntag.com/'
+            'http://daubesonntag.com/'
+            'https://daubesonntag-dotcom.github.io/daube-site/'
+          )
+
+          matched=''
+          : > /tmp/readback-report.txt
+
+          for url in "${urls[@]}"; do
+            body="/tmp/body-$(echo "$url" | tr -cs 'A-Za-z0-9' '-').html"
+            headers="/tmp/headers-$(echo "$url" | tr -cs 'A-Za-z0-9' '-').txt"
+            echo "=== ${url} ===" | tee -a /tmp/readback-report.txt
+            if curl --location --silent --show-error --fail \
+              --connect-timeout 10 --max-time 30 \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              --dump-header "$headers" \
+              "$url" --output "$body"; then
+              final_url="$(curl --location --silent --show-error --output /dev/null --write-out '%{url_effective}' --connect-timeout 10 --max-time 30 "$url" || true)"
+              bytes="$(wc -c < "$body" | tr -d ' ')"
+              sha_ok='false'; copy_ok='false'
+              grep -Fq "$expected_sha" "$body" && sha_ok='true'
+              grep -Fq "$expected_copy" "$body" && copy_ok='true'
+              echo "final_url=${final_url}" | tee -a /tmp/readback-report.txt
+              echo "bytes=${bytes}" | tee -a /tmp/readback-report.txt
+              echo "source_revision_match=${sha_ok}" | tee -a /tmp/readback-report.txt
+              echo "canonical_copy_match=${copy_ok}" | tee -a /tmp/readback-report.txt
+              if [[ "$sha_ok" == 'true' && "$copy_ok" == 'true' ]]; then
+                matched="$url"
+                cp "$body" /tmp/verified-live-homepage.html
+                break
+              fi
+            else
+              echo 'retrieval=failed' | tee -a /tmp/readback-report.txt
+            fi
+            echo | tee -a /tmp/readback-report.txt
+          done
+
+          cat /tmp/readback-report.txt
+          test -n "$matched"
+          test -s /tmp/verified-live-homepage.html
+          echo "VERIFIED_ENDPOINT=${matched}"
+          echo "VERIFIED_SOURCE_REVISION=${expected_sha}"
+          echo 'LIVE_FOUNDER_HOMEPAGE_READBACK=PASS'

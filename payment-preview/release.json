@@ -6,33 +6,66 @@
   "canonicalRuntimeSource": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
     "branch": "agent/multi-rail-payment-orchestration",
-    "revision": "7730b2fc7e5716fa258532fc34d2608f2288af4a",
+    "revision": "abcea58961c912a43f97a4c2722de8a9d79c59bd",
     "pullRequest": 3364
   },
   "publicArtifactDigests": {
-    "indexHtmlGitBlobSha": "500de7ba07b58394cdc10fb1fc5cf5bc129a79e5",
-    "styleCssGitBlobSha": "bd3887148b06c84944641f24164469f3f92dfd20"
+    "indexHtmlGitBlobSha": "d49783d4c4d925ef58663f982fce9807e0828da2",
+    "styleCssGitBlobSha": "8736d1d925a3d2a22741edffb3c1398d16218f24"
   },
-  "testSummary": {
-    "browser": "Chromium source-level fallback",
-    "viewports": ["1440x1000", "390x844"],
-    "horizontalOverflow": false,
-    "keyboardFocusObserved": true,
-    "backInteractionObserved": true,
-    "consoleErrors": 0,
-    "pageErrors": 0,
-    "forbiddenMarkersRendered": [],
-    "note": "GitHub Actions exact-head jobs in daube-forge-os currently fail before runner steps start (steps=null; logs BlobNotFound), so this preview does not claim a successful Next.js production-bundle build."
+  "visualDirection": {
+    "name": "mobile-first airy blue glass",
+    "traits": [
+      "sky-blue to ice-blue to white gradient",
+      "frosted translucent panels",
+      "aurora light layers",
+      "soft inner highlights",
+      "fine blue-white edges",
+      "glossy blue primary action",
+      "dedicated mobile hierarchy"
+    ]
+  },
+  "qaContract": {
+    "configuredViewports": [
+      "1440x1000",
+      "1024x900",
+      "768x1024",
+      "430x932",
+      "390x844",
+      "360x800",
+      "320x800"
+    ],
+    "assertions": [
+      "no horizontal overflow",
+      "mobile touch targets >= 44px",
+      "keyboard focus entry",
+      "reduced-motion behavior",
+      "provider handoff truth boundary",
+      "no fabricated card or encryption markers",
+      "settlement truth boundary",
+      "back interaction",
+      "no console/page/http errors"
+    ]
+  },
+  "exactHeadBrowserExecution": {
+    "workflowRunId": 32235605355,
+    "initialJobId": 96014752928,
+    "retryJobId": 96014976280,
+    "result": "INFRASTRUCTURE_BLOCKED_BEFORE_RUNNER",
+    "stepsObserved": null,
+    "logRetrieval": "404 BlobNotFound",
+    "screenshotArtifactProduced": false,
+    "claim": "No exact-head browser PASS is claimed because the runner never started."
   },
   "approval": {
     "kind": "founder-explicit-public-preview-request",
-    "recordedAt": "2026-08-19T15:26:00+07:00",
-    "scope": "Show the approved payment confirmation visual publicly while keeping payment actions disabled and preserving production truth boundaries."
+    "recordedAt": "2026-08-19T15:59:00+07:00",
+    "scope": "Show the approved mobile-first glass payment confirmation direction publicly while keeping payment actions disabled and preserving production truth boundaries."
   },
   "rollback": {
     "repository": "daubesonntag-dotcom/daube-site",
-    "previousMainRevision": "56bfd2a4278b964fa1235aee8b72cde623f58be3",
-    "method": "revert the isolated payment-preview publication commits; no homepage or backend route is changed"
+    "previousMainRevision": "e596c44bc534b80af121e2c31fea09d001ca2fa7",
+    "method": "revert the isolated mobile payment-preview refinement commits; no homepage or backend route is changed"
   },
   "accountableReleaseOwner": "Founder / D’AUBE SONNTAG",
   "limitations": [
@@ -42,6 +75,7 @@
     "Dynamic production runtime and /api/health remain externally blocked until a reachable Node/Next runtime and routing authority exist."
   ],
   "claimsNotProven": [
+    "exact-head browser PASS",
     "production checkout live",
     "payment provider live",
     "commerce-web production ready",

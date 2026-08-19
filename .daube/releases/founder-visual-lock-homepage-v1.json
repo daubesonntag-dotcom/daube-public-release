@@ -12,7 +12,8 @@
     "repository": "daubesonntag-dotcom/daube-site",
     "branch": "release/founder-visual-lock-homepage",
     "channel": "existing GitHub Pages production path",
-    "canonicalDomain": "https://daubesonntag.com/"
+    "canonicalDomain": "https://daubesonntag.com/",
+    "indexingPolicy": "noindex-nofollow-until-public-release-governance-explicitly-opens-indexing"
   },
   "approval": {
     "kind": "founder-explicit-full-execution",
@@ -51,6 +52,7 @@
   "verificationPlan": {
     "sourceContract": "tests/founder-visual-lock-homepage.test.mjs",
     "publicUxGate": "scripts/ux-quality-audit.mjs",
+    "repositoryContract": "scripts/validate-public-release-contract.mjs",
     "publishWorkflow": ".github/workflows/pages.yml",
     "expectedPublishEvidence": "GitHub Pages deployment URL plus workflow live retrieval of a non-empty document"
   },
@@ -66,9 +68,10 @@
       "dynamic API runtime on the apex domain",
       "canonical /api/health routing",
       "HTTPS enforcement or GitHub protected-domain verification",
+      "search-engine indexing activation",
       "live checkout, customers, revenue, awards, partnerships or press",
       "external legal or security certification"
     ]
   },
-  "truthBoundary": "This release publishes the verified homepage artifact through the existing static GitHub Pages channel. Static publication does not prove a dynamic Next.js/API runtime, payment settlement, customer outcomes, HTTPS enforcement, or external certification."
+  "truthBoundary": "This release publishes the verified homepage artifact through the existing static GitHub Pages channel while preserving the repository-mandated noindex/nofollow boundary. Static publication does not prove a dynamic Next.js/API runtime, payment settlement, customer outcomes, search indexing, HTTPS enforcement, or external certification."
 }

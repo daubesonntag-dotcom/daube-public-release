@@ -132,10 +132,14 @@ async function navigate(cdp, viewport, reducedMotion = false) {
     screenWidth: viewport.width,
     screenHeight: viewport.height
   });
-  await cdp.send("Emulation.setTouchEmulationEnabled", {
-    enabled: viewport.mobile,
-    maxTouchPoints: viewport.mobile ? 5 : 0
-  });
+  if (viewport.mobile) {
+    await cdp.send("Emulation.setTouchEmulationEnabled", {
+      enabled: true,
+      maxTouchPoints: 5
+    });
+  } else {
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  }
   await cdp.send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-motion", value: reducedMotion ? "reduce" : "no-preference" }]
   });

@@ -1,4 +1,5 @@
 User-agent: *
-Allow: /
+Disallow: /
 
-Sitemap: https://daubesonntag.com/sitemap.xml
+# Canonical public release channel:
+# https://daubesonntag.com/

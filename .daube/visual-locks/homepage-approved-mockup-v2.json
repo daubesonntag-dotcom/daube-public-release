@@ -1,0 +1,53 @@
+{
+  "schema": "daube.approved-homepage-mockup.v2",
+  "id": "DAUBE-APPROVED-HOMEPAGE-MOCKUP-V2",
+  "status": "founder-approved-visual-source-of-truth",
+  "effectiveDate": "2026-08-20",
+  "freeFirstPolicyRevision": "dc85d60e9222e70a270048321b5252e072a72d9d",
+  "reference": {
+    "kind": "founder-approved-conversation-mockup",
+    "sha256": "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8",
+    "width": 935,
+    "height": 1683,
+    "role": "single-primary-visual-source-of-truth",
+    "redistribution": "reference fingerprint recorded; production uses local scene derivatives rather than shipping the conversation attachment as the only UI"
+  },
+  "rules": {
+    "looseReinterpretationAllowed": false,
+    "genericSaasAllowed": false,
+    "stockPortfolioSubstitutionAllowed": false,
+    "fakeCssPrimaryArtworkAllowed": false,
+    "chapterOrderMutable": false,
+    "localSceneVisualRequired": true,
+    "responsiveAdaptationAllowed": true,
+    "motionMayChangeComposition": false
+  },
+  "layout": {
+    "desktop": "black luxury header + ten stacked horizontal chapters + left editorial copy rail + right cinematic visual field",
+    "mobile": "same chapter identity and order; copy and visual stack vertically without collapsing art direction",
+    "typography": "refined editorial serif headline + restrained uppercase sans meta/navigation",
+    "motion": "subtle reveal, image depth, CTA micro-interaction; reduced-motion required"
+  },
+  "chapters": [
+    {"number":"01","id":"rang-trong-atelier","label":"RẠNG TRONG ATELIER","headline":"Light is our first material.","cta":"ENTER THE ATELIER","visual":"warm ivory architecture, curved space, stone pedestal, sparse greenery, luminous calm"},
+    {"number":"02","id":"obsidian-cinema","label":"OBSIDIAN CINEMA","headline":"We sculpt with time and darkness.","cta":"ENTER THE CINEMA","visual":"near-black monumental chamber, central vertical light beam, tiny human scale"},
+    {"number":"03","id":"celestial-threshold","label":"CELESTIAL THRESHOLD","headline":"Beyond form, a larger harmony.","cta":"CROSS THE THRESHOLD","visual":"violet cosmic atmosphere, luminous orbital halo, dark sphere, reflective water and mist"},
+    {"number":"04","id":"porcelain-index","label":"PORCELAIN INDEX","headline":"An index of things that endure.","cta":"EXPLORE THE INDEX","visual":"monumental porcelain architecture, columns, steps, circular motif, quiet index precision"},
+    {"number":"05","id":"jade-intelligence","label":"JADE INTELLIGENCE","headline":"Insight, cut from clarity.","cta":"ENTER THE SYSTEM","visual":"deep jade crystal centerpiece with restrained technical circular interface"},
+    {"number":"06","id":"lacquer-vermilion","label":"LACQUER VERMILION","headline":"Tradition is our technology.","cta":"VIEW THE COLLECTION","visual":"black vermilion lacquer, gold accents and branch detail, contemporary ceremonial luxury"},
+    {"number":"07","id":"monsoon-glass","label":"MONSOON GLASS","headline":"We collect weather and memory.","cta":"PASS THROUGH","visual":"teal translucent glass architecture, rain, mist, water and refraction"},
+    {"number":"08","id":"silk-paper","label":"SILK PAPER","headline":"Softness is a kind of strength.","cta":"READ THE JOURNAL","visual":"pale lilac silk and paper, flowing textile, delicate blossom branch"},
+    {"number":"09","id":"neo-civic-monument","label":"NEO-CIVIC MONUMENT","headline":"For tomorrow, we build with purpose.","cta":"SEE THE VISION","visual":"grayscale civic monument, immense columns and tiny human figure"},
+    {"number":"10","id":"future-maison","label":"FUTURE MAISON","headline":"The future is our atelier.","cta":"ENTER THE MAISON","visual":"metallic black/silver chamber, faceted crystal, circular platform, restrained HUD"}
+  ],
+  "acceptance": [
+    "ten chapters in exact approved order and copy",
+    "no stock-portfolio substitution",
+    "no generic SaaS/card-grid reinterpretation",
+    "chapter visuals are local assets and load successfully",
+    "desktop and mobile browser evidence",
+    "prefers-reduced-motion honored",
+    "Founder live subjective review remains required for final gold visual acceptance"
+  ],
+  "truthBoundary": "This file locks the approved visual direction and production chapter contract. It does not by itself prove deployed-domain fidelity or Founder final acceptance after live review."
+}

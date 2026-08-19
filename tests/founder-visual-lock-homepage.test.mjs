@@ -3,51 +3,62 @@ import fs from "node:fs";
 import test from "node:test";
 
 const index = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const css = fs.readFileSync(new URL("../assets/founder-homepage-v1.css", import.meta.url), "utf8");
+const css = fs.readFileSync(new URL("../assets/maison-homepage-v2.css", import.meta.url), "utf8");
+const js = fs.readFileSync(new URL("../assets/maison-homepage-v2.js", import.meta.url), "utf8");
 const robots = fs.readFileSync(new URL("../robots.txt", import.meta.url), "utf8");
-const release = JSON.parse(fs.readFileSync(new URL("../.daube/releases/founder-visual-lock-homepage-v1.json", import.meta.url), "utf8"));
-const heroPath = new URL("../assets/founder-visual-lock/01-hero-dawn.webp", import.meta.url);
+const lock = JSON.parse(fs.readFileSync(new URL("../.daube/visual-locks/homepage-approved-mockup-v2.json", import.meta.url), "utf8"));
+const release = JSON.parse(fs.readFileSync(new URL("../.daube/releases/approved-mockup-homepage-v2.json", import.meta.url), "utf8"));
 
-const canonicalForgeRevision = "a92c4f30ed06205585dabc9fa1f35cb294b049fe";
+const visualLockSha = "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8";
+const chapters = [
+  ["01", "RẠNG TRONG ATELIER", "Light is our first material.", "ENTER THE ATELIER", "rang-trong-atelier.svg"],
+  ["02", "OBSIDIAN CINEMA", "We sculpt with time and darkness.", "ENTER THE CINEMA", "obsidian-cinema.svg"],
+  ["03", "CELESTIAL THRESHOLD", "Beyond form, a larger harmony.", "CROSS THE THRESHOLD", "celestial-threshold.svg"],
+  ["04", "PORCELAIN INDEX", "An index of things that endure.", "EXPLORE THE INDEX", "porcelain-index.svg"],
+  ["05", "JADE INTELLIGENCE", "Insight, cut from clarity.", "ENTER THE SYSTEM", "jade-intelligence.svg"],
+  ["06", "LACQUER VERMILION", "Tradition is our technology.", "VIEW THE COLLECTION", "lacquer-vermilion.svg"],
+  ["07", "MONSOON GLASS", "We collect weather and memory.", "PASS THROUGH", "monsoon-glass.svg"],
+  ["08", "SILK PAPER", "Softness is a kind of strength.", "READ THE JOURNAL", "silk-paper.svg"],
+  ["09", "NEO-CIVIC MONUMENT", "For tomorrow, we build with purpose.", "SEE THE VISION", "neo-civic-monument.svg"],
+  ["10", "FUTURE MAISON", "The future is our atelier.", "ENTER THE MAISON", "future-maison.svg"]
+];
 
-test("public homepage is bound to the verified Forge revision", () => {
-  assert.equal(release.source.repository, "daubesonntag-dotcom/daube-forge-os");
-  assert.equal(release.source.commit, canonicalForgeRevision);
-  assert.ok(index.includes(canonicalForgeRevision));
-  assert.equal(release.source.pullRequest, 3356);
-  assert.equal(release.rollback.publicRepositoryRef, "main@45ca43d63157b39b47198ddeaf0d174efd48c866");
+test("approved mockup digest is the public visual source of truth", () => {
+  assert.equal(lock.id, "DAUBE-APPROVED-HOMEPAGE-MOCKUP-V2");
+  assert.equal(lock.reference.sha256, visualLockSha);
+  assert.equal(lock.reference.width, 935);
+  assert.equal(lock.reference.height, 1683);
+  assert.equal(lock.reference.role, "single-primary-visual-source-of-truth");
+  assert.ok(index.includes(visualLockSha));
+  assert.equal(release.visualLock.sha256, visualLockSha);
   assert.equal(release.approval.kind, "founder-explicit-full-execution");
 });
 
-test("Founder Visual Lock canonical sequence and copy are present", () => {
-  for (const copy of [
-    "Meaning, made visible.",
-    "Ideas are invisible until they take form.",
-    "The D’AUBE Universe",
-    "One atelier.",
-    "re:FILUM",
-    "Selected Work",
-    "Objects for making.",
-    "Creative intelligence,",
-    "Journal",
-    "What begins as an idea"
-  ]) assert.ok(index.includes(copy), `missing canonical copy: ${copy}`);
-
-  for (const marker of [
-    "01 / THE DAWN",
-    "02 / MANIFESTO",
-    "03 / WORLDS IN ORBIT",
-    "04 / FOUR WORLDS",
-    "05 / FEATURED PROJECT",
-    "06 / SELECTED WORK",
-    "07 / DIGITAL OBJECTS",
-    "08 / SYSTEMS",
-    "09 / JOURNAL",
-    "D’AUBE SONNTAG — RẠNG TRONG"
-  ]) assert.ok(index.includes(marker), `missing scene marker: ${marker}`);
+test("all ten approved chapters, headlines, CTAs and local visual assets are present in order", () => {
+  let cursor = -1;
+  for (const [number, label, headline, cta, asset] of chapters) {
+    for (const token of [number, label, headline, cta, `assets/homepage-v2/scenes/${asset}`]) {
+      assert.ok(index.includes(token), `missing approved token: ${token}`);
+    }
+    const next = index.indexOf(`data-chapter="${number}"`);
+    assert.ok(next > cursor, `chapter ${number} is out of order`);
+    cursor = next;
+    const assetPath = new URL(`../assets/homepage-v2/scenes/${asset}`, import.meta.url);
+    assert.ok(fs.existsSync(assetPath), `missing local scene asset ${asset}`);
+    assert.ok(fs.statSync(assetPath).size > 700, `scene asset too small ${asset}`);
+  }
+  assert.equal((index.match(/data-chapter="/g) || []).length, 10);
 });
 
-test("public document keeps accessible semantics and repository indexing boundary", () => {
+test("homepage no longer depends on the rejected stock-portfolio composition", () => {
+  for (const forbidden of ["cdn.polyhaven.com","images.pexels.com","videos.pexels.com","fv-worlds","fv-work-grid","fv-object-museum","AUREA","ORISON","SONNTAG STUDY 06"]) {
+    assert.equal(index.includes(forbidden), false, `rejected legacy pattern leaked: ${forbidden}`);
+  }
+  assert.match(index, /assets\/maison-homepage-v2\.css/);
+  assert.match(index, /assets\/maison-homepage-v2\.js/);
+});
+
+test("document remains semantic, responsive, accessible and deliberately noindex", () => {
   assert.equal((index.match(/<h1\b/gi) || []).length, 1);
   assert.match(index, /<html lang="en">/);
   assert.match(index, /name="viewport"/);
@@ -56,48 +67,28 @@ test("public document keeps accessible semantics and repository indexing boundar
   assert.match(index, /href="#main-content"/);
   assert.match(index, /id="main-content"/);
   assert.match(index, /aria-label="Primary navigation"/);
-  assert.match(index, /Public release channel/);
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
-});
-
-test("Founder hero is local, compact, and identified as the approved artwork", () => {
-  assert.ok(fs.existsSync(heroPath));
-  const stats = fs.statSync(heroPath);
-  assert.ok(stats.size > 10000);
-  assert.ok(stats.size <= 500000);
-  assert.match(index, /assets\/founder-visual-lock\/01-hero-dawn\.webp/);
-  assert.equal(release.visualAsset.derivativeSha256, "f92ee5347656f63b5fec70cfb6c36b1991fcbd3e7deec67854d36e9cc77eaee6");
-  assert.equal(release.visualAsset.bytes, stats.size);
-  assert.equal(release.visualAsset.sourceKind, "founder-approved-generated-artwork");
-});
-
-test("public navigation avoids draft-only or private Forge surfaces and fake authority", () => {
-  for (const forbidden of [
-    "/creative-market",
-    "/refilum/universe",
-    "/forge",
-    "/founder-os",
-    "/staff-studio",
-    "/engineering-studio",
-    "/revenue-factory"
-  ]) assert.equal(index.includes(forbidden), false, `forbidden route leaked: ${forbidden}`);
-
-  for (const unsupported of ["COMMERCE LIVE", "award-winning", "customers", "revenue"])
-    assert.equal(index.toLowerCase().includes(unsupported.toLowerCase()), false, `unsupported public claim: ${unsupported}`);
-});
-
-test("crawl policy remains deliberately closed until public-release governance opens indexing", () => {
-  assert.match(robots, /User-agent: \*/);
+  assert.match(css, /@media \(max-width:680px\)/);
+  assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
+  assert.match(js, /IntersectionObserver/);
+  assert.match(js, /prefers-reduced-motion/);
   assert.match(robots, /Disallow: \//);
-  assert.doesNotMatch(robots, /Allow:\s*\//);
-  assert.equal(fs.existsSync(new URL("../sitemap.xml", import.meta.url)), false);
-  assert.ok(release.claims.notProvenByStaticPublish.includes("search-engine indexing activation"));
 });
 
-test("handoff records provenance and static-publication truth boundary", () => {
-  assert.equal(release.publicTarget.channel, "existing GitHub Pages production path");
-  assert.ok(release.externalIngredients.some((item) => item.provider === "Poly Haven" && item.license === "CC0"));
-  assert.ok(release.externalIngredients.some((item) => item.provider === "Pexels" && item.license === "Pexels License"));
-  assert.match(release.truthBoundary, /Static publication does not prove a dynamic Next\.js\/API runtime/);
-  assert.ok(release.claims.notProvenByStaticPublish.includes("live checkout, customers, revenue, awards, partnerships or press"));
+test("public truth and authority boundaries remain intact", () => {
+  for (const forbidden of ["/creative-market", "/forge", "/founder-os", "/staff-studio", "/engineering-studio", "/revenue-factory"]) {
+    assert.equal(index.includes(forbidden), false, `private/draft route leaked: ${forbidden}`);
+  }
+  for (const unsupported of ["COMMERCE LIVE", "award-winning", "customers", "revenue"]) {
+    assert.equal(index.toLowerCase().includes(unsupported.toLowerCase()), false, `unsupported public claim: ${unsupported}`);
+  }
+  assert.ok(release.claims.notProven.includes("production-domain retrieval of this revision"));
+  assert.ok(release.claims.notProven.includes("Founder subjective final visual acceptance after live review"));
+});
+
+test("visual lock explicitly rejects loose reinterpretation and generic SaaS regression", () => {
+  assert.equal(lock.rules.looseReinterpretationAllowed, false);
+  assert.equal(lock.rules.genericSaasAllowed, false);
+  assert.equal(lock.rules.stockPortfolioSubstitutionAllowed, false);
+  assert.equal(lock.rules.fakeCssPrimaryArtworkAllowed, false);
+  assert.equal(lock.rules.chapterOrderMutable, false);
 });

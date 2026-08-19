@@ -49,6 +49,25 @@ Public-site execution rules:
 - Honor responsive behavior, accessibility and `prefers-reduced-motion`; lazy-load non-critical media.
 - A successful static build or GitHub Pages publish is not visual acceptance. Public visual completion requires browser evidence and the release evidence below.
 
+## APPROVED HOMEPAGE MOCKUP V2 — visual lock
+
+For homepage work, `.daube/visual-locks/homepage-approved-mockup-v2.json` is mandatory and overrides loose visual reinterpretation of older homepage compositions.
+
+Founder-approved reference fingerprint:
+
+`sha256:079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8`
+
+Hard homepage rules:
+
+- Preserve the exact 10-chapter order, labels, headlines and CTAs in the visual-lock manifest.
+- Treat the approved mockup as a blueprint, not a moodboard.
+- Do not regress to generic SaaS, stock-portfolio grids, dashboard cards, or arbitrary content inventions.
+- Do not substitute Poly Haven/Pexels/other stock plates for an approved chapter merely because they are convenient.
+- Primary chapter art must be a traceable local visual asset; CSS handles layout/treatment/motion, not primary artwork.
+- Responsive adaptation may change stacking/crop but must preserve chapter identity, material language and hierarchy.
+- Motion may add depth and continuity but must not change the approved composition or obscure content.
+- Final visual completion requires desktop/mobile browser evidence and Founder review; green CI alone is insufficient.
+
 ## Required release evidence
 
 Every T2 public artifact handoff must record:

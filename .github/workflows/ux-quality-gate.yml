@@ -10,6 +10,9 @@ on:
       - "**/*.jpeg"
       - "**/*.png"
       - "**/*.webp"
+      - "**/*.gif"
+      - "**/*.svg"
+      - "**/*.webmanifest"
       - "scripts/ux-quality-audit.mjs"
       - "config/ux-quality-budget.json"
       - ".github/workflows/ux-quality-gate.yml"
@@ -23,6 +26,9 @@ on:
       - "**/*.jpeg"
       - "**/*.png"
       - "**/*.webp"
+      - "**/*.gif"
+      - "**/*.svg"
+      - "**/*.webmanifest"
       - "scripts/ux-quality-audit.mjs"
       - "config/ux-quality-budget.json"
       - ".github/workflows/ux-quality-gate.yml"
@@ -44,7 +50,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Audit UX, accessibility, email safety and asset budgets
+      - name: Audit UX, accessibility, navigation integrity, PWA metadata, email safety and asset budgets
         run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
       - name: Upload audit evidence
         if: always()

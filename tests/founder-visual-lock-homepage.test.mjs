@@ -5,7 +5,6 @@ import test from "node:test";
 const index = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const css = fs.readFileSync(new URL("../assets/founder-homepage-v1.css", import.meta.url), "utf8");
 const robots = fs.readFileSync(new URL("../robots.txt", import.meta.url), "utf8");
-const sitemap = fs.readFileSync(new URL("../sitemap.xml", import.meta.url), "utf8");
 const release = JSON.parse(fs.readFileSync(new URL("../.daube/releases/founder-visual-lock-homepage-v1.json", import.meta.url), "utf8"));
 const heroPath = new URL("../assets/founder-visual-lock/01-hero-dawn.webp", import.meta.url);
 
@@ -48,17 +47,17 @@ test("Founder Visual Lock canonical sequence and copy are present", () => {
   ]) assert.ok(index.includes(marker), `missing scene marker: ${marker}`);
 });
 
-test("public document keeps accessible semantic and SEO contracts", () => {
+test("public document keeps accessible semantics and repository indexing boundary", () => {
   assert.equal((index.match(/<h1\b/gi) || []).length, 1);
   assert.match(index, /<html lang="en">/);
   assert.match(index, /name="viewport"/);
-  assert.match(index, /name="robots" content="index,follow,max-image-preview:large"/);
+  assert.match(index, /name="robots" content="noindex,nofollow,noarchive,nosnippet"/);
   assert.match(index, /rel="canonical" href="https:\/\/daubesonntag\.com\/"/);
   assert.match(index, /href="#main-content"/);
   assert.match(index, /id="main-content"/);
   assert.match(index, /aria-label="Primary navigation"/);
+  assert.match(index, /Public release channel/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
-  assert.doesNotMatch(index, /noindex|nofollow/i);
 });
 
 test("Founder hero is local, compact, and identified as the approved artwork", () => {
@@ -87,14 +86,12 @@ test("public navigation avoids draft-only or private Forge surfaces and fake aut
     assert.equal(index.toLowerCase().includes(unsupported.toLowerCase()), false, `unsupported public claim: ${unsupported}`);
 });
 
-test("SEO crawl policy and sitemap agree with the canonical public surface", () => {
+test("crawl policy remains deliberately closed until public-release governance opens indexing", () => {
   assert.match(robots, /User-agent: \*/);
-  assert.match(robots, /Allow: \//);
-  assert.doesNotMatch(robots, /Disallow:\s*\//);
-  assert.match(robots, /Sitemap: https:\/\/daubesonntag\.com\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/daubesonntag\.com\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/daubesonntag\.com\/services\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/daubesonntag\.com\/contact\/<\/loc>/);
+  assert.match(robots, /Disallow: \//);
+  assert.doesNotMatch(robots, /Allow:\s*\//);
+  assert.equal(fs.existsSync(new URL("../sitemap.xml", import.meta.url)), false);
+  assert.ok(release.claims.notProvenByStaticPublish.includes("search-engine indexing activation"));
 });
 
 test("handoff records provenance and static-publication truth boundary", () => {

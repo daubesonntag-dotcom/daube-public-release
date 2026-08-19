@@ -41,100 +41,47 @@ async function startStaticServer() {
       let relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
       if (relative.endsWith("/")) relative += "index.html";
       const absolute = path.resolve(ROOT, relative);
-      if (!absolute.startsWith(`${root}${path.sep}`) && absolute !== path.join(root, "index.html")) {
-        res.writeHead(403).end("forbidden"); return;
-      }
-      await stat(absolute);
-      const body = await readFile(absolute);
-      res.writeHead(200, { "content-type": contentType(absolute), "cache-control": "no-store" });
-      res.end(body);
+      if (!absolute.startsWith(`${root}${path.sep}`) && absolute !== path.join(root, "index.html")) { res.writeHead(403).end("forbidden"); return; }
+      await stat(absolute); const body = await readFile(absolute);
+      res.writeHead(200, { "content-type": contentType(absolute), "cache-control": "no-store" }); res.end(body);
     } catch { res.writeHead(404).end("not found"); }
   });
-  await new Promise((resolve) => server.listen(STATIC_PORT, "127.0.0.1", resolve));
-  return server;
+  await new Promise((resolve) => server.listen(STATIC_PORT, "127.0.0.1", resolve)); return server;
 }
 class Cdp {
   constructor(url) { this.ws = new WebSocket(url); this.id = 0; this.pending = new Map(); }
   async open() {
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("CDP websocket timeout")), 15_000);
-      this.ws.addEventListener("open", () => { clearTimeout(timer); resolve(); }, { once: true });
-      this.ws.addEventListener("error", () => { clearTimeout(timer); reject(new Error("CDP websocket error")); }, { once: true });
-    });
-    this.ws.addEventListener("message", (event) => {
-      const message = JSON.parse(String(event.data)); const pending = this.pending.get(message.id); if (!pending) return;
-      this.pending.delete(message.id); if (message.error) pending.reject(new Error(`${pending.method}: ${message.error.message}`)); else pending.resolve(message.result || {});
-    });
+    await new Promise((resolve, reject) => { const timer=setTimeout(()=>reject(new Error("CDP websocket timeout")),15000); this.ws.addEventListener("open",()=>{clearTimeout(timer);resolve();},{once:true}); this.ws.addEventListener("error",()=>{clearTimeout(timer);reject(new Error("CDP websocket error"));},{once:true}); });
+    this.ws.addEventListener("message",(event)=>{const message=JSON.parse(String(event.data));const pending=this.pending.get(message.id);if(!pending)return;this.pending.delete(message.id);if(message.error)pending.reject(new Error(`${pending.method}: ${message.error.message}`));else pending.resolve(message.result||{});});
   }
-  send(method, params = {}, timeoutMs = 45_000) {
-    const id = ++this.id;
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`${method} timeout`)); }, timeoutMs);
-      this.pending.set(id, { method, resolve: (value) => { clearTimeout(timer); resolve(value); }, reject: (error) => { clearTimeout(timer); reject(error); } });
-      this.ws.send(JSON.stringify({ id, method, params }));
-    });
-  }
-  async evaluate(expression) {
-    const value = await this.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true, userGesture: true });
-    if (value.exceptionDetails) throw new Error(value.exceptionDetails.text || "browser evaluation failed");
-    return value.result?.value;
-  }
-  close() { if (this.ws.readyState <= WebSocket.OPEN) this.ws.close(); }
+  send(method,params={},timeoutMs=45000){const id=++this.id;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`${method} timeout`));},timeoutMs);this.pending.set(id,{method,resolve:(value)=>{clearTimeout(timer);resolve(value);},reject:(error)=>{clearTimeout(timer);reject(error);}});this.ws.send(JSON.stringify({id,method,params}));});}
+  async evaluate(expression){const value=await this.send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true,userGesture:true});if(value.exceptionDetails)throw new Error(value.exceptionDetails.text||"browser evaluation failed");return value.result?.value;}
+  close(){if(this.ws.readyState<=WebSocket.OPEN)this.ws.close();}
 }
-async function waitFor(cdp, expression, label, timeoutMs = 20_000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) { if (await cdp.evaluate(`Boolean(${expression})`)) return; await sleep(120); }
-  throw new Error(`Timed out waiting for ${label}`);
+async function waitFor(cdp,expression,label,timeoutMs=20000){const started=Date.now();while(Date.now()-started<timeoutMs){if(await cdp.evaluate(`Boolean(${expression})`))return;await sleep(120);}throw new Error(`Timed out waiting for ${label}`);}
+async function navigate(cdp,viewport,reducedMotion=false){
+  await cdp.send("Emulation.setDeviceMetricsOverride",{width:viewport.width,height:viewport.height,deviceScaleFactor:1,mobile:viewport.mobile,screenWidth:viewport.width,screenHeight:viewport.height});
+  if(viewport.mobile)await cdp.send("Emulation.setTouchEmulationEnabled",{enabled:true,maxTouchPoints:5});else await cdp.send("Emulation.setTouchEmulationEnabled",{enabled:false});
+  await cdp.send("Emulation.setEmulatedMedia",{features:[{name:"prefers-reduced-motion",value:reducedMotion?"reduce":"no-preference"}]});
+  await cdp.send("Page.navigate",{url:`http://127.0.0.1:${STATIC_PORT}/`});
+  await waitFor(cdp,`document.readyState === 'complete' && document.querySelector('[data-public-homepage="approved-mockup-10-chapter-v2"]')`,"approved homepage render");
+  await waitFor(cdp,`document.documentElement.classList.contains('maison-motion')`,"Maison motion bootstrap");
+  await waitFor(cdp,`document.querySelector('.chapter-media img')?.complete`,"first scene image complete");
+  await sleep(120);
 }
-async function navigate(cdp, viewport, reducedMotion = false) {
-  await cdp.send("Emulation.setDeviceMetricsOverride", { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.mobile, screenWidth: viewport.width, screenHeight: viewport.height });
-  if (viewport.mobile) await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 }); else await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
-  await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: reducedMotion ? "reduce" : "no-preference" }] });
-  await cdp.send("Page.navigate", { url: `http://127.0.0.1:${STATIC_PORT}/` });
-  await waitFor(cdp, `document.readyState === 'complete' && document.querySelector('[data-public-homepage="approved-mockup-10-chapter-v2"]')`, "approved homepage render");
-  await waitFor(cdp, `document.documentElement.classList.contains('maison-motion')`, "Maison motion bootstrap");
-  await waitFor(cdp, `[...document.querySelectorAll('.chapter-media img')].every((img) => img.complete)`, "scene images complete");
-  await sleep(200);
-}
-async function exerciseScrollReveals(cdp) {
-  await cdp.evaluate(`(async () => { const root=document.documentElement; const prior=root.style.scrollBehavior; root.style.scrollBehavior='auto'; for (const target of document.querySelectorAll('[data-motion-scene]')) { const rect=target.getBoundingClientRect(); window.scrollTo(0,Math.max(0,rect.top+scrollY-innerHeight*.18)); await new Promise(r=>setTimeout(r,110)); } window.scrollTo(0,0); await new Promise(r=>setTimeout(r,420)); root.style.scrollBehavior=prior; return true; })()`);
-}
-async function snapshotState(cdp) {
-  return cdp.evaluate(`(() => { const chapters=[...document.querySelectorAll('[data-chapter]')]; const images=[...document.querySelectorAll('.chapter-media img')]; const styles=[...document.styleSheets].map(s=>s.href||'').filter(Boolean); const scripts=[...document.scripts].map(s=>s.src||'').filter(Boolean); const main=document.querySelector('main'); return { title:document.title, viewport:{width:innerWidth,height:innerHeight}, chapterCount:chapters.length, chapterLabels:chapters.map(n=>n.querySelector('.chapter-label')?.textContent?.trim()||''), chapterNumbers:chapters.map(n=>n.getAttribute('data-chapter')), h1Count:document.querySelectorAll('h1').length, sceneImageCount:images.length, loadedSceneImageCount:images.filter(img=>img.complete&&img.naturalWidth>0).length, localSceneImageCount:images.filter(img=>(img.getAttribute('src')||'').startsWith('assets/homepage-v2/scenes/')).length, hasMaisonCss:styles.some(u=>u.includes('maison-homepage-v2.css')), hasMaisonJs:scripts.some(u=>u.includes('maison-homepage-v2.js')), reducedMotionClass:document.documentElement.classList.contains('maison-reduced-motion'), unrevealedChapterCount:chapters.filter(n=>!n.classList.contains('is-visible')).length, horizontalOverflow:document.documentElement.scrollWidth-innerWidth, mainWidth:main?.getBoundingClientRect().width||0, visualLock:main?.getAttribute('data-visual-lock')||'', bodyText:document.body.innerText.slice(0,5000) }; })()`);
-}
-function assertState(state, { reducedMotion = false } = {}) {
-  const expectedLabels=["RẠNG TRONG ATELIER","OBSIDIAN CINEMA","CELESTIAL THRESHOLD","PORCELAIN INDEX","JADE INTELLIGENCE","LACQUER VERMILION","MONSOON GLASS","SILK PAPER","NEO-CIVIC MONUMENT","FUTURE MAISON"];
-  if (state.title !== "D’AUBE SONNTAG — Meaning, made visible.") throw new Error(`Unexpected title: ${state.title}`);
-  if (state.chapterCount !== 10) throw new Error(`Expected 10 chapters, got ${state.chapterCount}`);
-  if (state.h1Count !== 1) throw new Error(`Expected exactly one h1, got ${state.h1Count}`);
-  if (state.sceneImageCount !== 10 || state.loadedSceneImageCount !== 10 || state.localSceneImageCount !== 10) throw new Error(`Scene media mismatch total=${state.sceneImageCount}, loaded=${state.loadedSceneImageCount}, local=${state.localSceneImageCount}`);
-  if (JSON.stringify(state.chapterLabels) !== JSON.stringify(expectedLabels)) throw new Error(`Chapter order/labels mismatch: ${JSON.stringify(state.chapterLabels)}`);
-  if (JSON.stringify(state.chapterNumbers) !== JSON.stringify(["01","02","03","04","05","06","07","08","09","10"])) throw new Error("Chapter numbers mismatch");
-  if (!state.hasMaisonCss || !state.hasMaisonJs) throw new Error("Approved Maison CSS/JS did not load");
-  if (state.unrevealedChapterCount !== 0) throw new Error(`Scroll reveal incomplete: ${state.unrevealedChapterCount} chapters`);
-  if (state.horizontalOverflow > 3) throw new Error(`Horizontal overflow detected: ${state.horizontalOverflow}px`);
-  if (state.mainWidth < Math.min(360, state.viewport.width - 20)) throw new Error(`Main surface unexpectedly narrow: ${state.mainWidth}px`);
-  if (state.reducedMotionClass !== reducedMotion) throw new Error("Reduced-motion state mismatch");
-  if (state.visualLock !== "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8") throw new Error("Visual lock fingerprint missing");
-  if (!state.bodyText.includes("Meaning, made visible.")) throw new Error("Founder tagline is not visible");
-}
-async function screenshot(cdp, name) {
-  const result = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: true });
-  const buffer = Buffer.from(result.data || "", "base64"); if (buffer.length < 25_000) throw new Error(`Screenshot ${name} too small: ${buffer.length} bytes`);
-  await writeFile(path.join(OUTPUT, name), buffer); return { file: name, bytes: buffer.length, sha256: sha256(buffer) };
-}
-async function main() {
-  await mkdir(OUTPUT, { recursive: true }); const server=await startStaticServer(); const profile=await mkdtemp(path.join(os.tmpdir(),"daube-approved-homepage-")); const chromeLogs=[];
-  const chrome=spawn(chromeBinary(),["--headless=new",`--remote-debugging-port=${DEBUG_PORT}`,`--user-data-dir=${profile}`,"--disable-background-networking","--disable-extensions","--no-first-run","--no-default-browser-check","about:blank"],{stdio:["ignore","pipe","pipe"]});
-  chrome.stdout?.on("data",c=>chromeLogs.push(Buffer.from(c))); chrome.stderr?.on("data",c=>chromeLogs.push(Buffer.from(c))); let cdp;
-  try {
-    for (let i=0;i<80;i+=1){try{const response=await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`);if(response.ok)break;}catch{} await sleep(200);if(i===79)throw new Error("Chromium did not start");}
-    const targetResponse=await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/new?${encodeURIComponent("about:blank")}`,{method:"PUT"}); const target=await targetResponse.json(); cdp=new Cdp(target.webSocketDebuggerUrl); await cdp.open(); await Promise.all([cdp.send("Page.enable"),cdp.send("Runtime.enable"),cdp.send("Network.enable")]);
-    await navigate(cdp,{width:1440,height:1000,mobile:false},false); await exerciseScrollReveals(cdp); const desktop=await snapshotState(cdp); assertState(desktop); const desktopScreenshot=await screenshot(cdp,"homepage-desktop.png");
-    await navigate(cdp,{width:390,height:844,mobile:true},false); await exerciseScrollReveals(cdp); const mobile=await snapshotState(cdp); assertState(mobile); const mobileScreenshot=await screenshot(cdp,"homepage-mobile.png");
-    await navigate(cdp,{width:390,height:844,mobile:true},true); await exerciseScrollReveals(cdp); const reducedMotion=await snapshotState(cdp); assertState(reducedMotion,{reducedMotion:true});
-    const evidence={program:"DAUBE-APPROVED-MOCKUP-HOMEPAGE-BROWSER-EVIDENCE-V2",generatedAt:new Date().toISOString(),status:"PASS",visualLockSha256:"079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8",desktop,mobile,reducedMotion,screenshots:[desktopScreenshot,mobileScreenshot],truthBoundary:{localChromiumRendered:true,tenLocalSceneVisualsRendered:true,desktopRendered:true,mobileRendered:true,reducedMotionRendered:true,productionDomainVerified:false,founderFinalVisualAcceptance:false}};
-    await writeFile(path.join(OUTPUT,"evidence.json"),`${JSON.stringify(evidence,null,2)}\n`); console.log(JSON.stringify(evidence,null,2));
-  } finally { cdp?.close(); chrome.kill("SIGTERM"); await sleep(300); if(chrome.exitCode===null&&chrome.signalCode===null)chrome.kill("SIGKILL"); await writeFile(path.join(OUTPUT,"chrome.log"),Buffer.concat(chromeLogs)); await new Promise(resolve=>server.close(resolve)); await rm(profile,{recursive:true,force:true}); }
+async function exerciseScrollReveals(cdp){await cdp.evaluate(`(async()=>{const root=document.documentElement;const prior=root.style.scrollBehavior;root.style.scrollBehavior='auto';for(const target of document.querySelectorAll('[data-motion-scene]')){const rect=target.getBoundingClientRect();window.scrollTo(0,Math.max(0,rect.top+scrollY-innerHeight*.18));await new Promise(r=>setTimeout(r,110));}window.scrollTo(0,0);await new Promise(r=>setTimeout(r,420));root.style.scrollBehavior=prior;return true;})()`);}
+async function snapshotState(cdp){return cdp.evaluate(`(()=>{const chapters=[...document.querySelectorAll('[data-chapter]')];const images=[...document.querySelectorAll('.chapter-media img')];const styles=[...document.styleSheets].map(s=>s.href||'').filter(Boolean);const scripts=[...document.scripts].map(s=>s.src||'').filter(Boolean);const main=document.querySelector('main');return{title:document.title,viewport:{width:innerWidth,height:innerHeight},chapterCount:chapters.length,chapterLabels:chapters.map(n=>n.querySelector('.chapter-label')?.textContent?.trim()||''),chapterNumbers:chapters.map(n=>n.getAttribute('data-chapter')),h1Count:document.querySelectorAll('h1').length,sceneImageCount:images.length,loadedSceneImageCount:images.filter(img=>img.complete&&img.naturalWidth>0).length,localSceneImageCount:images.filter(img=>(img.getAttribute('src')||'').startsWith('assets/homepage-v2/scenes/')).length,hasMaisonCss:styles.some(u=>u.includes('maison-homepage-v2.css')),hasMaisonJs:scripts.some(u=>u.includes('maison-homepage-v2.js')),reducedMotionClass:document.documentElement.classList.contains('maison-reduced-motion'),unrevealedChapterCount:chapters.filter(n=>!n.classList.contains('is-visible')).length,horizontalOverflow:document.documentElement.scrollWidth-innerWidth,mainWidth:main?.getBoundingClientRect().width||0,visualLock:main?.getAttribute('data-visual-lock')||'',bodyText:document.body.innerText.slice(0,5000)};})()`);}
+function assertState(state,{reducedMotion=false}={}){const expectedLabels=["RẠNG TRONG ATELIER","OBSIDIAN CINEMA","CELESTIAL THRESHOLD","PORCELAIN INDEX","JADE INTELLIGENCE","LACQUER VERMILION","MONSOON GLASS","SILK PAPER","NEO-CIVIC MONUMENT","FUTURE MAISON"];if(state.title!=="D’AUBE SONNTAG — Meaning, made visible.")throw new Error(`Unexpected title: ${state.title}`);if(state.chapterCount!==10)throw new Error(`Expected 10 chapters, got ${state.chapterCount}`);if(state.h1Count!==1)throw new Error(`Expected exactly one h1, got ${state.h1Count}`);if(state.sceneImageCount!==10||state.loadedSceneImageCount!==10||state.localSceneImageCount!==10)throw new Error(`Scene media mismatch total=${state.sceneImageCount}, loaded=${state.loadedSceneImageCount}, local=${state.localSceneImageCount}`);if(JSON.stringify(state.chapterLabels)!==JSON.stringify(expectedLabels))throw new Error(`Chapter order/labels mismatch: ${JSON.stringify(state.chapterLabels)}`);if(JSON.stringify(state.chapterNumbers)!==JSON.stringify(["01","02","03","04","05","06","07","08","09","10"]))throw new Error("Chapter numbers mismatch");if(!state.hasMaisonCss||!state.hasMaisonJs)throw new Error("Approved Maison CSS/JS did not load");if(state.unrevealedChapterCount!==0)throw new Error(`Scroll reveal incomplete: ${state.unrevealedChapterCount} chapters`);if(state.horizontalOverflow>3)throw new Error(`Horizontal overflow detected: ${state.horizontalOverflow}px`);if(state.mainWidth<Math.min(360,state.viewport.width-20))throw new Error(`Main surface unexpectedly narrow: ${state.mainWidth}px`);if(state.reducedMotionClass!==reducedMotion)throw new Error("Reduced-motion state mismatch");if(state.visualLock!=="079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8")throw new Error("Visual lock fingerprint missing");if(!state.bodyText.includes("Meaning, made visible."))throw new Error("Founder tagline is not visible");}
+async function screenshot(cdp,name){const result=await cdp.send("Page.captureScreenshot",{format:"png",fromSurface:true,captureBeyondViewport:true});const buffer=Buffer.from(result.data||"","base64");if(buffer.length<25000)throw new Error(`Screenshot ${name} too small: ${buffer.length} bytes`);await writeFile(path.join(OUTPUT,name),buffer);return{file:name,bytes:buffer.length,sha256:sha256(buffer)};}
+async function main(){
+  await mkdir(OUTPUT,{recursive:true});const server=await startStaticServer();const profile=await mkdtemp(path.join(os.tmpdir(),"daube-approved-homepage-"));const chromeLogs=[];const chrome=spawn(chromeBinary(),["--headless=new",`--remote-debugging-port=${DEBUG_PORT}`,`--user-data-dir=${profile}`,"--disable-background-networking","--disable-extensions","--no-first-run","--no-default-browser-check","about:blank"],{stdio:["ignore","pipe","pipe"]});chrome.stdout?.on("data",c=>chromeLogs.push(Buffer.from(c)));chrome.stderr?.on("data",c=>chromeLogs.push(Buffer.from(c)));let cdp;
+  try{
+    for(let i=0;i<80;i+=1){try{const response=await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/version`);if(response.ok)break;}catch{}await sleep(200);if(i===79)throw new Error("Chromium did not start");}
+    const targetResponse=await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/new?${encodeURIComponent("about:blank")}`,{method:"PUT"});const target=await targetResponse.json();cdp=new Cdp(target.webSocketDebuggerUrl);await cdp.open();await Promise.all([cdp.send("Page.enable"),cdp.send("Runtime.enable"),cdp.send("Network.enable")]);
+    await navigate(cdp,{width:1440,height:1000,mobile:false},false);await exerciseScrollReveals(cdp);await waitFor(cdp,`[...document.querySelectorAll('.chapter-media img')].every((img)=>img.complete&&img.naturalWidth>0)`,"all desktop scene images loaded");const desktop=await snapshotState(cdp);assertState(desktop);const desktopScreenshot=await screenshot(cdp,"homepage-desktop.png");
+    await navigate(cdp,{width:390,height:844,mobile:true},false);await exerciseScrollReveals(cdp);await waitFor(cdp,`[...document.querySelectorAll('.chapter-media img')].every((img)=>img.complete&&img.naturalWidth>0)`,"all mobile scene images loaded");const mobile=await snapshotState(cdp);assertState(mobile);const mobileScreenshot=await screenshot(cdp,"homepage-mobile.png");
+    await navigate(cdp,{width:390,height:844,mobile:true},true);await exerciseScrollReveals(cdp);await waitFor(cdp,`[...document.querySelectorAll('.chapter-media img')].every((img)=>img.complete&&img.naturalWidth>0)`,"all reduced-motion scene images loaded");const reducedMotion=await snapshotState(cdp);assertState(reducedMotion,{reducedMotion:true});
+    const evidence={program:"DAUBE-APPROVED-MOCKUP-HOMEPAGE-BROWSER-EVIDENCE-V2",generatedAt:new Date().toISOString(),status:"PASS",visualLockSha256:"079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8",desktop,mobile,reducedMotion,screenshots:[desktopScreenshot,mobileScreenshot],truthBoundary:{localChromiumRendered:true,tenLocalSceneVisualsRendered:true,desktopRendered:true,mobileRendered:true,reducedMotionRendered:true,productionDomainVerified:false,founderFinalVisualAcceptance:false}};await writeFile(path.join(OUTPUT,"evidence.json"),`${JSON.stringify(evidence,null,2)}\n`);console.log(JSON.stringify(evidence,null,2));
+  }finally{cdp?.close();chrome.kill("SIGTERM");await sleep(300);if(chrome.exitCode===null&&chrome.signalCode===null)chrome.kill("SIGKILL");await writeFile(path.join(OUTPUT,"chrome.log"),Buffer.concat(chromeLogs));await new Promise(resolve=>server.close(resolve));await rm(profile,{recursive:true,force:true});}
 }
 main().catch((error)=>{console.error(error);process.exitCode=1;});

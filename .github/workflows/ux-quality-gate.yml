@@ -11,6 +11,7 @@ on:
       - "**/*.png"
       - "**/*.webp"
       - "scripts/ux-quality-audit.mjs"
+      - "scripts/homepage-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
       - "tests/free-first-homepage-convergence.test.mjs"
@@ -26,6 +27,7 @@ on:
       - "**/*.png"
       - "**/*.webp"
       - "scripts/ux-quality-audit.mjs"
+      - "scripts/homepage-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
       - "tests/free-first-homepage-convergence.test.mjs"
@@ -42,7 +44,7 @@ concurrency:
 jobs:
   fast-quality-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -54,10 +56,14 @@ jobs:
         run: node --test tests/free-first-homepage-convergence.test.mjs
       - name: Audit UX, accessibility, email safety and asset budgets
         run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
-      - name: Upload audit evidence
+      - name: Render desktop, mobile and reduced-motion homepage evidence in Chromium
+        run: node scripts/homepage-browser-evidence.mjs
+      - name: Upload audit and browser evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ux-quality-report
-          path: artifacts/ux-quality-report.json
+          path: |
+            artifacts/ux-quality-report.json
+            .daube/evidence/free-first-homepage/
           retention-days: 7

@@ -1,0 +1,51 @@
+{
+  "schema": "daube.public-artifact-handoff.v1",
+  "artifact": "payment-review-public-preview",
+  "classification": "T2-public-preview",
+  "publishedPath": "/payment-preview/",
+  "canonicalRuntimeSource": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "branch": "agent/multi-rail-payment-orchestration",
+    "revision": "7730b2fc7e5716fa258532fc34d2608f2288af4a",
+    "pullRequest": 3364
+  },
+  "publicArtifactDigests": {
+    "indexHtmlGitBlobSha": "500de7ba07b58394cdc10fb1fc5cf5bc129a79e5",
+    "styleCssGitBlobSha": "bd3887148b06c84944641f24164469f3f92dfd20"
+  },
+  "testSummary": {
+    "browser": "Chromium source-level fallback",
+    "viewports": ["1440x1000", "390x844"],
+    "horizontalOverflow": false,
+    "keyboardFocusObserved": true,
+    "backInteractionObserved": true,
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "forbiddenMarkersRendered": [],
+    "note": "GitHub Actions exact-head jobs in daube-forge-os currently fail before runner steps start (steps=null; logs BlobNotFound), so this preview does not claim a successful Next.js production-bundle build."
+  },
+  "approval": {
+    "kind": "founder-explicit-public-preview-request",
+    "recordedAt": "2026-08-19T15:26:00+07:00",
+    "scope": "Show the approved payment confirmation visual publicly while keeping payment actions disabled and preserving production truth boundaries."
+  },
+  "rollback": {
+    "repository": "daubesonntag-dotcom/daube-site",
+    "previousMainRevision": "56bfd2a4278b964fa1235aee8b72cde623f58be3",
+    "method": "revert the isolated payment-preview publication commits; no homepage or backend route is changed"
+  },
+  "accountableReleaseOwner": "Founder / D’AUBE SONNTAG",
+  "limitations": [
+    "This is a static visual preview, not the canonical Next.js runtime.",
+    "No payment action is enabled on this preview.",
+    "No provider approval, customer payment, settlement, entitlement or revenue is proven.",
+    "Dynamic production runtime and /api/health remain externally blocked until a reachable Node/Next runtime and routing authority exist."
+  ],
+  "claimsNotProven": [
+    "production checkout live",
+    "payment provider live",
+    "commerce-web production ready",
+    "settled revenue",
+    "automatic entitlement delivery"
+  ]
+}

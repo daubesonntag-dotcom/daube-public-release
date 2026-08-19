@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <meta name="referrer" content="no-referrer">
+  <title>D’AUBE Paddle Sandbox Setup</title>
+  <style>
+    :root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--ink:#111827;--muted:#64748b;--line:#dbe4f0;--accent:#2563eb}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eef5ff 0,#f8fbff 35%,#fff 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+    main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(100%,560px);background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 24px 80px rgba(38,72,120,.12)}
+    .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#52709b;font-weight:700}.brand{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1.05;margin:10px 0 8px}.muted{color:var(--muted);line-height:1.6}.notice{margin:20px 0;padding:14px 16px;border:1px solid #cfe0ff;border-radius:16px;background:#f5f9ff;font-size:14px;line-height:1.55}
+    label{display:block;font-size:14px;font-weight:700;margin:18px 0 8px}input{width:100%;border:1px solid #cbd5e1;border-radius:14px;padding:14px 15px;font-size:16px;background:#fff;color:#111827;outline:none}input:focus{border-color:#7aa8ff;box-shadow:0 0 0 4px rgba(37,99,235,.08)}button{width:100%;margin-top:22px;border:0;border-radius:14px;padding:15px 18px;background:#111827;color:#fff;font-size:16px;font-weight:700}.fine{font-size:12px;color:#7c8ba1;line-height:1.5;margin-top:16px}
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card" aria-labelledby="title">
+      <div class="eyebrow">D’AUBE SONNTAG · PAYMENT SETUP</div>
+      <h1 class="brand" id="title">Paddle Sandbox</h1>
+      <p class="muted">Trang này chỉ dùng để gửi <strong>Paddle destination Secret key</strong> trực tiếp tới D’AUBE infrastructure. Secret không được gửi vào ChatGPT và không được commit vào GitHub.</p>
+      <div class="notice">Dùng đúng <strong>setup code</strong> do ChatGPT cung cấp trong cuộc trò chuyện này. Sau khi cấu hình thành công, gateway sẽ khóa thao tác setup.</div>
+      <form method="post" action="https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/paddle-sandbox-webhook?mode=configure" autocomplete="off">
+        <label for="setup_code">Setup code</label>
+        <input id="setup_code" name="setup_code" type="password" required minlength="20" autocomplete="off" inputmode="text">
+        <label for="secret">Paddle Secret key</label>
+        <input id="secret" name="secret" type="password" required minlength="16" maxlength="512" autocomplete="new-password" spellcheck="false">
+        <button type="submit">Configure once</button>
+      </form>
+      <p class="fine">Không nhập API key hoặc client-side token vào đây. Chỉ nhập destination Secret key của webhook Paddle Sandbox.</p>
+    </section>
+  </main>
+</body>
+</html>

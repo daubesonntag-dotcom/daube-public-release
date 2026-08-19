@@ -149,12 +149,36 @@ async function navigate(cdp, viewport, reducedMotion = false) {
   await sleep(250);
 }
 
+async function exerciseScrollReveals(cdp) {
+  await cdp.evaluate(`(async () => {
+    const root = document.documentElement;
+    const priorScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+    const targets = [
+      ...document.querySelectorAll('[data-motion-scene]'),
+      ...document.querySelectorAll('[data-motion-card]')
+    ];
+    for (const target of targets) {
+      const rect = target.getBoundingClientRect();
+      const top = Math.max(0, rect.top + window.scrollY - Math.max(24, innerHeight * 0.18));
+      window.scrollTo(0, top);
+      await new Promise((resolve) => setTimeout(resolve, 90));
+    }
+    window.scrollTo(0, 0);
+    await new Promise((resolve) => setTimeout(resolve, 420));
+    root.style.scrollBehavior = priorScrollBehavior;
+    return true;
+  })()`);
+}
+
 async function snapshotState(cdp) {
   return cdp.evaluate(`(() => {
     const obsolete = ['.fv-orbit', '.fv-crystal', '.fv-spectrum', '.fv-system-map'];
     const iconNodes = [...document.querySelectorAll('.fv-object-icon')];
     const sourceStyles = [...document.styleSheets].map(sheet => sheet.href || '').filter(Boolean);
     const sourceScripts = [...document.scripts].map(script => script.src || '').filter(Boolean);
+    const copyNodes = [...document.querySelectorAll('[data-motion-copy]')];
+    const cardNodes = [...document.querySelectorAll('[data-motion-card]')];
     const main = document.querySelector('main');
     return {
       title: document.title,
@@ -167,6 +191,8 @@ async function snapshotState(cdp) {
       hasFreeFirstCss: sourceStyles.some(url => url.includes('free-first-homepage-v1.css')),
       hasFreeFirstJs: sourceScripts.some(url => url.includes('free-first-homepage-v1.js')),
       reducedMotionClass: document.documentElement.classList.contains('ff-reduced-motion'),
+      unrevealedCopyCount: copyNodes.filter(node => !node.closest('[data-motion-scene]')?.classList.contains('ff-in-view')).length,
+      unrevealedCardCount: cardNodes.filter(node => !node.classList.contains('ff-in-view')).length,
       horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
       mainWidth: main?.getBoundingClientRect().width || 0,
       bodyText: document.body.innerText.slice(0, 4000)
@@ -181,6 +207,7 @@ function assertState(state, { reducedMotion = false } = {}) {
   if (state.obsoleteCount !== 0) throw new Error(`CSS-art markup still rendered: ${state.obsoleteCount}`);
   if (state.treasuryIconCount !== 8 || state.loadedTreasuryIconCount !== 8) throw new Error(`Treasury icons not fully rendered: ${state.loadedTreasuryIconCount}/${state.treasuryIconCount}`);
   if (!state.hasFreeFirstCss || !state.hasFreeFirstJs) throw new Error("Free-First CSS/JS layer did not load");
+  if (state.unrevealedCopyCount !== 0 || state.unrevealedCardCount !== 0) throw new Error(`Motion reveal did not complete: copy=${state.unrevealedCopyCount}, cards=${state.unrevealedCardCount}`);
   if (state.horizontalOverflow > 3) throw new Error(`Horizontal overflow detected: ${state.horizontalOverflow}px`);
   if (state.mainWidth < Math.min(360, state.viewport.width - 20)) throw new Error(`Main surface unexpectedly narrow: ${state.mainWidth}px`);
   if (state.reducedMotionClass !== reducedMotion) throw new Error(`Reduced-motion state mismatch: ${state.reducedMotionClass}`);
@@ -234,16 +261,19 @@ async function main() {
     await Promise.all([cdp.send("Page.enable"), cdp.send("Runtime.enable"), cdp.send("Network.enable")]);
 
     await navigate(cdp, { width: 1440, height: 1000, mobile: false }, false);
+    await exerciseScrollReveals(cdp);
     const desktop = await snapshotState(cdp);
     assertState(desktop);
     const desktopScreenshot = await screenshot(cdp, "homepage-desktop.png");
 
     await navigate(cdp, { width: 390, height: 844, mobile: true }, false);
+    await exerciseScrollReveals(cdp);
     const mobile = await snapshotState(cdp);
     assertState(mobile);
     const mobileScreenshot = await screenshot(cdp, "homepage-mobile.png");
 
     await navigate(cdp, { width: 390, height: 844, mobile: true }, true);
+    await exerciseScrollReveals(cdp);
     const reducedMotion = await snapshotState(cdp);
     assertState(reducedMotion, { reducedMotion: true });
 
@@ -260,6 +290,7 @@ async function main() {
         desktopRendered: true,
         mobileRendered: true,
         reducedMotionRendered: true,
+        scrollRevealExercisedBeforeCapture: true,
         productionDomainVerified: false,
         founderGoldVisualConfirmed: false,
         externalMediaCompletenessNotRequiredForPass: true

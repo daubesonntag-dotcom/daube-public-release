@@ -5,67 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
   <meta name="referrer" content="no-referrer">
-  <title>D’AUBE Paddle API Setup</title>
+  <title>D’AUBE Paddle API Setup — Retired</title>
   <style>
-    :root{color-scheme:light;--bg:#f6f8fb;--card:#fff;--ink:#111827;--muted:#64748b;--line:#dbe4f0;--accent:#111827;--ok:#067647;--bad:#b42318}
-    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#eef5ff 0,#f8fbff 35%,#fff 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
-    main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(100%,620px);background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 24px 80px rgba(38,72,120,.12)}
-    .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#52709b;font-weight:700}.brand{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1.05;margin:10px 0 8px}.muted{color:var(--muted);line-height:1.6}.notice{margin:20px 0;padding:14px 16px;border:1px solid #cfe0ff;border-radius:16px;background:#f5f9ff;font-size:14px;line-height:1.55}.notice strong{color:#234a84}
-    label{display:block;font-size:14px;font-weight:700;margin:18px 0 8px}input{width:100%;border:1px solid #cbd5e1;border-radius:14px;padding:14px 15px;font-size:16px;background:#fff;color:#111827;outline:none}input:focus{border-color:#7aa8ff;box-shadow:0 0 0 4px rgba(37,99,235,.08)}button{width:100%;margin-top:22px;border:0;border-radius:14px;padding:15px 18px;background:#111827;color:#fff;font-size:16px;font-weight:700}.fine{font-size:12px;color:#7c8ba1;line-height:1.5;margin-top:16px}.status{display:none;margin-top:20px;padding:14px 16px;border-radius:16px;font-size:14px;line-height:1.55;white-space:pre-wrap}.status.ok{display:block;background:#ecfdf3;color:var(--ok);border:1px solid #abefc6}.status.bad{display:block;background:#fef3f2;color:var(--bad);border:1px solid #fecdca}
+    :root{color-scheme:light;--ink:#102033;--muted:#64748b;--line:#d8e6f5}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#eef8ff,#fff);font-family:Inter,ui-sans-serif,system-ui;color:var(--ink)}
+    .card{width:min(100%,620px);padding:30px;border:1px solid var(--line);border-radius:26px;background:#ffffffed;box-shadow:0 24px 72px #8cb8dc22}.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#52709b;font-weight:700}h1{font-family:Georgia,serif;font-weight:500;font-size:38px;margin:10px 0 14px}.note{padding:15px 16px;border-radius:15px;background:#f3f8fd;border:1px solid #d8e6f5;line-height:1.6}.muted{color:var(--muted);line-height:1.65}.status{font-weight:750;color:#17643a}
   </style>
 </head>
 <body>
-  <main>
-    <section class="card" aria-labelledby="title">
-      <div class="eyebrow">D’AUBE SONNTAG · PAYMENT AUTOMATION</div>
-      <h1 class="brand" id="title">Paddle Sandbox API</h1>
-      <p class="muted">Trang này lưu Paddle API key trực tiếp vào D’AUBE Vault rồi tự tìm webhook destination, tạo hoặc tái sử dụng simulation <strong>transaction.completed</strong>, chạy simulation qua Paddle API và kiểm tra delivery.</p>
-      <div class="notice"><strong>API key cần đúng 2 quyền:</strong><br>• Notification settings → Read<br>• Simulations → Write<br><br>Không cần cấp All Write. Simulations Write tự bao gồm quyền đọc simulation. Nếu muốn payload dùng transaction thật thay vì dữ liệu demo, có thể giữ thêm Transactions → Read.</div>
-      <form id="setup" autocomplete="off">
-        <label for="setup_code">Setup code</label>
-        <input id="setup_code" name="setup_code" type="password" required minlength="20" autocomplete="off">
-        <label for="api_key">Paddle Sandbox API key</label>
-        <input id="api_key" name="api_key" type="password" required autocomplete="new-password" spellcheck="false" placeholder="pdl_sdbx_apikey_…">
-        <button id="submit" type="submit">Store key & run full API test</button>
-      </form>
-      <div id="status" class="status" role="status" aria-live="polite"></div>
-      <p class="fine">API key không được gửi vào ChatGPT hoặc commit vào GitHub. Trình duyệt gửi key qua HTTPS thẳng tới D’AUBE Supabase Edge Function; function chỉ lưu key vào Vault sau khi Paddle authentication và permission checks vượt qua.</p>
-    </section>
+  <main class="card">
+    <div class="eyebrow">D’AUBE SONNTAG · PAYMENT SECURITY</div>
+    <h1>Public credential setup retired.</h1>
+    <p class="status">This page no longer accepts API keys, setup codes, run codes, or secrets.</p>
+    <div class="note">Paddle Sandbox credentials are managed only through the governed server-side secret/Vault path. Operational mutations require an authenticated privileged service identity.</div>
+    <p class="muted">Do not paste payment credentials into a browser form, chat, GitHub issue, repository file, or URL. This retired route remains only to fail safely for old bookmarks.</p>
   </main>
-<script>
-const endpoint='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/paddle-sandbox-api-operator';
-const form=document.getElementById('setup');
-const statusBox=document.getElementById('status');
-const button=document.getElementById('submit');
-form.addEventListener('submit',async(e)=>{
-  e.preventDefault();
-  statusBox.className='status';
-  statusBox.textContent='Đang xác thực API key và chạy Paddle E2E simulation…';
-  statusBox.style.display='block';
-  button.disabled=true;
-  try{
-    const payload={mode:'configure',setup_code:form.setup_code.value,api_key:form.api_key.value.trim()};
-    const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-    const data=await res.json();
-    form.api_key.value='';
-    if(!res.ok||!data.ok){
-      const missing={
-        missing_notification_setting_read:'Thiếu quyền: Notification settings → Read.',
-        missing_notification_simulation_read_or_write:'Thiếu quyền Simulation. Bật Simulations → Write.',
-        missing_notification_simulation_write:'Thiếu quyền: Simulations → Write.',
-        destination_does_not_accept_simulation:'Webhook destination chưa để Platform and simulation.',
-        paddle_authentication_failed:'API key không hợp lệ, hết hạn hoặc sai môi trường Sandbox.'
-      };
-      throw new Error((missing[data.error]||data.error||'Paddle API test failed')+(data.detail?.detail?'\n'+data.detail.detail:''));
-    }
-    const evt=data.event||{};
-    statusBox.className='status ok';
-    statusBox.textContent='PASS ✅\nAPI authenticated: yes\nDestination: '+data.destination.description+'\nSimulation: '+data.simulation.type+'\nRun: '+data.run.id+'\nDelivery: '+(evt.status||data.run.status)+'\nHTTP response: '+(evt.responseStatusCode??'pending')+'\n\nKey đã được lưu trong D’AUBE Vault.';
-  }catch(err){
-    statusBox.className='status bad';
-    statusBox.textContent='Chưa pass ❌\n'+(err?.message||String(err));
-  }finally{button.disabled=false;}
-});
-</script>
 </body>
 </html>

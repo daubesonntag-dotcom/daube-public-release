@@ -102,11 +102,12 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) state=success; description='GitHub Pages Coming Soon publication verified' ;;
-            cancelled) state=error; description='GitHub Pages publication cancelled' ;;
-            *) state=failure; description='GitHub Pages publication failed' ;;
+            success) STATE=success; DESCRIPTION='GitHub Pages Coming Soon publication verified' ;;
+            cancelled) STATE=error; DESCRIPTION='GitHub Pages publication cancelled' ;;
+            *) STATE=failure; DESCRIPTION='GitHub Pages publication failed' ;;
           esac
-          payload="$(python3 - <<PY
+          export STATE DESCRIPTION
+          payload="$(python3 - <<'PY'
           import json, os
           print(json.dumps({
             'state': os.environ['STATE'],
@@ -124,8 +125,3 @@ jobs:
             --header 'Content-Type: application/json' \
             --data "$payload" \
             "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
-          STATE: ${{ job.status == 'success' && 'success' || job.status == 'cancelled' && 'error' || 'failure' }}
-          DESCRIPTION: ${{ job.status == 'success' && 'GitHub Pages Coming Soon publication verified' || job.status == 'cancelled' && 'GitHub Pages publication cancelled' || 'GitHub Pages publication failed' }}

@@ -7,8 +7,10 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
+  statuses: write
 
 concurrency:
   group: pages
@@ -33,149 +35,97 @@ jobs:
         run: |
           set -euo pipefail
           api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
-          common_headers=(
+          headers=(
             --header 'Accept: application/vnd.github+json'
             --header "Authorization: Bearer ${GH_TOKEN}"
             --header 'X-GitHub-Api-Version: 2022-11-28'
           )
 
-          get_pages() {
-            curl --silent --show-error --output /tmp/pages.json --write-out '%{http_code}' \
-              "${common_headers[@]}" \
-              "${api}"
-          }
-
-          status="$(get_pages)"
-
-          if [[ "${status}" == "404" ]]; then
+          status="$(curl --silent --show-error --output /tmp/pages.json --write-out '%{http_code}' "${headers[@]}" "$api")"
+          if [[ "$status" == "404" ]]; then
             create_status="$(curl --silent --show-error --output /tmp/pages-create.json --write-out '%{http_code}' \
-              --request POST \
-              "${common_headers[@]}" \
-              --header 'Content-Type: application/json' \
-              --data '{"build_type":"workflow"}' \
-              "${api}")"
-
-            echo "pages_create_http_status=${create_status}" >> "${GITHUB_OUTPUT}"
-            {
-              echo '## GitHub Pages activation attempt'
-              echo
-              echo "Initial Pages API status: HTTP ${status}."
-              echo "Create Pages site status: HTTP ${create_status}."
-            } >> "${GITHUB_STEP_SUMMARY}"
-
-            if [[ "${create_status}" == "201" || "${create_status}" == "409" ]]; then
+              --request POST "${headers[@]}" --header 'Content-Type: application/json' \
+              --data '{"build_type":"workflow"}' "$api")"
+            if [[ "$create_status" == "201" || "$create_status" == "409" ]]; then
               sleep 2
-              status="$(get_pages)"
+              status="$(curl --silent --show-error --output /tmp/pages.json --write-out '%{http_code}' "${headers[@]}" "$api")"
             fi
           fi
 
-          if [[ "${status}" == "200" ]]; then
-            build_type="$(python3 -c "import json; print((json.load(open('/tmp/pages.json', encoding='utf-8')).get('build_type') or ''))")"
-            echo 'enabled=true' >> "${GITHUB_OUTPUT}"
-            echo "build_type=${build_type}" >> "${GITHUB_OUTPUT}"
-            {
-              echo
-              echo 'GitHub Pages is enabled; deployment may proceed.'
-              echo "Observed build type: ${build_type:-unknown}."
-            } >> "${GITHUB_STEP_SUMMARY}"
-          else
-            echo 'enabled=false' >> "${GITHUB_OUTPUT}"
-            echo "http_status=${status}" >> "${GITHUB_OUTPUT}"
-            {
-              echo
-              echo '## GitHub Pages deployment blocked'
-              echo
-              echo "Final Pages API status: HTTP ${status}."
-              echo 'The workflow attempted zero-cost workflow-hosting activation but GitHub did not admit it with the current repository token.'
-              echo 'No deployment or canonical-domain claim is made.'
-            } >> "${GITHUB_STEP_SUMMARY}"
+          if [[ "$status" != "200" ]]; then
+            echo "::error title=GitHub Pages unavailable::Pages API returned HTTP $status"
+            exit 1
           fi
 
-      - name: Refuse false-green publication
-        if: steps.pages-preflight.outputs.enabled != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          status='${{ steps.pages-preflight.outputs.http_status }}'
-          echo "::error title=GitHub Pages unavailable::Publication is blocked because GitHub Pages is not enabled (API HTTP ${status:-unknown}). A run with no deployed artifact must not report success."
-          exit 1
-
-      - name: Set up campaign compiler runtime
-        if: steps.pages-preflight.outputs.enabled == 'true'
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-
-      - name: Compile production email campaigns
-        if: steps.pages-preflight.outputs.enabled == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check scripts/render-email-campaign.mjs
-          shopt -s nullglob
-          specs=(campaigns/email/*.json)
-          test "${#specs[@]}" -gt 0
-          mkdir -p email-preview/generated
-
-          for input in "${specs[@]}"; do
-            slug="$(basename "$input" .json)"
-            mode="$(node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(c.mode)" "$input")"
-            if [[ "$slug" == *-"$mode" ]]; then
-              output_slug="$slug"
-            else
-              output_slug="${slug}-${mode}"
-            fi
-            node scripts/render-email-campaign.mjs \
-              --input "$input" \
-              --out "email-preview/generated/${output_slug}.html"
-          done
-
-      - name: Verify publish-time campaign outputs
-        if: steps.pages-preflight.outputs.enabled == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          outputs=(email-preview/generated/*.html)
-          test "${#outputs[@]}" -gt 0
-          for html in "${outputs[@]}"; do
-            test -s "$html"
-            grep -q '<h1' "$html"
-            grep -q 'https://' "$html"
-            ! grep -Eqi 'content://|file://|javascript:' "$html"
-          done
+          build_type="$(python3 -c "import json; print((json.load(open('/tmp/pages.json', encoding='utf-8')).get('build_type') or ''))")"
+          echo "Pages enabled with build type: ${build_type:-unknown}"
 
       - name: Configure GitHub Pages
-        if: steps.pages-preflight.outputs.enabled == 'true'
         uses: actions/configure-pages@v6
 
-      - name: Upload public site
-        if: steps.pages-preflight.outputs.enabled == 'true'
+      - name: Upload Coming Soon site
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
 
       - name: Deploy public site
-        if: steps.pages-preflight.outputs.enabled == 'true'
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify deployed endpoint is actually live
-        if: steps.pages-preflight.outputs.enabled == 'true'
+      - name: Verify deployed endpoint is live
         shell: bash
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
-          test -n "${PAGE_URL}"
+          test -n "$PAGE_URL"
           curl --fail --location --silent --show-error \
             --retry 6 --retry-delay 2 --retry-all-errors \
-            "${PAGE_URL}" --output /tmp/daube-live.html
+            "$PAGE_URL" --output /tmp/daube-live.html
           test -s /tmp/daube-live.html
+          grep -q 'COMING SOON' /tmp/daube-live.html
+          grep -q 'Meaning, made visible.' /tmp/daube-live.html
           {
-            echo
             echo '## Live publication verified'
             echo
-            echo "Endpoint: ${PAGE_URL}"
-            echo 'HTTP retrieval succeeded and returned a non-empty document.'
-          } >> "${GITHUB_STEP_SUMMARY}"
+            echo "Endpoint: $PAGE_URL"
+            echo 'COMING SOON marker: VERIFIED'
+            echo 'Meaning, made visible.: VERIFIED'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish observable commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) state=success; description='GitHub Pages Coming Soon publication verified' ;;
+            cancelled) state=error; description='GitHub Pages publication cancelled' ;;
+            *) state=failure; description='GitHub Pages publication failed' ;;
+          esac
+          payload="$(python3 - <<PY
+          import json, os
+          print(json.dumps({
+            'state': os.environ['STATE'],
+            'context': 'ci/github-pages: publish',
+            'description': os.environ['DESCRIPTION'][:140],
+            'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          }))
+          PY
+          )"
+          curl --fail --silent --show-error \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data "$payload" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          STATE: ${{ job.status == 'success' && 'success' || job.status == 'cancelled' && 'error' || 'failure' }}
+          DESCRIPTION: ${{ job.status == 'success' && 'GitHub Pages Coming Soon publication verified' || job.status == 'cancelled' && 'GitHub Pages publication cancelled' || 'GitHub Pages publication failed' }}

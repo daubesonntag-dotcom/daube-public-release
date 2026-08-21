@@ -1,0 +1,34 @@
+{
+  "schema": "daube.design-system.release-artifact.v1",
+  "package": "@daube/design-system",
+  "packageVersion": "0.2.0",
+  "artifactClass": "PUBLIC_COMPILED_CSS",
+  "sourceAuthority": "daubesonntag-dotcom/daube-design-system",
+  "sourceRevision": "f6455e19dd216da3dc267fe002941e7ebf0e6593",
+  "sourceRepoVisibility": "private",
+  "publicArtifactIntended": true,
+  "containsSecrets": false,
+  "authoritativeSourceDuplicated": false,
+  "files": {
+    "tokens.css": {
+      "sourcePath": "src/tokens.css",
+      "sourceBlobSha": "bf0a1c5d85e7e05b639334ed716d9d2bbd391202",
+      "sha256": "b8e109cde2b3ddb2f4a9d88747df0f467831ea7ce5b3b4e1ec124f59385bd092"
+    },
+    "primitives.css": {
+      "sourcePath": "src/primitives.css",
+      "sourceBlobSha": "6caf1b887558d668087d41c786cfd152bb1137ea",
+      "sha256": "8ad219ea925bb31d493bdcef8b64dfef89335e50adc2433e7945fff49463b340"
+    },
+    "index.css": {
+      "generatedFrom": ["primitives.css"],
+      "sha256": "a4ddb82ad4766712485b5590673a35c5dae1f6704292fbb82f54211a26cb7cf8"
+    }
+  },
+  "consumptionContract": {
+    "pinReleaseCommit": true,
+    "verifySha256BeforeBuild": true,
+    "doNotEditArtifactsInConsumer": true,
+    "sourceChangesOnlyInDesignSystemRepo": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "DAUBE-COLAB-PUBLIC-WORKER-RELEASE-V1",
+  "release": "2026-08-25.1",
+  "workerRevision": "DAUBE-COLAB-MAILBOX-WORKER-V3-20260825",
+  "sourceRepository": "daubesonntag-dotcom/daube-public-release",
+  "sourcePath": "runtime/colab/daube_colab_mailbox_worker.py",
+  "rawUrl": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/runtime/colab/daube_colab_mailbox_worker.py",
+  "sha256": "69481e3644e1b53ba62553c538e90049736babc29d3ec29805dcdd4e06ab13f0",
+  "modelId": "Qwen/Qwen3-4B-Instruct-2507",
+  "transport": "google-drive-sheet-fallback",
+  "authority": "forge-workforce-runtime",
+  "zeroSpendOnly": true,
+  "privateIdentifiersEmbedded": false,
+  "publicTunnelAllowed": false,
+  "arbitraryShellPayloadAllowed": false,
+  "truthBoundary": "This public artifact contains executable worker source only. It does not contain mailbox IDs, credentials, runtime tokens, private prompts, or proof that a Colab GPU session is live."
+}

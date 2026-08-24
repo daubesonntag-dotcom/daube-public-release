@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>D'AUBE Volunteer Browser Evidence V1</title>
+  <style>
+    :root { color-scheme:dark; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    body { margin:0; background:#090909; color:#f5f5f5; }
+    main { max-width:940px; margin:0 auto; padding:24px; }
+    section { border:1px solid #303030; border-radius:14px; padding:16px; margin:16px 0; background:#111; }
+    h1,h2 { margin-top:0; }
+    label { display:block; margin:10px 0; }
+    input,button { width:100%; box-sizing:border-box; font:inherit; border-radius:8px; padding:10px; }
+    button { background:#1e1e1e; color:#fff; border:1px solid #555; cursor:pointer; margin-top:8px; }
+    button.primary { background:#f1f1f1; color:#111; }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .status,#log { white-space:pre-wrap; background:#070707; border-radius:8px; padding:12px; }
+    #log { min-height:180px; max-height:380px; overflow:auto; }
+    small { color:#aaa; }
+    .ok { color:#8ee28e; } .warn { color:#ffd166; } .bad { color:#ff8b8b; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>D'AUBE Volunteer Browser Evidence V1</h1>
+  <p>One-click evidence runner for real browser hardware. It has no Workforce authority, asks for no credential, and submits only bounded public benchmark receipts.</p>
+
+  <section>
+    <h2>1. Consent</h2>
+    <label><input id="consent" type="checkbox" style="width:auto" /> Tôi tự nguyện cho phép benchmark CPU/WebGPU và, nếu bật, tải model quantized khoảng 100–200 MB để đo inference trong tab này.</label>
+    <label><input id="modelToggle" type="checkbox" style="width:auto" checked /> Run quantized model benchmark after hardware parity.</label>
+    <button id="run" class="primary" disabled>Run + submit evidence</button>
+    <button id="stop">Stop after current operation</button>
+    <small>No localStorage/sessionStorage/IndexedDB/OPFS. No API key, account, password or token is requested. Model/runtime downloads begin only after Run.</small>
+  </section>
+
+  <section><h2>2. Device</h2><div id="device" class="status">Not probed.</div></section>
+  <section><h2>3. Accepted receipts</h2><div id="evidence" class="status">No receipt yet.</div></section>
+  <section><h2>4. Live aggregate</h2><div id="summary" class="status">Not loaded.</div></section>
+  <section><h2>5. Event log</h2><div id="log" aria-live="polite"></div></section>
+</main>
+<script type="module">
+const EVIDENCE_ENDPOINT='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-volunteer-evidence';
+const ADAPTER_URL='/edge-lab/adapters/transformersjs-smollm2-135m-q4f16-v1.js';
+const PIXELS=4096;
+const WORKGROUP_SIZE=64;
+const POW_PREFIX='000';
+const el=id=>document.getElementById(id);
+const state={running:false,stopRequested:false,executorId:`evidence_${crypto.randomUUID().replaceAll('-','').slice(0,16)}`,gpuDevice:null,receipts:[]};
+
+function log(message,level='info'){const line=document.createElement('div');line.textContent=`[${new Date().toISOString()}] ${message}`;if(level==='ok')line.className='ok';if(level==='warn')line.className='warn';if(level==='error')line.className='bad';el('log').appendChild(line);el('log').scrollTop=el('log').scrollHeight;}
+function setControls(){el('run').disabled=state.running||el('consent').checked!==true;}
+function browserFamily(){const ua=navigator.userAgent;if(/Edg\//.test(ua))return'Edge';if(/Chrome\//.test(ua))return'Chrome';if(/Firefox\//.test(ua))return'Firefox';if(/Safari\//.test(ua)&&!/Chrome\//.test(ua))return'Safari';return'Other';}
+async function batteryLevel(){if(typeof navigator.getBattery!=='function')return null;try{const battery=await navigator.getBattery();return{level:battery.level,charging:battery.charging};}catch{return null;}}
+async function probeDevice(){const info={webgpuExposed:Boolean(navigator.gpu),webgpuReady:false,hardwareConcurrency:navigator.hardwareConcurrency||1,deviceMemoryGiB:navigator.deviceMemory||null,platform:String(navigator.userAgentData?.platform||navigator.platform||'unknown').slice(0,80),browserFamily:browserFamily(),maxBufferSize:null};if(window.isSecureContext&&navigator.gpu){try{const adapter=await navigator.gpu.requestAdapter({powerPreference:'low-power'});if(adapter){state.gpuDevice=await adapter.requestDevice();info.webgpuReady=true;info.maxBufferSize=Number(adapter.limits.maxBufferSize||0);}}catch(error){log(`WebGPU probe failed: ${error.message}`,'warn');}}el('device').textContent=JSON.stringify(info,null,2);return info;}
+async function sha256Hex(value){const bytes=new TextEncoder().encode(value);const digest=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('');}
+async function buildPow(kind,runId){log(`Building anti-spam proof for ${kind}…`);for(let nonce=0;nonce<=9_999_999;nonce+=1){if(state.stopRequested)throw new Error('stop_requested');const digest=await sha256Hex(`${state.executorId}:${kind}:${runId}:${nonce}`);if(digest.startsWith(POW_PREFIX))return{nonce:String(nonce),digest};if(nonce>0&&nonce%1024===0)await new Promise(resolve=>setTimeout(resolve,0));}throw new Error('pow_not_found');}
+async function submitEvidence(receipt){const runId=crypto.randomUUID();receipt.runId=runId;const pow=await buildPow(receipt.kind,runId);const response=await fetch(EVIDENCE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'submit',executorId:state.executorId,receipt,pow}),cache:'no-store'});const body=await response.json().catch(()=>({}));if(!response.ok||body.ok!==true)throw new Error(body.detail||body.error||`evidence_${response.status}`);state.receipts.push({kind:receipt.kind,evidenceDigest:body.evidenceDigest,acceptedAt:body.acceptedAt});el('evidence').textContent=JSON.stringify(state.receipts,null,2);await refreshSummary();return body;}
+async function refreshSummary(){try{const response=await fetch(EVIDENCE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'summary'}),cache:'no-store'});const body=await response.json();if(response.ok&&body.ok===true)el('summary').textContent=JSON.stringify(body,null,2);}catch(error){log(`Summary unavailable: ${error.message}`,'warn');}}
+function sourceWord(i){const r=(i*17+13)&255,g=(i*29+7)&255,b=(i*43+3)&255,a=(i*61+191)&255;return(r|(g<<8)|(b<<16)|(a<<24))>>>0;}
+function premultiplyWord(word){const r=word&255,g=(word>>>8)&255,b=(word>>>16)&255,a=(word>>>24)&255;const pr=Math.floor((r*a+127)/255),pg=Math.floor((g*a+127)/255),pb=Math.floor((b*a+127)/255);return(pr|(pg<<8)|(pb<<16)|(a<<24))>>>0;}
+function fnv1a32(values){let hash=0x811c9dc5;for(const raw of values){const value=raw>>>0;for(let shift=0;shift<32;shift+=8){hash^=(value>>>shift)&255;hash=Math.imul(hash,0x01000193)>>>0;}}return hash>>>0;}
+function summarizeKernel(backend,output,latencyMs){return{backend,latencyMs,firstValue:output[0]>>>0,lastValue:output[output.length-1]>>>0,checksumFnv1a32:fnv1a32(output)};}
+function runCpuKernel(){const output=new Uint32Array(PIXELS);const started=performance.now();for(let i=0;i<PIXELS;i+=1)output[i]=premultiplyWord(sourceWord(i));return summarizeKernel('cpu',output,performance.now()-started);}
+async function runGpuKernel(){const device=state.gpuDevice;if(!device)return null;const source=new Uint32Array(PIXELS);for(let i=0;i<PIXELS;i+=1)source[i]=sourceWord(i);const bytes=source.byteLength;const input=device.createBuffer({size:bytes,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST|GPUBufferUsage.COPY_SRC});const readback=device.createBuffer({size:bytes,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ});device.queue.writeBuffer(input,0,source);const module=device.createShaderModule({code:`@group(0) @binding(0) var<storage,read_write> pixels:array<u32>;@compute @workgroup_size(${WORKGROUP_SIZE}) fn main(@builtin(global_invocation_id) id:vec3<u32>){if(id.x>=arrayLength(&pixels)){return;}let v=pixels[id.x];let r=v&255u;let g=(v>>8u)&255u;let b=(v>>16u)&255u;let a=(v>>24u)&255u;let pr=(r*a+127u)/255u;let pg=(g*a+127u)/255u;let pb=(b*a+127u)/255u;pixels[id.x]=pr|(pg<<8u)|(pb<<16u)|(a<<24u);}`});const pipeline=device.createComputePipeline({layout:'auto',compute:{module,entryPoint:'main'}});const group=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:input}}]});const encoder=device.createCommandEncoder();const pass=encoder.beginComputePass();pass.setPipeline(pipeline);pass.setBindGroup(0,group);pass.dispatchWorkgroups(Math.ceil(PIXELS/WORKGROUP_SIZE));pass.end();encoder.copyBufferToBuffer(input,0,readback,0,bytes);const started=performance.now();device.queue.submit([encoder.finish()]);await readback.mapAsync(GPUMapMode.READ);const output=new Uint32Array(readback.getMappedRange().slice(0));const latencyMs=performance.now()-started;readback.unmap();input.destroy();readback.destroy();return summarizeKernel('webgpu',output,latencyMs);}
+async function runHardwareEvidence(deviceInfo){const before=await batteryLevel();const cpu=runCpuKernel();const webgpu=await runGpuKernel();const after=await batteryLevel();const receipt={schema:'daube.volunteer-edge-evidence.v1',kind:'kernel-parity',explicitConsent:true,hiddenCompute:false,pixels:PIXELS,cpu,webgpu,device:deviceInfo,battery:{beforeLevel:before?.level??null,afterLevel:after?.level??null,charging:Boolean(after?.charging)}};const result=await submitEvidence(receipt);log(`Hardware evidence accepted: ${result.evidenceDigest}`,'ok');}
+async function runModelEvidence(deviceInfo){if(state.stopRequested)return;const batteryBefore=await batteryLevel();const importStarted=performance.now();const adapter=await import(ADAPTER_URL);const moduleImportMs=performance.now()-importStarted;const probe=await adapter.probe({capability:deviceInfo});log(`Model selected ${probe.backend}/${probe.dtype}; download starts now.`,'warn');const loadStarted=performance.now();const handle=await adapter.load({capability:deviceInfo});const modelLoadMs=performance.now()-loadStarted;if(state.stopRequested){await adapter.dispose(handle);return;}const prompt='Explain in one short sentence why verified compute receipts matter.';const firstStarted=performance.now();const first=await adapter.run(handle,prompt,{iteration:1});const firstRunMs=performance.now()-firstStarted;const steadyStarted=performance.now();const steady=await adapter.run(handle,prompt,{iteration:2});const steadyRunMs=performance.now()-steadyStarted;await adapter.dispose(handle);const batteryAfter=await batteryLevel();const outputText=String(steady.generatedText||first.generatedText||'');const receipt={schema:'daube.volunteer-edge-evidence.v1',kind:'quantized-model-benchmark',explicitConsent:true,hiddenCompute:false,adapterId:adapter.metadata.adapterId,runtime:adapter.metadata.runtime,modelId:adapter.metadata.modelId,modelRevision:adapter.metadata.modelRevision,license:adapter.metadata.license,backend:steady.backend||first.backend,dtype:steady.dtype||first.dtype,moduleImportMs,modelLoadMs,firstRunMs,steadyRunMs,outputText,device:deviceInfo,battery:{beforeLevel:batteryBefore?.level??null,afterLevel:batteryAfter?.level??null,charging:Boolean(batteryAfter?.charging)}};const result=await submitEvidence(receipt);log(`Quantized model evidence accepted: ${result.evidenceDigest}`,'ok');}
+async function runAll(){if(el('consent').checked!==true||state.running)return;state.running=true;state.stopRequested=false;state.receipts=[];setControls();try{const deviceInfo=await probeDevice();await runHardwareEvidence(deviceInfo);if(el('modelToggle').checked&&!state.stopRequested)await runModelEvidence(deviceInfo);log('Evidence run finished.','ok');}catch(error){log(String(error?.message||error),'error');}finally{state.running=false;try{state.gpuDevice?.destroy();}catch{}state.gpuDevice=null;setControls();}}
+el('consent').addEventListener('change',setControls);el('run').addEventListener('click',()=>void runAll());el('stop').addEventListener('click',()=>{state.stopRequested=true;log('Stop requested; no next benchmark stage will start.','warn');});window.addEventListener('pagehide',()=>{state.stopRequested=true;try{state.gpuDevice?.destroy();}catch{}},{once:true});void refreshSummary();setControls();
+</script>
+</body>
+</html>

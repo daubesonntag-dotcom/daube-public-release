@@ -63,7 +63,7 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
-      - name: Upload Coming Soon site
+      - name: Upload RẠNG TRONG flagship site
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
@@ -72,7 +72,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify deployed endpoint is live
+      - name: Verify deployed endpoint is flagship
         shell: bash
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
@@ -83,14 +83,18 @@ jobs:
             --retry 6 --retry-delay 2 --retry-all-errors \
             "$PAGE_URL" --output /tmp/daube-live.html
           test -s /tmp/daube-live.html
-          grep -q 'COMING SOON' /tmp/daube-live.html
+          grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html
           grep -q 'Meaning, made visible.' /tmp/daube-live.html
+          grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-live.html
+          grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-live.html
           {
-            echo '## Live publication verified'
+            echo '## Live flagship publication verified'
             echo
             echo "Endpoint: $PAGE_URL"
-            echo 'COMING SOON marker: VERIFIED'
+            echo 'RẠNG TRONG marker: VERIFIED'
             echo 'Meaning, made visible.: VERIFIED'
+            echo 'Flagship proof section: VERIFIED'
+            echo 'Canonical daube-web source revision b55dbf9c…: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish observable commit status
@@ -102,9 +106,9 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='GitHub Pages Coming Soon publication verified' ;;
-            cancelled) STATE=error; DESCRIPTION='GitHub Pages publication cancelled' ;;
-            *) STATE=failure; DESCRIPTION='GitHub Pages publication failed' ;;
+            success) STATE=success; DESCRIPTION='GitHub Pages RẠNG TRONG flagship publication verified' ;;
+            cancelled) STATE=error; DESCRIPTION='GitHub Pages flagship publication cancelled' ;;
+            *) STATE=failure; DESCRIPTION='GitHub Pages flagship publication failed' ;;
           esac
           export STATE DESCRIPTION
           payload="$(python3 - <<'PY'

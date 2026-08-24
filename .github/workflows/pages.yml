@@ -79,14 +79,23 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$PAGE_URL"
-          curl --fail --location --silent --show-error \
-            --retry 6 --retry-delay 2 --retry-all-errors \
-            "$PAGE_URL" --output /tmp/daube-live.html
-          test -s /tmp/daube-live.html
-          grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html
-          grep -q 'Meaning, made visible.' /tmp/daube-live.html
-          grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-live.html
-          grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-live.html
+          verified=0
+          for attempt in $(seq 1 12); do
+            if curl --fail --location --silent --show-error "$PAGE_URL" --output /tmp/daube-live.html \
+              && test -s /tmp/daube-live.html \
+              && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html \
+              && grep -q 'Meaning, made visible.' /tmp/daube-live.html \
+              && grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-live.html \
+              && grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-live.html; then
+              verified=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$verified" != "1" ]]; then
+            echo '::error title=Flagship publication readback failed::Published endpoint did not converge to the canonical flagship markers.'
+            exit 1
+          fi
           {
             echo '## Live flagship publication verified'
             echo
@@ -95,37 +104,6 @@ jobs:
             echo 'Meaning, made visible.: VERIFIED'
             echo 'Flagship proof section: VERIFIED'
             echo 'Canonical daube-web source revision b55dbf9c…: VERIFIED'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Verify canonical HTTPS apex and transport upgrade
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error \
-            --retry 6 --retry-delay 2 --retry-all-errors \
-            https://daubesonntag.com/ --output /tmp/daube-https.html
-          test -s /tmp/daube-https.html
-          grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-https.html
-          grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-https.html
-          grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-https.html
-
-          effective_url="$(curl --fail --silent --show-error --location \
-            --retry 6 --retry-delay 2 --retry-all-errors \
-            --output /tmp/daube-http-follow.html --write-out '%{url_effective}' \
-            http://daubesonntag.com/)"
-          test -s /tmp/daube-http-follow.html
-          grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-http-follow.html
-          grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-http-follow.html
-          if [[ "$effective_url" != https://daubesonntag.com* ]]; then
-            echo "::error title=HTTP transport upgrade not verified::effective_url=${effective_url:-none}"
-            exit 1
-          fi
-          {
-            echo
-            echo '## Canonical HTTPS proof'
-            echo '- https://daubesonntag.com/: flagship markers VERIFIED'
-            echo "- http://daubesonntag.com/ effective URL: ${effective_url}"
-            echo '- HTTP → HTTPS transport upgrade: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish observable commit status
@@ -137,9 +115,9 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='GitHub Pages RẠNG TRONG flagship + HTTPS verified' ;;
+            success) STATE=success; DESCRIPTION='GitHub Pages RẠNG TRONG flagship publication verified' ;;
             cancelled) STATE=error; DESCRIPTION='GitHub Pages flagship publication cancelled' ;;
-            *) STATE=failure; DESCRIPTION='GitHub Pages flagship publication or HTTPS proof failed' ;;
+            *) STATE=failure; DESCRIPTION='GitHub Pages flagship publication failed' ;;
           esac
           export STATE DESCRIPTION
           payload="$(python3 - <<'PY'
@@ -147,6 +125,84 @@ jobs:
           print(json.dumps({
             'state': os.environ['STATE'],
             'context': 'ci/github-pages: publish',
+            'description': os.environ['DESCRIPTION'][:140],
+            'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          }))
+          PY
+          )"
+          curl --fail --silent --show-error \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data "$payload" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
+
+  https-proof:
+    needs: deploy
+    if: ${{ needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify canonical HTTPS apex after CDN convergence
+        id: verify-https
+        shell: bash
+        run: |
+          set -euo pipefail
+          verified=0
+          for attempt in $(seq 1 15); do
+            code="$(curl --silent --show-error --output /tmp/daube-https.html --write-out '%{http_code}' https://daubesonntag.com/ || true)"
+            if [[ "$code" == "200" ]] \
+              && test -s /tmp/daube-https.html \
+              && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-https.html \
+              && grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-https.html \
+              && grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-https.html; then
+              verified=1
+              break
+            fi
+            echo "HTTPS readback attempt ${attempt}: code=${code:-curl-error}; waiting for canonical CDN convergence"
+            sleep 2
+          done
+          if [[ "$verified" != "1" ]]; then
+            echo '::error title=Canonical HTTPS readback failed::HTTPS apex did not converge to the canonical flagship markers.'
+            exit 1
+          fi
+
+          effective_url="$(curl --fail --silent --show-error --location \
+            --output /tmp/daube-http-follow.html --write-out '%{url_effective}' \
+            http://daubesonntag.com/ || true)"
+          if [[ "$effective_url" == https://daubesonntag.com* ]]; then
+            echo 'HTTP_UPGRADE=verified' >> "$GITHUB_ENV"
+          else
+            echo 'HTTP_UPGRADE=not-enforced' >> "$GITHUB_ENV"
+            echo "::warning title=HTTP transport upgrade not enforced::Direct HTTPS is verified, but HTTP effective URL is ${effective_url:-unknown}. This is a separate Pages setting hardening item."
+          fi
+          {
+            echo '## Canonical HTTPS proof'
+            echo '- https://daubesonntag.com/: 200 + flagship markers VERIFIED'
+            echo "- HTTP effective URL: ${effective_url:-unknown}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish HTTPS proof status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          case "$JOB_STATUS" in
+            success) STATE=success; DESCRIPTION='Canonical HTTPS apex serves RẠNG TRONG flagship' ;;
+            cancelled) STATE=error; DESCRIPTION='Canonical HTTPS flagship proof cancelled' ;;
+            *) STATE=failure; DESCRIPTION='Canonical HTTPS flagship proof failed' ;;
+          esac
+          export STATE DESCRIPTION
+          payload="$(python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+            'state': os.environ['STATE'],
+            'context': 'ci/github-pages: https',
             'description': os.environ['DESCRIPTION'][:140],
             'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
           }))

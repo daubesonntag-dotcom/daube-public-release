@@ -97,7 +97,7 @@ jobs:
             echo 'Canonical daube-web source revision b55dbf9c…: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify canonical HTTPS apex and redirect
+      - name: Verify canonical HTTPS apex and transport upgrade
         shell: bash
         run: |
           set -euo pipefail
@@ -109,18 +109,23 @@ jobs:
           grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-https.html
           grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-https.html
 
-          headers="$(curl --silent --show-error --head http://daubesonntag.com/)"
-          status="$(printf '%s\n' "$headers" | awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}')"
-          location="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}')"
-          if [[ ! "$status" =~ ^30[12378]$ ]] || [[ "$location" != https://daubesonntag.com* ]]; then
-            echo "::error title=HTTP redirect not verified::status=${status:-unknown} location=${location:-none}"
+          effective_url="$(curl --fail --silent --show-error --location \
+            --retry 6 --retry-delay 2 --retry-all-errors \
+            --output /tmp/daube-http-follow.html --write-out '%{url_effective}' \
+            http://daubesonntag.com/)"
+          test -s /tmp/daube-http-follow.html
+          grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-http-follow.html
+          grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-http-follow.html
+          if [[ "$effective_url" != https://daubesonntag.com* ]]; then
+            echo "::error title=HTTP transport upgrade not verified::effective_url=${effective_url:-none}"
             exit 1
           fi
           {
             echo
             echo '## Canonical HTTPS proof'
             echo '- https://daubesonntag.com/: flagship markers VERIFIED'
-            echo "- http://daubesonntag.com/ → ${location}: VERIFIED (${status})"
+            echo "- http://daubesonntag.com/ effective URL: ${effective_url}"
+            echo '- HTTP → HTTPS transport upgrade: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish observable commit status

@@ -1,0 +1,88 @@
+name: Cloudflare root cache purge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloudflare-root-cache-purge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  purge-root:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ZONE_NAME: daubesonntag.com
+    steps:
+      - name: Purge stale root cache without rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo '::error title=Cloudflare credential absent::CLOUDFLARE_API_TOKEN is not bound.'
+            exit 41
+          fi
+
+          code="$(curl --silent --show-error --output /tmp/zones.json --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/zones?name=${ZONE_NAME}&status=active")"
+          [[ "$code" == "200" ]] || { echo "::error::Zone lookup HTTP ${code}"; exit 42; }
+
+          ZONE_ID="$(python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/zones.json', encoding='utf-8'))
+          if data.get('success') is not True or not data.get('result'):
+              raise SystemExit('cloudflare_zone_not_found')
+          print(data['result'][0]['id'])
+          PY
+          )"
+          [[ -n "$ZONE_ID" ]] || exit 43
+
+          python3 - <<'PY' >/tmp/purge.json
+          import json
+          print(json.dumps({'files': [
+            'https://daubesonntag.com/',
+            'https://daubesonntag.com/index.html',
+            'https://www.daubesonntag.com/'
+          ]}))
+          PY
+
+          purge_code="$(curl --silent --show-error --output /tmp/purge-result.json --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data @/tmp/purge.json \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache")"
+          [[ "$purge_code" == "200" ]] || { echo "::error::Purge HTTP ${purge_code}"; cat /tmp/purge-result.json; exit 44; }
+
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/purge-result.json', encoding='utf-8'))
+          if data.get('success') is not True:
+              raise SystemExit('cloudflare_purge_failed')
+          print('CLOUDFLARE_ROOT_PURGE_OK')
+          PY
+
+      - name: Verify exact root is the current flagship
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            curl --fail --silent --show-error \
+              --header 'Cache-Control: no-cache' \
+              --max-time 20 \
+              https://daubesonntag.com/ -o /tmp/root.html
+            if grep -Fq '/assets/mobile-first-flagship-v3.css' /tmp/root.html \
+              && ! grep -Fq 'RẠNG TRONG · COMING SOON' /tmp/root.html; then
+              echo 'DAUBE_ROOT_V3_VERIFIED'
+              exit 0
+            fi
+            sleep 2
+          done
+          echo '::error title=Root readback stale::daubesonntag.com/ still does not serve the V3 flagship after purge.'
+          exit 45

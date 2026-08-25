@@ -51,7 +51,9 @@ jobs:
           base="https://download.blender.org/release/Blender5.2"
           curl -fL --retry 4 --retry-delay 3 -o blender.tar.xz "$base/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           curl -fL --retry 4 --retry-delay 3 -o blender.sha256 "$base/blender-${BLENDER_VERSION}.sha256"
-          grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | sha256sum -c -
+          expected="$(grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | awk '{print $1}')"
+          test -n "$expected"
+          echo "$expected  blender.tar.xz" | sha256sum -c -
           tar -xf blender.tar.xz
           "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
 

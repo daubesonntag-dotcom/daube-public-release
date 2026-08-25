@@ -39,7 +39,7 @@ jobs:
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
-          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/bootstrap_scene.py; then
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/bootstrap_scene.py compute/bien-anh-v23/bootstrap_scene_pbr.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
@@ -57,19 +57,43 @@ jobs:
           tar -xf blender.tar.xz
           "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
 
-      - name: Materialize physical WIDE + blend + receipt
+      - name: Download fixed CC0 photographic PBR assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir='compute/bien-anh-v23/assets_runtime'
+          mkdir -p "$dir"
+          get() { curl -fL --retry 4 --retry-delay 2 -o "$dir/$1" "$2"; test -s "$dir/$1"; }
+          root='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
+          get dirty_concrete_diff_1k.jpg "$root/dirty_concrete/dirty_concrete_diff_1k.jpg"
+          get dirty_concrete_nor_gl_1k.jpg "$root/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
+          get dirty_concrete_rough_1k.jpg "$root/dirty_concrete/dirty_concrete_rough_1k.jpg"
+          get worn_plaster_wall_diff_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_diff_1k.jpg"
+          get worn_plaster_wall_nor_gl_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_nor_gl_1k.jpg"
+          get worn_plaster_wall_rough_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_rough_1k.jpg"
+          get worn_corrugated_iron_diff_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_diff_1k.jpg"
+          get worn_corrugated_iron_nor_gl_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_nor_gl_1k.jpg"
+          get worn_corrugated_iron_rough_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_rough_1k.jpg"
+          sha256sum "$dir"/* > "$dir/SHA256SUMS"
+          printf '%s\n' \
+            'Poly Haven CC0 assets used: dirty_concrete, worn_plaster_wall, worn_corrugated_iron.' \
+            'Fixed asset downloads only; no live API call is made by this workflow.' \
+            > "$dir/PROVENANCE.txt"
+
+      - name: Materialize physical PBR WIDE + blend + receipt
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p outputs/bien-anh-v23-public-bootstrap
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene.py -- \
+            --python compute/bien-anh-v23/bootstrap_scene_pbr.py -- \
             --output-dir outputs/bien-anh-v23-public-bootstrap \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
           test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
           sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
 
       - name: Upload bounded physical evidence
         uses: actions/upload-artifact@v4

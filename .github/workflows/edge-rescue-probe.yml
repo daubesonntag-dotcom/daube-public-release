@@ -1,0 +1,68 @@
+name: Edge rescue probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/edge-rescue-probe.yml'
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Probe stale root and legacy asset cache state
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe() {
+            name="$1"; url="$2"
+            curl --silent --show-error --location --dump-header "/tmp/${name}.headers" --output "/tmp/${name}.body" "$url"
+            code="$(awk 'toupper($1) ~ /^HTTP\// {c=$2} END{print c}' "/tmp/${name}.headers")"
+            cf="$(awk 'BEGIN{IGNORECASE=1}/^cf-cache-status:/{gsub(/\r/,"",$2);print $2;exit}' "/tmp/${name}.headers")"
+            age="$(awk 'BEGIN{IGNORECASE=1}/^age:/{gsub(/\r/,"",$2);print $2;exit}' "/tmp/${name}.headers")"
+            sha="$(sha256sum "/tmp/${name}.body" | awk '{print $1}')"
+            printf '%s code=%s cf=%s age=%s sha=%s\n' "$name" "${code:-?}" "${cf:-?}" "${age:-?}" "$sha" | tee -a /tmp/receipt
+          }
+          probe root 'https://daubesonntag.com/'
+          probe root_bust 'https://daubesonntag.com/?edge-rescue=20260825-2342'
+          probe legacy_js 'https://daubesonntag.com/assets/coming-soon.js'
+          probe legacy_css 'https://daubesonntag.com/assets/coming-soon.css'
+          probe v3_js 'https://daubesonntag.com/assets/mobile-first-flagship-v3.js'
+          probe v3_css 'https://daubesonntag.com/assets/mobile-first-flagship-v3.css'
+          echo '--- markers ---'
+          grep -Eoi 'Coming Soon|mobile-first-flagship-v3\.css|D.AUBE SONNTAG . R.NG TRONG' /tmp/root.body | head -20 || true
+          echo '--- receipt ---'
+          cat /tmp/receipt
+
+      - name: Publish compact receipt
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ -s /tmp/receipt ]]; then
+            summary="$(tr '\n' ';' </tmp/receipt | cut -c1-135)"
+            state=success
+          else
+            summary='edge probe produced no receipt'
+            state=failure
+          fi
+          payload="$(python3 - "$state" "$summary" <<'PY'
+          import json,sys
+          print(json.dumps({'state':sys.argv[1],'context':'ops/edge-rescue-probe','description':sys.argv[2][:140]}))
+          PY
+          )"
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" >/dev/null

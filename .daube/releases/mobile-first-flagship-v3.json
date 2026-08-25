@@ -1,11 +1,15 @@
 {
   "schema": "daube.public-artifact-handoff.v1",
   "id": "DAUBE-MOBILE-FIRST-FLAGSHIP-V3",
-  "status": "release-candidate",
+  "status": "production-verified",
   "approval": {
     "kind": "founder-explicit-rejection-and-rebuild",
     "directive": "Current public Maison V2 is rejected; replace it with a better public homepage rather than patching the strip layout.",
     "recordedDate": "2026-08-25"
+  },
+  "source": {
+    "publicReleasePullRequest": 91,
+    "publicReleaseCommit": "2a84df50c7a0bb6dc4942c10a23413b9c7c5960d"
   },
   "problem": {
     "rejectedProduction": "ten equal visual strips using placeholder-like SVG scenes",
@@ -25,8 +29,19 @@
     "storefrontPreserved": true,
     "indexing": "index,follow"
   },
-  "truthBoundary": "This candidate changes public presentation only. It does not claim customer orders, matched payments, revenue, awards, press or partnerships. Production completion requires canonical-domain readback after merge.",
+  "productionVerification": {
+    "probeRequestId": 691,
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "lastModified": "2026-08-25T06:07:29Z",
+    "mobileFirstCssPresent": true,
+    "founderHeroPresent": true,
+    "liveProductSurfacePresent": true,
+    "oldMaisonCssAbsent": true,
+    "oldTenChapterMarkupAbsent": true
+  },
+  "truthBoundary": "The replacement homepage is publicly served from the canonical domain and the rejected ten-strip presentation is absent. This does not claim customer orders, matched payments, revenue, awards, press or partnerships.",
   "rollback": {
-    "strategy": "Revert the release PR; /storefront/ remains independently live."
+    "strategy": "Revert PR #91 / release commit 2a84df50c7a0bb6dc4942c10a23413b9c7c5960d; /storefront/ remains independently live."
   }
 }

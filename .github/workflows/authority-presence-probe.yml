@@ -1,0 +1,76 @@
+name: Edge authority presence probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/authority-presence-probe.yml'
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_TOKEN }}
+      CF_TOKEN: ${{ secrets.CF_TOKEN }}
+      CLOUDFLARE_GLOBAL_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_API_KEY }}
+      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+      CF_API_EMAIL: ${{ secrets.CF_API_EMAIL }}
+      CLOUDFLARE_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK_URL }}
+      CLOUDFLARE_WORKERS_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_WORKERS_DEPLOY_HOOK_URL }}
+      CF_DEPLOY_HOOK_URL: ${{ secrets.CF_DEPLOY_HOOK_URL }}
+      DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+      DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
+      CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+      PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+      PORKBUN_SECRET_API_KEY: ${{ secrets.PORKBUN_SECRET_API_KEY }}
+    steps:
+      - name: Classify presence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          present(){ [[ -n "${!1:-}" ]] && printf 1 || printf 0; }
+          cf_api=0
+          [[ "$(present CLOUDFLARE_API_TOKEN)" == 1 || "$(present CF_API_TOKEN)" == 1 || "$(present CLOUDFLARE_TOKEN)" == 1 || "$(present CF_TOKEN)" == 1 ]] && cf_api=1
+          cf_global=0
+          if [[ "$(present CLOUDFLARE_GLOBAL_API_KEY)" == 1 || "$(present CLOUDFLARE_API_KEY)" == 1 || "$(present CF_API_KEY)" == 1 ]]; then
+            if [[ "$(present CLOUDFLARE_EMAIL)" == 1 || "$(present CF_API_EMAIL)" == 1 ]]; then cf_global=1; fi
+          fi
+          cf_hook=0
+          [[ "$(present CLOUDFLARE_DEPLOY_HOOK_URL)" == 1 || "$(present CLOUDFLARE_WORKERS_DEPLOY_HOOK_URL)" == 1 || "$(present CF_DEPLOY_HOOK_URL)" == 1 ]] && cf_hook=1
+          deploy_hook=0
+          [[ "$(present DEPLOY_WEBHOOK_URL)" == 1 && "$(present DEPLOY_WEBHOOK_TOKEN)" == 1 ]] && deploy_hook=1
+          tunnel="$(present CLOUDFLARE_TUNNEL_TOKEN)"
+          porkbun=0
+          [[ "$(present PORKBUN_API_KEY)" == 1 && "$(present PORKBUN_SECRET_API_KEY)" == 1 ]] && porkbun=1
+          printf 'cfapi=%s cfglobal=%s cfhook=%s deployhook=%s tunnel=%s porkbun=%s\n' \
+            "$cf_api" "$cf_global" "$cf_hook" "$deploy_hook" "$tunnel" "$porkbun" > /tmp/presence
+
+      - name: Publish metadata-only receipt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          description="$(cat /tmp/presence)"
+          payload="$(python3 - "$description" <<'PY'
+          import json,sys
+          print(json.dumps({'state':'success','context':'ops/edge-authority-presence','description':sys.argv[1][:140]}))
+          PY
+          )"
+          curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" >/dev/null

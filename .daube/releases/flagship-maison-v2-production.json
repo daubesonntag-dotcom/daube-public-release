@@ -1,0 +1,32 @@
+{
+  "schema": "daube.public-artifact-handoff.v1",
+  "id": "DAUBE-FLAGSHIP-MAISON-V2-PRODUCTION",
+  "status": "release-candidate",
+  "source": {
+    "visualLock": ".daube/visual-locks/homepage-approved-mockup-v2.json",
+    "visualLockSha256": "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8",
+    "publicRepository": "daubesonntag-dotcom/daube-public-release",
+    "storefrontRuntime": "daube-storefront-api@v2"
+  },
+  "approval": {
+    "kind": "founder-explicit-public-upgrade",
+    "directive": "Thì nâng đi, tui kêu cho public mà",
+    "recordedDate": "2026-08-25"
+  },
+  "target": {
+    "domain": "https://daubesonntag.com/",
+    "indexing": "index,follow",
+    "storefront": "https://daubesonntag.com/storefront/"
+  },
+  "scope": {
+    "homepage": "ten-chapter Maison V2 visual-lock implementation",
+    "commerce": "persistent Storefront entry in global navigation and chapter CTAs",
+    "responsive": true,
+    "reducedMotion": true,
+    "localSceneAssets": 10
+  },
+  "truthBoundary": "This release publishes the founder-approved ten-chapter visual direction and public commerce entry points. It does not claim customer orders, matched payments, revenue, awards, press, partnerships, or final subjective visual acceptance until matching evidence exists.",
+  "rollback": {
+    "strategy": "Revert the release PR to restore the prior flagship homepage while leaving the independent /storefront/ runtime intact."
+  }
+}

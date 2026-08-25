@@ -64,7 +64,7 @@ jobs:
           import json
           data=json.load(open('/tmp/purge-result.json', encoding='utf-8'))
           if data.get('success') is not True:
-              raise SystemExit('cloudflare_purge_failed')
+            raise SystemExit('cloudflare_purge_failed')
           print('CLOUDFLARE_ROOT_PURGE_OK')
           PY
 
@@ -86,3 +86,5 @@ jobs:
           done
           echo '::error title=Root readback stale::daubesonntag.com/ still does not serve the V3 flagship after purge.'
           exit 45
+
+# bounded retrigger: 2026-08-25T19:51+07:00

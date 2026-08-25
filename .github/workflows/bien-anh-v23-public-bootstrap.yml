@@ -1,0 +1,79 @@
+name: BIEN ANH V2.3 Public Bootstrap
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'compute/bien-anh-v23/**'
+      - '.github/workflows/bien-anh-v23-public-bootstrap.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-v23-public-bootstrap-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  physical-wide:
+    name: Sanitized physical WIDE on free public runner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BLENDER_VERSION: '5.2.0'
+      DAUBE_ZERO_SPEND_MODE: '1'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove public zero-spend boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/bootstrap_scene.py; then
+            echo '::error::Private character/story marker detected in public bootstrap source.'
+            exit 2
+          fi
+
+      - name: Download official Blender 5.2 LTS portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://download.blender.org/release/Blender5.2"
+          curl -fL --retry 4 --retry-delay 3 -o blender.tar.xz "$base/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl -fL --retry 4 --retry-delay 3 -o blender.sha256 "$base/blender-${BLENDER_VERSION}.sha256"
+          grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | sha256sum -c -
+          tar -xf blender.tar.xz
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
+
+      - name: Materialize physical WIDE + blend + receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/bien-anh-v23-public-bootstrap
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
+            --python compute/bien-anh-v23/bootstrap_scene.py -- \
+            --output-dir outputs/bien-anh-v23-public-bootstrap \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
+          test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
+          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
+          sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
+
+      - name: Upload bounded physical evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-v23-public-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-v23-public-bootstrap/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

@@ -63,7 +63,7 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
-      - name: Upload RẠNG TRONG flagship site
+      - name: Upload current public site
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
@@ -72,38 +72,43 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify deployed endpoint is flagship
+      - name: Verify deployed endpoint matches current homepage artifact
         shell: bash
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
           test -n "$PAGE_URL"
+          test -s index.html
+          expected_sha="$(sha256sum index.html | awk '{print $1}')"
           verified=0
+          code=unknown
+          actual_sha=unknown
           for attempt in $(seq 1 12); do
-            if curl --fail --location --silent --show-error "$PAGE_URL" --output /tmp/daube-live.html \
-              && test -s /tmp/daube-live.html \
-              && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html \
-              && grep -q 'Meaning, made visible.' /tmp/daube-live.html \
-              && grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-live.html \
-              && grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-live.html; then
-              verified=1
-              break
+            code="$(curl --silent --show-error --location --output /tmp/daube-live.html --write-out '%{http_code}' "$PAGE_URL" || true)"
+            if [[ "$code" == "200" ]] && test -s /tmp/daube-live.html; then
+              actual_sha="$(sha256sum /tmp/daube-live.html | awk '{print $1}')"
+              if [[ "$actual_sha" == "$expected_sha" ]] \
+                && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html \
+                && grep -q 'Meaning,' /tmp/daube-live.html; then
+                verified=1
+                break
+              fi
             fi
             sleep 2
           done
           if [[ "$verified" != "1" ]]; then
-            echo '::error title=Flagship publication readback failed::Published endpoint did not converge to the canonical flagship markers.'
+            echo "::error title=Public artifact readback failed::Endpoint did not converge to the exact current index.html artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
             exit 1
           fi
           {
-            echo '## Live flagship publication verified'
+            echo '## Live public artifact verified'
             echo
             echo "Endpoint: $PAGE_URL"
+            echo "Current index.html SHA-256: ${expected_sha}"
             echo 'RẠNG TRONG marker: VERIFIED'
-            echo 'Meaning, made visible.: VERIFIED'
-            echo 'Flagship proof section: VERIFIED'
-            echo 'Canonical daube-web source revision b55dbf9c…: VERIFIED'
+            echo 'Meaning marker: VERIFIED'
+            echo 'Exact current homepage bytes: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish observable commit status
@@ -115,9 +120,9 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='GitHub Pages RẠNG TRONG flagship publication verified' ;;
-            cancelled) STATE=error; DESCRIPTION='GitHub Pages flagship publication cancelled' ;;
-            *) STATE=failure; DESCRIPTION='GitHub Pages flagship publication failed' ;;
+            success) STATE=success; DESCRIPTION='GitHub Pages exact current homepage publication verified' ;;
+            cancelled) STATE=error; DESCRIPTION='GitHub Pages publication cancelled' ;;
+            *) STATE=failure; DESCRIPTION='GitHub Pages exact current homepage publication failed' ;;
           esac
           export STATE DESCRIPTION
           payload="$(python3 - <<'PY'
@@ -145,27 +150,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Verify canonical HTTPS apex after CDN convergence
+      - name: Checkout current homepage artifact
+        uses: actions/checkout@v7
+
+      - name: Verify canonical HTTPS apex matches current homepage artifact
         id: verify-https
         shell: bash
         run: |
           set -euo pipefail
+          test -s index.html
+          expected_sha="$(sha256sum index.html | awk '{print $1}')"
           verified=0
+          code=unknown
+          actual_sha=unknown
           for attempt in $(seq 1 15); do
             code="$(curl --silent --show-error --output /tmp/daube-https.html --write-out '%{http_code}' https://daubesonntag.com/ || true)"
-            if [[ "$code" == "200" ]] \
-              && test -s /tmp/daube-https.html \
-              && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-https.html \
-              && grep -q 'Quiet on the surface. Exact underneath.' /tmp/daube-https.html \
-              && grep -q 'b55dbf9c10d2a81607d75d171d2a486fbc026f3f' /tmp/daube-https.html; then
-              verified=1
-              break
+            if [[ "$code" == "200" ]] && test -s /tmp/daube-https.html; then
+              actual_sha="$(sha256sum /tmp/daube-https.html | awk '{print $1}')"
+              if [[ "$actual_sha" == "$expected_sha" ]] \
+                && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-https.html \
+                && grep -q 'Meaning,' /tmp/daube-https.html; then
+                verified=1
+                break
+              fi
             fi
-            echo "HTTPS readback attempt ${attempt}: code=${code:-curl-error}; waiting for canonical CDN convergence"
+            echo "HTTPS readback attempt ${attempt}: code=${code:-curl-error}; expected_sha=${expected_sha}; actual_sha=${actual_sha}"
             sleep 2
           done
           if [[ "$verified" != "1" ]]; then
-            echo '::error title=Canonical HTTPS readback failed::HTTPS apex did not converge to the canonical flagship markers.'
+            echo "::error title=Canonical HTTPS readback failed::HTTPS apex did not match the exact current homepage artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
             exit 1
           fi
 
@@ -180,7 +193,7 @@ jobs:
           fi
           {
             echo '## Canonical HTTPS proof'
-            echo '- https://daubesonntag.com/: 200 + flagship markers VERIFIED'
+            echo "- https://daubesonntag.com/: 200 + exact current homepage SHA-256 ${expected_sha} VERIFIED"
             echo "- HTTP effective URL: ${effective_url:-unknown}"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -193,9 +206,9 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='Canonical HTTPS apex serves RẠNG TRONG flagship' ;;
-            cancelled) STATE=error; DESCRIPTION='Canonical HTTPS flagship proof cancelled' ;;
-            *) STATE=failure; DESCRIPTION='Canonical HTTPS flagship proof failed' ;;
+            success) STATE=success; DESCRIPTION='Canonical HTTPS apex matches exact current homepage artifact' ;;
+            cancelled) STATE=error; DESCRIPTION='Canonical HTTPS homepage proof cancelled' ;;
+            *) STATE=failure; DESCRIPTION='Canonical HTTPS exact-homepage proof failed' ;;
           esac
           export STATE DESCRIPTION
           payload="$(python3 - <<'PY'

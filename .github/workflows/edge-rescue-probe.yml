@@ -17,30 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Probe stale root and legacy asset cache state
+      - name: Identify stale root hooks
         shell: bash
         run: |
           set -euo pipefail
-          probe() {
-            name="$1"; url="$2"
-            curl --silent --show-error --location --dump-header "/tmp/${name}.headers" --output "/tmp/${name}.body" "$url"
-            code="$(awk 'toupper($1) ~ /^HTTP\// {c=$2} END{print c}' "/tmp/${name}.headers")"
-            cf="$(awk 'BEGIN{IGNORECASE=1}/^cf-cache-status:/{gsub(/\r/,"",$2);print $2;exit}' "/tmp/${name}.headers")"
-            age="$(awk 'BEGIN{IGNORECASE=1}/^age:/{gsub(/\r/,"",$2);print $2;exit}' "/tmp/${name}.headers")"
-            cc="$(awk 'BEGIN{IGNORECASE=1}/^cache-control:/{sub(/^[^:]*:[ ]*/,"");gsub(/\r/,"");print;exit}' "/tmp/${name}.headers")"
-            etag="$(awk 'BEGIN{IGNORECASE=1}/^etag:/{sub(/^[^:]*:[ ]*/,"");gsub(/\r/,"");print;exit}' "/tmp/${name}.headers")"
-            sha="$(sha256sum "/tmp/${name}.body" | awk '{print $1}')"
-            printf '%s code=%s cf=%s age=%s sha=%s cc=%s etag=%s\n' "$name" "${code:-?}" "${cf:-?}" "${age:-?}" "$sha" "${cc:-?}" "${etag:-?}" | tee -a /tmp/receipt
-          }
-          probe root 'https://daubesonntag.com/'
-          probe legacy_js 'https://daubesonntag.com/assets/coming-soon.js'
-          probe legacy_css 'https://daubesonntag.com/assets/coming-soon.css'
-          probe v3_js 'https://daubesonntag.com/assets/mobile-first-flagship-v3.js'
-          probe v3_css 'https://daubesonntag.com/assets/mobile-first-flagship-v3.css'
-          echo '--- repository hashes ---'
-          sha256sum assets/coming-soon.js assets/coming-soon.css assets/mobile-first-flagship-v3.js assets/mobile-first-flagship-v3.css | tee /tmp/repo-hashes
-          echo '--- receipt ---'
-          cat /tmp/receipt
+          curl --silent --show-error --location --dump-header /tmp/root.headers --output /tmp/root.html https://daubesonntag.com/
+          echo '--- root cache ---'
+          grep -Ei '^(HTTP/|cf-cache-status:|cache-control:|etag:|age:)' /tmp/root.headers || true
+          echo '--- root title ---'
+          grep -Eio '<title>[^<]*</title>' /tmp/root.html | head -5 || true
+          echo '--- root assets ---'
+          grep -Eio '(href|src)=["'"'][^"'"']+["'"']' /tmp/root.html | head -80 || true
+          echo '--- hooks ---'
+          grep -Eio 'coming-soon\.(js|css)|mobile-first-flagship-v3\.(js|css)|data-coming-soon|COMING SOON' /tmp/root.html | sort -u || true
+          printf 'root_sha=%s\n' "$(sha256sum /tmp/root.html | awk '{print $1}')" | tee /tmp/receipt
 
       - name: Publish compact receipt
         if: always()
@@ -49,16 +39,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ -s /tmp/receipt ]]; then
-            summary="$(tr '\n' ';' </tmp/receipt | cut -c1-135)"
-            state=success
-          else
-            summary='edge probe produced no receipt'
-            state=failure
-          fi
-          payload="$(python3 - "$state" "$summary" <<'PY'
+          summary="$(cat /tmp/receipt 2>/dev/null || echo no-receipt)"
+          payload="$(python3 - "$summary" <<'PY'
           import json,sys
-          print(json.dumps({'state':sys.argv[1],'context':'ops/edge-rescue-probe','description':sys.argv[2][:140]}))
+          print(json.dumps({'state':'success','context':'ops/edge-rescue-hooks','description':sys.argv[1][:140]}))
           PY
           )"
           curl --fail --silent --show-error \

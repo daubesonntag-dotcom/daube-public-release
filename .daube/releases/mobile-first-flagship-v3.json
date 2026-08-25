@@ -1,0 +1,32 @@
+{
+  "schema": "daube.public-artifact-handoff.v1",
+  "id": "DAUBE-MOBILE-FIRST-FLAGSHIP-V3",
+  "status": "release-candidate",
+  "approval": {
+    "kind": "founder-explicit-rejection-and-rebuild",
+    "directive": "Current public Maison V2 is rejected; replace it with a better public homepage rather than patching the strip layout.",
+    "recordedDate": "2026-08-25"
+  },
+  "problem": {
+    "rejectedProduction": "ten equal visual strips using placeholder-like SVG scenes",
+    "observedIssues": [
+      "mobile composition feels like a compressed portfolio template",
+      "repetitive rhythm and narrow copy rail",
+      "scene art reads as placeholder/vector concept rather than premium cinematic brand imagery",
+      "commerce and brand story compete with ten equal-weight chapters"
+    ]
+  },
+  "replacement": {
+    "strategy": "mobile-first editorial flagship",
+    "hero": "founder-approved dawn WebP already in the public asset boundary",
+    "commerce": "live Supabase catalog with direct Storefront fallback",
+    "sections": ["hero", "maison", "live offers", "ecosystem", "operating proof", "final CTA"],
+    "removedFromHomepage": "ten-strip SVG chapter presentation",
+    "storefrontPreserved": true,
+    "indexing": "index,follow"
+  },
+  "truthBoundary": "This candidate changes public presentation only. It does not claim customer orders, matched payments, revenue, awards, press or partnerships. Production completion requires canonical-domain readback after merge.",
+  "rollback": {
+    "strategy": "Revert the release PR; /storefront/ remains independently live."
+  }
+}

@@ -1,11 +1,13 @@
 {
   "schema": "daube.public-artifact-handoff.v1",
   "id": "DAUBE-FLAGSHIP-MAISON-V2-PRODUCTION",
-  "status": "release-candidate",
+  "status": "production-verified",
   "source": {
     "visualLock": ".daube/visual-locks/homepage-approved-mockup-v2.json",
     "visualLockSha256": "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8",
     "publicRepository": "daubesonntag-dotcom/daube-public-release",
+    "releasePullRequest": 90,
+    "releaseCommit": "ec9de608a219348b0d7fdad2d5fff0bdc87ab718",
     "storefrontRuntime": "daube-storefront-api@v2"
   },
   "approval": {
@@ -25,8 +27,49 @@
     "reducedMotion": true,
     "localSceneAssets": 10
   },
-  "truthBoundary": "This release publishes the founder-approved ten-chapter visual direction and public commerce entry points. It does not claim customer orders, matched payments, revenue, awards, press, partnerships, or final subjective visual acceptance until matching evidence exists.",
+  "productionVerification": {
+    "homepage": {
+      "probeRequestId": 670,
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "lastModified": "2026-08-25T05:59:17Z",
+      "visualLockPresent": true,
+      "chapterCount": 10,
+      "maisonCssPresent": true,
+      "maisonJsPresent": true,
+      "storefrontLinkPresent": true,
+      "firstChapterPresent": true,
+      "lastChapterPresent": true
+    },
+    "assetProbeIds": [671,672,673,674,675,676,677,678,679,680,681,682],
+    "assetVerification": {
+      "maisonCssHttpStatus": 200,
+      "maisonJsHttpStatus": 200,
+      "sceneAssetsExpected": 10,
+      "sceneAssetsHttp200": 10
+    }
+  },
+  "claims": {
+    "proven": [
+      "founder-approved ten-chapter homepage is publicly served on the canonical domain",
+      "visual-lock fingerprint is present in the production document",
+      "all ten chapter scene assets return HTTP 200",
+      "Maison V2 CSS and JavaScript return HTTP 200",
+      "Storefront remains publicly linked from the flagship",
+      "the homepage remains publicly indexable"
+    ],
+    "notClaimed": [
+      "real customer order",
+      "real matched payment",
+      "revenue",
+      "awards",
+      "press",
+      "partnerships",
+      "Founder subjective final gold visual acceptance on every device"
+    ]
+  },
+  "truthBoundary": "The founder-approved Maison V2 homepage is now published and production-read back from daubesonntag.com with all ten local scene assets available. Public availability is proven. Commercial success and revenue remain separate evidence requirements.",
   "rollback": {
-    "strategy": "Revert the release PR to restore the prior flagship homepage while leaving the independent /storefront/ runtime intact."
+    "strategy": "Revert PR #90 / release commit ec9de608a219348b0d7fdad2d5fff0bdc87ab718 to restore the prior flagship homepage while leaving the independent /storefront/ runtime intact."
   }
 }

@@ -1,31 +1,33 @@
 {
   "schema": "daube.public-artifact-handoff.v1",
   "id": "DAUBE-ZERO-COST-STOREFRONT-V1",
-  "status": "release-candidate",
+  "status": "production-verified",
   "source": {
     "canonicalRuntimeRepository": "daubesonntag-dotcom/daube-forge-os",
     "canonicalRuntimeCommit": "2a67a2bbb839b5ab05cf5f0ba2314d5991b5a003",
     "canonicalWebRepository": "daubesonntag-dotcom/daube-web",
     "canonicalWebCommit": "e6d5e8c0d9d7166143d4219a9c8ccbcd850ddd08",
     "supabaseProjectRef": "wilqsqndjgckqxbjptxm",
-    "edgeFunction": "daube-storefront-api@v2"
+    "edgeFunction": "daube-storefront-api@v2",
+    "publicReleasePullRequest": 88,
+    "publicReleaseCommit": "7afea283468e74a2955248c281a4bacfdacff0ba"
   },
   "publicTarget": {
     "repository": "daubesonntag-dotcom/daube-public-release",
-    "branch": "release/zero-cost-storefront-v1",
-    "channel": "existing static Cloudflare/Git public-release path after protected merge",
+    "branch": "main",
+    "channel": "existing static Cloudflare/GitHub Pages public-release path",
     "canonicalDomain": "https://daubesonntag.com/",
     "storefrontPath": "https://daubesonntag.com/storefront/"
   },
   "approval": {
     "kind": "founder-explicit-full-execution",
-    "directive": "Vậy làm đi — continue the zero-cost Founder-first C-Suite execution without requiring routine Founder operation",
+    "directive": "Làm gì thì làm cho xong luôn đi",
     "recordedDate": "2026-08-25",
     "releaseOwner": "daubesonntag-dotcom"
   },
   "rollback": {
     "publicRepositoryRef": "main@a5d59d9e6edb5cd4cb25524bc89c9b09490f2503",
-    "strategy": "Revert the storefront public-release merge. The canonical Supabase commerce runtime remains independently fail-closed and no payment or revenue state is inferred from static publication."
+    "strategy": "Revert PR #88 / release commit 7afea283468e74a2955248c281a4bacfdacff0ba. The canonical Supabase commerce runtime remains independently fail-closed and no payment or revenue state is inferred from static publication."
   },
   "artifact": {
     "changedRuntimePaths": [
@@ -53,7 +55,10 @@
         "contentType": "application/json; charset=utf-8",
         "approvedProductCount": 9,
         "firstFeaturedSlug": "office-followup-report-pack",
-        "firstFeaturedPriceVnd": 79000
+        "firstFeaturedPriceVnd": 79000,
+        "corsOriginVerified": "https://daubesonntag.com",
+        "serviceHeader": "daube.storefront-api.v2",
+        "edgeRegion": "ap-southeast-1"
       },
       "negativeOrderValidation": {
         "status": 400,
@@ -61,11 +66,26 @@
         "persistentOrderCountAfterTest": 0
       }
     },
-    "productionBaselineBeforeMerge": {
-      "status": 200,
-      "server": "cloudflare",
-      "state": "OLD_STATIC_RELEASE",
-      "reason": "Canonical domain still served the prior public-release artifact before this merge."
+    "productionReadbackAfterMerge": {
+      "storefront": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "cloudflare",
+        "lastModified": "2026-08-25T05:47:43Z",
+        "githubEdgeRegion": "southeastasia",
+        "containsCanonicalStorefrontMarkup": true
+      },
+      "storefrontJavaScript": {
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "lastModified": "2026-08-25T05:47:43Z",
+        "containsLiveSupabaseStorefrontApi": true
+      },
+      "homepage": {
+        "status": 200,
+        "server": "cloudflare",
+        "dynamicFeaturedOfferScriptPublished": true
+      }
     }
   },
   "security": {
@@ -73,25 +93,32 @@
     "storefrontBridgeBoundary": "service_role-only",
     "rawBankDestinationInStaticRepository": false,
     "serviceRoleSecretInStaticRepository": false,
-    "publicApiCanCreateUnverifiedRevenue": false
+    "publicApiCanCreateUnverifiedRevenue": false,
+    "allowedBrowserOrigins": [
+      "https://daubesonntag.com",
+      "https://www.daubesonntag.com"
+    ]
   },
   "claims": {
-    "provenBeforeMerge": [
-      "Supabase zero-cost public catalog endpoint is live",
-      "approved product catalog is readable over HTTPS",
+    "proven": [
+      "canonical storefront runtime source is merged",
+      "public storefront release is merged via PR #88",
+      "canonical storefront path returns HTTP 200 from the public domain",
+      "storefront JavaScript returns HTTP 200 from the public domain",
+      "live catalog API returns the approved nine-product catalog",
+      "browser-origin CORS for daubesonntag.com is accepted",
       "privacy validation fails closed without creating an order",
       "bank-transfer details remain server-side until a valid order is prepared",
       "public static runtime contains no service-role secret or private bank destination",
-      "storefront JavaScript parses successfully under Node"
+      "order creation and payment instruction cannot by themselves count as revenue"
     ],
-    "notProvenBeforeMerge": [
-      "Cloudflare publication of this exact public-release revision",
-      "browser visual acceptance of the storefront on the canonical domain",
+    "notClaimed": [
       "a real customer order",
       "a real matched payment",
       "real autonomous revenue",
+      "browser subjective visual acceptance on every device",
       "enterprise-wide C_SUITE_AUTONOMOUS graduation"
     ]
   },
-  "truthBoundary": "This handoff proves a zero-cost static storefront candidate backed by the live evidence-bound Supabase commerce runtime. Static publication, order creation, payment instruction and revenue remain distinct facts. Revenue is real only after matched settlement evidence from a genuine customer payment."
+  "truthBoundary": "The zero-cost storefront is now publicly published and production-read back from daubesonntag.com, backed by the evidence-bound Supabase commerce runtime. Publication is proven. Revenue is not claimed until a genuine customer payment is matched by reconciliation evidence."
 }

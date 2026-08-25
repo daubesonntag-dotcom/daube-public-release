@@ -1,0 +1,97 @@
+{
+  "schema": "daube.public-artifact-handoff.v1",
+  "id": "DAUBE-ZERO-COST-STOREFRONT-V1",
+  "status": "release-candidate",
+  "source": {
+    "canonicalRuntimeRepository": "daubesonntag-dotcom/daube-forge-os",
+    "canonicalRuntimeCommit": "2a67a2bbb839b5ab05cf5f0ba2314d5991b5a003",
+    "canonicalWebRepository": "daubesonntag-dotcom/daube-web",
+    "canonicalWebCommit": "e6d5e8c0d9d7166143d4219a9c8ccbcd850ddd08",
+    "supabaseProjectRef": "wilqsqndjgckqxbjptxm",
+    "edgeFunction": "daube-storefront-api@v2"
+  },
+  "publicTarget": {
+    "repository": "daubesonntag-dotcom/daube-public-release",
+    "branch": "release/zero-cost-storefront-v1",
+    "channel": "existing static Cloudflare/Git public-release path after protected merge",
+    "canonicalDomain": "https://daubesonntag.com/",
+    "storefrontPath": "https://daubesonntag.com/storefront/"
+  },
+  "approval": {
+    "kind": "founder-explicit-full-execution",
+    "directive": "Vậy làm đi — continue the zero-cost Founder-first C-Suite execution without requiring routine Founder operation",
+    "recordedDate": "2026-08-25",
+    "releaseOwner": "daubesonntag-dotcom"
+  },
+  "rollback": {
+    "publicRepositoryRef": "main@a5d59d9e6edb5cd4cb25524bc89c9b09490f2503",
+    "strategy": "Revert the storefront public-release merge. The canonical Supabase commerce runtime remains independently fail-closed and no payment or revenue state is inferred from static publication."
+  },
+  "artifact": {
+    "changedRuntimePaths": [
+      "assets/flagship-pages-v1.js",
+      "assets/storefront-v2.js",
+      "assets/storefront-v2.css",
+      "storefront/index.html"
+    ],
+    "gitBlobDigests": {
+      "assets/flagship-pages-v1.js": "95d7dc1124c30371f702acaf075f7f559e0a8bc5",
+      "assets/storefront-v2.js": "cd36e04fc200c12a2bd1caffbb7e89fbf7dabb5a",
+      "assets/storefront-v2.css": "d23898ac91746c576c470c8a7b422afd0d5ef67c",
+      "storefront/index.html": "215a3799ced8d318f95fe4f1baab3cb662118fcb"
+    }
+  },
+  "verification": {
+    "staticSyntax": {
+      "command": "node --check assets/storefront-v2.js",
+      "result": "PASS",
+      "githubActionsUsed": false
+    },
+    "liveApi": {
+      "products": {
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "approvedProductCount": 9,
+        "firstFeaturedSlug": "office-followup-report-pack",
+        "firstFeaturedPriceVnd": 79000
+      },
+      "negativeOrderValidation": {
+        "status": 400,
+        "error": "privacy_consent_required",
+        "persistentOrderCountAfterTest": 0
+      }
+    },
+    "productionBaselineBeforeMerge": {
+      "status": 200,
+      "server": "cloudflare",
+      "state": "OLD_STATIC_RELEASE",
+      "reason": "Canonical domain still served the prior public-release artifact before this merge."
+    }
+  },
+  "security": {
+    "paddleLiveSecretRpcBoundary": "postgres-and-service_role-only",
+    "storefrontBridgeBoundary": "service_role-only",
+    "rawBankDestinationInStaticRepository": false,
+    "serviceRoleSecretInStaticRepository": false,
+    "publicApiCanCreateUnverifiedRevenue": false
+  },
+  "claims": {
+    "provenBeforeMerge": [
+      "Supabase zero-cost public catalog endpoint is live",
+      "approved product catalog is readable over HTTPS",
+      "privacy validation fails closed without creating an order",
+      "bank-transfer details remain server-side until a valid order is prepared",
+      "public static runtime contains no service-role secret or private bank destination",
+      "storefront JavaScript parses successfully under Node"
+    ],
+    "notProvenBeforeMerge": [
+      "Cloudflare publication of this exact public-release revision",
+      "browser visual acceptance of the storefront on the canonical domain",
+      "a real customer order",
+      "a real matched payment",
+      "real autonomous revenue",
+      "enterprise-wide C_SUITE_AUTONOMOUS graduation"
+    ]
+  },
+  "truthBoundary": "This handoff proves a zero-cost static storefront candidate backed by the live evidence-bound Supabase commerce runtime. Static publication, order creation, payment instruction and revenue remain distinct facts. Revenue is real only after matched settlement evidence from a genuine customer payment."
+}

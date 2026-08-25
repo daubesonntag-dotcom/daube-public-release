@@ -15,21 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Identify stale root hooks
+      - name: Capture stale root structure
         shell: bash
         run: |
           set -euo pipefail
           curl --silent --show-error --location --dump-header /tmp/root.headers --output /tmp/root.html https://daubesonntag.com/
-          echo '--- root cache ---'
-          grep -Ei '^(HTTP/|cf-cache-status:|cache-control:|etag:|age:)' /tmp/root.headers || true
-          echo '--- root title ---'
-          grep -Eio '<title>[^<]*</title>' /tmp/root.html | head -5 || true
-          echo '--- root assets ---'
-          grep -Eio '(href|src)=["'"'][^"'"']+["'"']' /tmp/root.html | head -80 || true
-          echo '--- hooks ---'
-          grep -Eio 'coming-soon\.(js|css)|mobile-first-flagship-v3\.(js|css)|data-coming-soon|COMING SOON' /tmp/root.html | sort -u || true
+          echo '--- headers ---'
+          grep -Ei '^(HTTP/|cf-cache-status:|cache-control:|etag:|age:|content-type:|content-length:)' /tmp/root.headers || true
+          echo '--- body ---'
+          sed -n '1,240p' /tmp/root.html
           printf 'root_sha=%s\n' "$(sha256sum /tmp/root.html | awk '{print $1}')" | tee /tmp/receipt
 
       - name: Publish compact receipt
@@ -42,7 +36,7 @@ jobs:
           summary="$(cat /tmp/receipt 2>/dev/null || echo no-receipt)"
           payload="$(python3 - "$summary" <<'PY'
           import json,sys
-          print(json.dumps({'state':'success','context':'ops/edge-rescue-hooks','description':sys.argv[1][:140]}))
+          print(json.dumps({'state':'success','context':'ops/edge-rescue-body','description':sys.argv[1][:140]}))
           PY
           )"
           curl --fail --silent --show-error \

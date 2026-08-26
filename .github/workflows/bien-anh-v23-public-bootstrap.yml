@@ -1,4 +1,4 @@
-name: BIEN ANH V2.9 Reality WIDE
+name: BIEN ANH V2.9 Canonical Reality WIDE
 
 on:
   pull_request:
@@ -12,17 +12,20 @@ permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-v29-reality-${{ github.event.pull_request.number }}
+  group: bien-anh-v29-canonical-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   physical-wide:
-    name: Sanitized V2.9 physical WIDE on free public runner
+    name: Canonical V2.9 public-safe WIDE on free Linux runner
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       BLENDER_VERSION: '5.2.0'
       DAUBE_ZERO_SPEND_MODE: '1'
+      CANONICAL_FORGE_HANDOFF_REVISION: '1aea77152ff04deb09d91a0bcccfa2d1a45ffb1c'
+      PUBLIC_RENDERER_BASE_REVISION: '16a7990e9c29aadccac17e54f3b518a89354279f'
+      PUBLIC_EXECUTION_REVISION: ${{ github.event.pull_request.head.sha }}
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v4
@@ -31,13 +34,16 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Prove public zero-spend and privacy boundary
+      - name: Prove canonical handoff, zero-spend and privacy boundary
         shell: bash
         run: |
           set -euo pipefail
           test "${{ github.event.repository.private }}" = "false"
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
-          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git rev-parse HEAD)" = "$PUBLIC_EXECUTION_REVISION"
+          test "$CANONICAL_FORGE_HANDOFF_REVISION" = '1aea77152ff04deb09d91a0bcccfa2d1a45ffb1c'
+          git fetch --no-tags --depth=1 origin "$PUBLIC_RENDERER_BASE_REVISION"
+          git diff --quiet "$PUBLIC_RENDERER_BASE_REVISION" HEAD -- compute/bien-anh-v23
           grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
           if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' \
             compute/bien-anh-v23/bootstrap_scene.py \
@@ -51,7 +57,7 @@ jobs:
             compute/bien-anh-v23/bootstrap_scene_reality_v28_fix.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v29.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py; then
-            echo '::error::Private character/story marker detected in public bootstrap source.'
+            echo '::error::Private character/story marker detected in public renderer source.'
             exit 2
           fi
 
@@ -104,27 +110,52 @@ jobs:
             'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage; V2.9 renders no photo-card set extension.' \
             > "$dir/PROVENANCE.txt"
 
-      - name: Materialize V2.9 physical metric-material WIDE + blend + receipt
+      - name: Materialize canonical V2.9 WIDE + blend + receipt
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p outputs/bien-anh-v23-public-bootstrap
+          out='outputs/bien-anh-v23-public-bootstrap'
+          receipt="$out/bien-anh-v23-public-bootstrap-receipt.json"
+          mkdir -p "$out"
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
             --python compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py -- \
-            --output-dir outputs/bien-anh-v23-public-bootstrap \
-            --source-revision "${{ github.event.pull_request.head.sha }}"
-          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
-          test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
-          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          grep -q 'PHYSICAL_WIDE_V29_METRIC_MATERIAL_REALISM_PRODUCED_REVIEW_REQUIRED' \
-            outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
-          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
+            --output-dir "$out" \
+            --source-revision "$CANONICAL_FORGE_HANDOFF_REVISION"
+          test -s "$out/bien-anh-v23-public-bootstrap.blend"
+          test -s "$out/plate-wide-interior-v23-public-bootstrap.png"
+          test -s "$receipt"
+          grep -q 'PHYSICAL_WIDE_V29_METRIC_MATERIAL_REALISM_PRODUCED_REVIEW_REQUIRED' "$receipt"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json')
+          r = json.loads(p.read_text(encoding='utf-8'))
+          canonical = os.environ['CANONICAL_FORGE_HANDOFF_REVISION']
+          public_exec = os.environ['PUBLIC_EXECUTION_REVISION']
+          public_base = os.environ['PUBLIC_RENDERER_BASE_REVISION']
+          if r.get('sourceRevision') != canonical:
+              raise SystemExit('receipt_source_revision_not_canonical')
+          r['canonicalForgeHandoffRevision'] = canonical
+          r['publicExecutionRevision'] = public_exec
+          r['publicRendererBaseRevision'] = public_base
+          r['sourceAuthority'] = {
+              'canonicalRepository': 'daubesonntag-dotcom/daube-forge-os',
+              'canonicalHandoffRevision': canonical,
+              'executorRepository': 'daubesonntag-dotcom/daube-public-release',
+              'rendererBaseRevision': public_base,
+              'executionRevision': public_exec,
+              'rendererTreeVerifiedUnchanged': True,
+          }
+          p.write_text(json.dumps(r, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          grep -q "$CANONICAL_FORGE_HANDOFF_REVISION" "$receipt"
+          sha256sum "$out"/* > "$out/SHA256SUMS"
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt "$out/PBR-PROVENANCE.txt"
 
-      - name: Upload bounded physical evidence
+      - name: Upload bounded canonical physical evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-v29-reality-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bien-anh-v29-canonical-${{ github.run_id }}-${{ github.run_attempt }}
           path: outputs/bien-anh-v23-public-bootstrap/
           if-no-files-found: error
           retention-days: 1

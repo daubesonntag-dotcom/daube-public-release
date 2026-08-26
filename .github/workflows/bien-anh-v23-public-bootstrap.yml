@@ -1,4 +1,4 @@
-name: BIEN ANH V3.2 Reality WIDE
+name: BIEN ANH V3.3 Reality WIDE
 
 on:
   pull_request:
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-v32-reality-${{ github.event.pull_request.number }}
+  group: bien-anh-v33-reality-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   physical-wide:
-    name: Sanitized V3.2 physical WIDE on free public runner
+    name: Sanitized V3.3 physical WIDE on free public runner
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -53,7 +53,8 @@ jobs:
             compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v30.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v31.py \
-            compute/bien-anh-v23/bootstrap_scene_reality_v32.py; then
+            compute/bien-anh-v23/bootstrap_scene_reality_v32.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v33.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
@@ -104,22 +105,34 @@ jobs:
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
             'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks, overcast_soil_puresky HDRI.' \
-            'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage; V3.2 renders no photo-card set extension.' \
+            'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage; V3.3 renders no photo-card set extension.' \
+            'Poly Haven live API is used for two bounded CC0 model bundles; provider credit retained in DAUBE_ASSET_MANIFEST.json.' \
             > "$dir/PROVENANCE.txt"
 
-      - name: Materialize V3.2 physical lived-in WIDE + blend + receipt
+      - name: Download and verify bounded Poly Haven CC0 model bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 compute/bien-anh-v23/polyhaven_bundle.py \
+            plastic_bottle_gallon plastic_broom \
+            --output compute/bien-anh-v23/assets_runtime/polyhaven \
+            --max-bytes 120000000
+          test -s compute/bien-anh-v23/assets_runtime/polyhaven/plastic_bottle_gallon/DAUBE_ASSET_MANIFEST.json
+          test -s compute/bien-anh-v23/assets_runtime/polyhaven/plastic_broom/DAUBE_ASSET_MANIFEST.json
+
+      - name: Materialize V3.3 physical scanned-prop WIDE + blend + receipt
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p outputs/bien-anh-v23-public-bootstrap
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene_reality_v32.py -- \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v33.py -- \
             --output-dir outputs/bien-anh-v23-public-bootstrap \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
           test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          grep -q 'PHYSICAL_WIDE_V32_LIVED_IN_REALISM_PRODUCED_REVIEW_REQUIRED' \
+          grep -q 'PHYSICAL_WIDE_V33_SCANNED_PROP_REALISM_PRODUCED_REVIEW_REQUIRED' \
             outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
           sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
           cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
@@ -127,7 +140,7 @@ jobs:
       - name: Upload bounded physical evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-v32-reality-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bien-anh-v33-reality-${{ github.run_id }}-${{ github.run_attempt }}
           path: outputs/bien-anh-v23-public-bootstrap/
           if-no-files-found: error
           retention-days: 1

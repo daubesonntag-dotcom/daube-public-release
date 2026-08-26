@@ -1,4 +1,4 @@
-name: BIEN ANH V2.7 FAST Reality WIDE
+name: BIEN ANH V2.8 Reality WIDE
 
 on:
   pull_request:
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-v27-reality-${{ github.event.pull_request.number }}
+  group: bien-anh-v28-reality-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   physical-wide:
-    name: Sanitized V2.7 FAST physical WIDE on free public runner
+    name: Sanitized V2.8 physical WIDE on free public runner
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -46,7 +46,8 @@ jobs:
             compute/bien-anh-v23/bootstrap_scene_reality_v25.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v26.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v27.py \
-            compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py; then
+            compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
@@ -64,7 +65,7 @@ jobs:
           tar -xf blender.tar.xz
           "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
 
-      - name: Download fixed CC0 photographic assets
+      - name: Download fixed CC0 physical materials and overcast HDRI
         shell: bash
         run: |
           set -euo pipefail
@@ -85,25 +86,26 @@ jobs:
           get weathered_planks_nor_gl_1k.jpg "$root/weathered_planks/weathered_planks_nor_gl_1k.jpg"
           get weathered_planks_rough_1k.jpg "$root/weathered_planks/weathered_planks_rough_1k.jpg"
           get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
+          get overcast_soil_puresky_1k.hdr 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/overcast_soil_puresky_1k.hdr'
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
-            'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks.' \
-            'Wikimedia Commons CC0: Hut at Yangon Suburb Hlaing Thar Yar.JPG by mydaydream89; physical-gap set-extension only.' \
+            'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks, overcast_soil_puresky HDRI.' \
+            'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage but V2.8 hides all photo-card extensions from render.' \
             > "$dir/PROVENANCE.txt"
 
-      - name: Materialize V2.7 FAST physical realism-gate WIDE + blend + receipt
+      - name: Materialize V2.8 physical industrial-edge WIDE + blend + receipt
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p outputs/bien-anh-v23-public-bootstrap
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py -- \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v28.py -- \
             --output-dir outputs/bien-anh-v23-public-bootstrap \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
           test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          grep -q 'PHYSICAL_WIDE_V27_FAST_REALISM_GATE_PRODUCED_REVIEW_REQUIRED' \
+          grep -q 'PHYSICAL_WIDE_V28_INDUSTRIAL_EDGE_REALISM_PRODUCED_REVIEW_REQUIRED' \
             outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
           sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
           cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
@@ -111,7 +113,7 @@ jobs:
       - name: Upload bounded physical evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-v27-fast-reality-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bien-anh-v28-reality-${{ github.run_id }}-${{ github.run_attempt }}
           path: outputs/bien-anh-v23-public-bootstrap/
           if-no-files-found: error
           retention-days: 1

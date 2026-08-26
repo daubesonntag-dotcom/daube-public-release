@@ -1,4 +1,4 @@
-name: BIEN ANH V3.4 Reality WIDE
+name: BIEN ANH V3.5 Reality WIDE + Shot
 
 on:
   pull_request:
@@ -12,14 +12,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-v34-reality-${{ github.event.pull_request.number }}
+  group: bien-anh-v35-reality-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  physical-wide:
-    name: Sanitized V3.4 physical WIDE on free public runner
+  physical-render:
+    name: Sanitized V3.5 physical ${{ matrix.mode }} on free public runner
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [wide, shot]
     env:
       BLENDER_VERSION: '5.2.0'
       DAUBE_ZERO_SPEND_MODE: '1'
@@ -55,18 +59,21 @@ jobs:
             compute/bien-anh-v23/bootstrap_scene_reality_v31.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v32.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v33.py \
-            compute/bien-anh-v23/bootstrap_scene_reality_v34.py; then
+            compute/bien-anh-v23/bootstrap_scene_reality_v34.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v35.py \
+            compute/bien-anh-v23/bootstrap_shot_v35.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
 
-      - name: Bind headless EGL runtime required by Blender 5 compositor
+      - name: Bind headless EGL runtime and ffmpeg
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libegl1
+          sudo apt-get install -y --no-install-recommends libegl1 ffmpeg
           ldconfig -p | grep -F 'libEGL.so.1'
+          ffmpeg -version | head -n 1
 
       - name: Download official Blender 5.2 LTS portable
         shell: bash
@@ -106,7 +113,7 @@ jobs:
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
             'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks, overcast_soil_puresky HDRI.' \
-            'Wikimedia Commons CC0 Hlaing Thar Yar photo is QC/reference provenance only; V3.4 renders no photo-card set extension.' \
+            'Wikimedia Commons Hlaing Thar Yar image is QC/reference provenance only; V3.5 renders no photo-card set extension.' \
             'Poly Haven live API supplies bounded CC0 model bundles; provider credit retained in DAUBE_ASSET_MANIFEST.json.' \
             > "$dir/PROVENANCE.txt"
 
@@ -121,28 +128,58 @@ jobs:
           test -s compute/bien-anh-v23/assets_runtime/polyhaven/plastic_bottle_gallon/DAUBE_ASSET_MANIFEST.json
           test -s compute/bien-anh-v23/assets_runtime/polyhaven/plastic_broom/DAUBE_ASSET_MANIFEST.json
 
-      - name: Materialize V3.4 physical reference-morphology WIDE + blend + receipt
+      - name: Materialize V3.5 physical WIDE
+        if: matrix.mode == 'wide'
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p outputs/bien-anh-v23-public-bootstrap
+          out='outputs/bien-anh-v35-wide'
+          mkdir -p "$out"
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene_reality_v34.py -- \
-            --output-dir outputs/bien-anh-v23-public-bootstrap \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v35.py -- \
+            --output-dir "$out" \
             --source-revision "${{ github.event.pull_request.head.sha }}"
-          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
-          test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
-          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          grep -q 'PHYSICAL_WIDE_V34_REFERENCE_MORPHOLOGY_PRODUCED_REVIEW_REQUIRED' \
-            outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
-          sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
-          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
+          test -s "$out/bien-anh-v23-public-bootstrap.blend"
+          test -s "$out/plate-wide-interior-v23-public-bootstrap.png"
+          test -s "$out/bien-anh-v23-public-bootstrap-receipt.json"
+          grep -q 'PHYSICAL_WIDE_V35_VISUAL_AUTHORITY_PRODUCED_REVIEW_REQUIRED' "$out/bien-anh-v23-public-bootstrap-receipt.json"
+          sha256sum "$out"/* > "$out/SHA256SUMS"
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt "$out/PBR-PROVENANCE.txt"
+
+      - name: Materialize V3.5 physical establishing shot
+        if: matrix.mode == 'shot'
+        shell: bash
+        run: |
+          set -euo pipefail
+          out='outputs/bien-anh-v35-shot'
+          mkdir -p "$out"
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
+            --python compute/bien-anh-v23/bootstrap_shot_v35.py -- \
+            --output-dir "$out" \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          test -s "$out/bien-anh-v35-shot.blend"
+          test -s "$out/bien-anh-v35-shot-receipt.json"
+          test "$(find "$out/shot_frames" -name 'shot-frame-*.png' | wc -l)" -eq 36
+          ffmpeg -y -framerate 24 -i "$out/shot_frames/shot-frame-%04d.png" \
+            -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \
+            "$out/EP01_SC01_SH01_CAM01_WIDE_V35_PHYSICAL.mp4"
+          test -s "$out/EP01_SC01_SH01_CAM01_WIDE_V35_PHYSICAL.mp4"
+          python3 - "$out" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          out=Path(sys.argv[1]); p=out/'EP01_SC01_SH01_CAM01_WIDE_V35_PHYSICAL.mp4'; rp=out/'bien-anh-v35-shot-receipt.json'
+          h=hashlib.sha256(p.read_bytes()).hexdigest(); r=json.loads(rp.read_text())
+          r['artifacts']['mp4']={'name':p.name,'bytes':p.stat().st_size,'sha256':h,'codec':'H.264','pixelFormat':'yuv420p'}
+          rp.write_text(json.dumps(r,ensure_ascii=False,indent=2)+'\n')
+          PY
+          sha256sum "$out"/* "$out"/shot_frames/* > "$out/SHA256SUMS"
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt "$out/PBR-PROVENANCE.txt"
 
       - name: Upload bounded physical evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-v34-reality-${{ github.run_id }}-${{ github.run_attempt }}
-          path: outputs/bien-anh-v23-public-bootstrap/
+          name: bien-anh-v35-${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-v35-${{ matrix.mode }}/
           if-no-files-found: error
           retention-days: 1
           compression-level: 6

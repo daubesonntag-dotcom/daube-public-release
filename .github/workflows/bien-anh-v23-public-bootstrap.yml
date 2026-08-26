@@ -47,7 +47,8 @@ jobs:
             compute/bien-anh-v23/bootstrap_scene_reality_v26.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v27.py \
             compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py \
-            compute/bien-anh-v23/bootstrap_scene_reality_v28.py; then
+            compute/bien-anh-v23/bootstrap_scene_reality_v28.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28_fix.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
@@ -99,7 +100,7 @@ jobs:
           set -euo pipefail
           mkdir -p outputs/bien-anh-v23-public-bootstrap
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene_reality_v28.py -- \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v28_fix.py -- \
             --output-dir outputs/bien-anh-v23-public-bootstrap \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend

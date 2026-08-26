@@ -28,15 +28,6 @@ def key_camera(cam,frame,loc,target,roll_deg=0.0):
     cam.keyframe_insert(data_path='rotation_euler',frame=frame)
 
 
-def set_smooth_camera_fcurves(cam):
-    if cam.animation_data and cam.animation_data.action:
-        for fc in cam.animation_data.action.fcurves:
-            for kp in fc.keyframe_points:
-                kp.interpolation='BEZIER'
-                kp.handle_left_type='AUTO_CLAMPED'
-                kp.handle_right_type='AUTO_CLAMPED'
-
-
 def main():
     argv=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
     ap=argparse.ArgumentParser(); ap.add_argument('--output-dir',required=True); ap.add_argument('--source-revision',required=True); args=ap.parse_args(argv)
@@ -52,11 +43,11 @@ def main():
     scene.render.image_settings.file_format='PNG'; scene.render.film_transparent=False
     cam.data.lens=24.0; cam.data.dof.use_dof=False
 
+    # Blender 5 action internals changed; rely on native keyframe interpolation instead of legacy action.fcurves access.
     key_camera(cam,1,(.030,-5.34,1.55),(-.05,2.20,1.10),-.06)
     key_camera(cam,12,(.012,-5.19,1.545),(-.045,2.27,1.095),.02)
     key_camera(cam,24,(-.010,-5.02,1.538),(-.050,2.34,1.09),-.03)
     key_camera(cam,36,(.006,-4.84,1.545),(-.040,2.42,1.085),.01)
-    set_smooth_camera_fcurves(cam)
 
     scene.render.filepath=str(frames/'shot-frame-')
     shot_blend=out/'bien-anh-v35-shot.blend'
@@ -67,7 +58,7 @@ def main():
     if len(rendered)!=36:
         raise RuntimeError(f'expected_36_frames_got_{len(rendered)}')
     receipt={
-        'schema':'daube.bien-anh.v35.physical-establishing-shot.v1',
+        'schema':'daube.bien-anh.v35.physical-establishing-shot.v2',
         'status':'PHYSICAL_V35_ESTABLISHING_SHOT_FRAMES_PRODUCED_REVIEW_REQUIRED',
         'sourceRevision':args.source_revision,
         'shot':{

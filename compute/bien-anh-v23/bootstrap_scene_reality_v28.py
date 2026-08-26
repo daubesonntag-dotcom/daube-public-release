@@ -61,6 +61,34 @@ def configure_hdri():
     bpy.context.scene.world=world
 
 
+def configure_subtle_compositor(scene):
+    """Install the tiny V2.8 lens integration using the version-correct compositor API.
+
+    Blender 5 removed Scene.node_tree.  The compositor is now a standalone
+    CompositorNodeTree assigned through Scene.compositing_node_group, with a
+    group output socket.  Keep the legacy branch only for older Blender so this
+    public worker remains deterministic across the migration boundary.
+    """
+    scene.render.use_compositing=True
+    if bpy.app.version >= (5,0,0):
+        nt=bpy.data.node_groups.new('V28_COMPOSITOR','CompositorNodeTree')
+        scene.compositing_node_group=nt
+        rl=nt.nodes.new('CompositorNodeRLayers')
+        lens=nt.nodes.new('CompositorNodeLensdist'); lens.inputs['Distortion'].default_value=.004; lens.inputs['Dispersion'].default_value=.001
+        comp=nt.nodes.new('NodeGroupOutput')
+        nt.interface.new_socket(name='Image',in_out='OUTPUT',socket_type='NodeSocketColor')
+        nt.links.new(lens.inputs['Image'],rl.outputs['Image'])
+        nt.links.new(comp.inputs['Image'],lens.outputs['Image'])
+        return
+    scene.use_nodes=True
+    nt=scene.node_tree
+    for n in list(nt.nodes): nt.nodes.remove(n)
+    rl=nt.nodes.new('CompositorNodeRLayers')
+    lens=nt.nodes.new('CompositorNodeLensdist'); lens.inputs['Distortion'].default_value=.004; lens.inputs['Dispersion'].default_value=.001
+    comp=nt.nodes.new('CompositorNodeComposite')
+    nt.links.new(lens.inputs['Image'],rl.outputs['Image']); nt.links.new(comp.inputs['Image'],lens.outputs['Image'])
+
+
 def add_v28_physical_edge():
     # Remove all photo-card extensions and legacy primitive props visible in V2.7.
     hide_prefixes((
@@ -129,13 +157,7 @@ def add_v28_physical_edge():
         cam.data.dof.use_dof=True; cam.data.dof.focus_distance=6.2; cam.data.dof.aperture_fstop=6.3
 
     # Subtle optical integration only; no heavy stylization.
-    scene.use_nodes=True
-    nt=scene.node_tree
-    for n in list(nt.nodes): nt.nodes.remove(n)
-    rl=nt.nodes.new('CompositorNodeRLayers')
-    lens=nt.nodes.new('CompositorNodeLensdist'); lens.inputs['Distortion'].default_value=.004; lens.inputs['Dispersion'].default_value=.001
-    comp=nt.nodes.new('CompositorNodeComposite')
-    nt.links.new(rl.outputs['Image'],lens.inputs['Image']); nt.links.new(lens.outputs['Image'],comp.inputs['Image'])
+    configure_subtle_compositor(scene)
 
 
 def patch_receipt(out:Path):

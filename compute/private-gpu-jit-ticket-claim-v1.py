@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import re
+import signal
 import subprocess
 import tempfile
 import urllib.error
@@ -15,6 +17,7 @@ BROKER_URL = os.environ.get("DAUBE_PRIVATE_GPU_JIT_BROKER_URL", "").strip()
 OPERATION_ID = os.environ.get("DAUBE_PRIVATE_GPU_OPERATION_ID", "").strip()
 LAUNCH_TICKET = os.environ.get("DAUBE_PRIVATE_GPU_LAUNCH_TICKET", "").strip()
 MIN_VRAM_MB = int(os.environ.get("DAUBE_PRIVATE_GPU_MIN_VRAM_MB", "12000"))
+MAX_RUN_SECONDS = int(os.environ.get("DAUBE_PRIVATE_GPU_MAX_RUN_SECONDS", "1800"))
 BOOTSTRAP_REVISION = "8f935f0ac1561cf949e1c7f1b1702fd999c1a116"
 BOOTSTRAP_BLOB_SHA1 = "e5f82859cce8c0289f2b57e3f7d2683a4ac42aa9"
 BOOTSTRAP_URL = (
@@ -37,6 +40,8 @@ if os.environ.get("DAUBE_REMOTE_WORKFLOW_EXECUTION_CONSENT") != "1":
     fail("remote_workflow_execution_consent_required")
 if os.environ.get("DAUBE_PRIVATE_CHECKOUT_ALLOWED", "0") != "0":
     fail("private_checkout_forbidden")
+if platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"}:
+    fail("linux_x64_required_before_ticket_claim")
 if not BROKER_URL.startswith("https://"):
     fail("broker_url_rejected")
 if not re.fullmatch(r"[A-Za-z0-9._:-]{8,96}", OPERATION_ID):
@@ -45,6 +50,8 @@ if not re.fullmatch(r"[A-Za-z0-9_-]{40,96}", LAUNCH_TICKET):
     fail("launch_ticket_invalid")
 if not 1000 <= MIN_VRAM_MB <= 100000:
     fail("min_vram_invalid")
+if not 60 <= MAX_RUN_SECONDS <= 3600:
+    fail("max_run_seconds_invalid")
 
 try:
     import torch
@@ -150,14 +157,27 @@ with tempfile.TemporaryDirectory(prefix="daube-private-gpu-claim-") as temp:
         "DAUBE_PRIVATE_CHECKOUT_ALLOWED": "0",
         "DAUBE_PRIVATE_GPU_MIN_VRAM_MB": str(MIN_VRAM_MB),
     })
-    result = subprocess.run(
+    process = subprocess.Popen(
         ["bash", str(target)],
-        input=jit + "\n",
+        stdin=subprocess.PIPE,
         text=True,
         env=env,
         shell=False,
-        check=False,
+        start_new_session=True,
     )
+    assert process.stdin is not None
+    process.stdin.write(jit + "\n")
+    process.stdin.close()
+    jit = ""
+    try:
+        status = process.wait(timeout=MAX_RUN_SECONDS)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGTERM)
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=10)
+        fail("private_gpu_one_job_runner_timeout")
 
-jit = ""
-raise SystemExit(result.returncode)
+raise SystemExit(status)

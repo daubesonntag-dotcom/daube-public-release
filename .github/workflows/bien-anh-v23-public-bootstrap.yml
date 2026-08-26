@@ -53,6 +53,14 @@ jobs:
             exit 2
           fi
 
+      - name: Bind headless EGL runtime required by Blender 5 compositor
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+          ldconfig -p | grep -F 'libEGL.so.1'
+
       - name: Download official Blender 5.2 LTS portable
         shell: bash
         run: |

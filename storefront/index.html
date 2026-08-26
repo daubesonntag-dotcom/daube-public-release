@@ -6,28 +6,29 @@
   <meta name="theme-color" content="#f5f2e9">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="D’AUBE SONNTAG storefront — approved public offers with evidence-bound order and payment status.">
+  <meta name="description" content="Cửa hàng D’AUBE SONNTAG — sản phẩm số và dịch vụ đã được duyệt, với trạng thái đơn hàng và thanh toán được đối chiếu rõ ràng.">
   <link rel="canonical" href="https://daubesonntag.com/storefront/">
   <link rel="stylesheet" href="/assets/storefront-v2.css">
-  <title>D’AUBE Storefront · Meaning, made visible.</title>
+  <link rel="stylesheet" href="/assets/storefront-mobile-v3.css">
+  <title>Cửa hàng D’AUBE · Meaning, made visible.</title>
 </head>
 <body>
 <main class="storeShell" data-storefront-state="loading">
   <header class="storeHeader">
     <a class="storeBrand" href="/"><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></a>
-    <nav><a href="/">Home</a><a href="#catalog">Catalog</a><a href="#order-status">Order status</a><a href="/privacy/">Privacy</a><a href="/returns/">Returns</a></nav>
+    <nav><a href="/">Trang chủ</a><a href="#catalog">Sản phẩm</a><a href="#order-status">Tra đơn</a><a href="/privacy/">Quyền riêng tư</a><a href="/returns/">Đổi trả</a></nav>
   </header>
 
   <section class="storeHero" aria-labelledby="store-title">
-    <p class="storeKicker">D’AUBE / STOREFRONT</p>
-    <h1 id="store-title">Useful things,<br><em>made orderable.</em></h1>
-    <p>Approved digital products and bounded services. Catalog, price, order reference and payment state come from the canonical D’AUBE commerce runtime — not from static marketing claims.</p>
-    <div class="storeTruth"><span>Zero paid storefront infrastructure</span><span>Order ≠ payment</span><span>Paid requires verified reconciliation</span></div>
+    <p class="storeKicker">D’AUBE / CỬA HÀNG</p>
+    <h1 id="store-title">Đồ hữu ích,<br><em>đặt được ngay.</em></h1>
+    <p>Sản phẩm số và dịch vụ có phạm vi rõ ràng. Danh mục, giá, mã đơn và trạng thái thanh toán được đọc từ hệ thống thương mại D’AUBE — không lấy từ lời quảng cáo tĩnh.</p>
+    <div class="storeTruth"><span>Hạ tầng cửa hàng không tốn phí cố định</span><span>Tạo đơn ≠ thanh toán</span><span>Chỉ ghi nhận đã trả khi đối chiếu thành công</span></div>
   </section>
 
   <section id="catalog" class="storeSection">
-    <div class="sectionHead"><p class="storeKicker">Public catalog</p><h2>Choose an approved offer.</h2></div>
-    <div id="catalog-grid" class="catalogGrid" aria-live="polite"><p class="loadingState">Đang đọc catalog…</p></div>
+    <div class="sectionHead"><p class="storeKicker">DANH MỤC CÔNG KHAI</p><h2>Chọn món bạn cần.</h2></div>
+    <div id="catalog-grid" class="catalogGrid" aria-live="polite"><p class="loadingState">Đang đọc danh mục…</p></div>
   </section>
 
   <section id="selected-product" class="storeSection selectedProduct" hidden>
@@ -43,11 +44,11 @@
       <h3>Tạo đơn</h3>
       <label>Họ tên<input id="customer-name" name="customerName" autocomplete="name" minlength="2" maxlength="120" required></label>
       <div class="twoCol">
-        <label>Email<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+        <label>Email<input id="email" name="email" type="email" autocomplete="email" placeholder="ban@example.com"></label>
         <label>Số điện thoại<input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="Nếu không dùng email"></label>
       </div>
       <label>Kênh liên hệ<select id="preferred-channel" name="preferredChannel"><option value="email">Email</option><option value="phone">Điện thoại</option><option value="zalo">Zalo</option><option value="messenger">Messenger</option></select></label>
-      <label class="consent"><input id="consent" type="checkbox" required><span>Tôi đồng ý để D’AUBE xử lý thông tin tối thiểu cần thiết cho đơn hàng theo <a href="/privacy/">Privacy Notice</a>.</span></label>
+      <label class="consent"><input id="consent" type="checkbox" required><span>Tôi đồng ý để D’AUBE xử lý thông tin tối thiểu cần thiết cho đơn hàng theo <a href="/privacy/">Thông báo quyền riêng tư</a>.</span></label>
       <button id="order-submit" class="primaryButton" type="submit">Tạo đơn &amp; nhận hướng dẫn thanh toán</button>
       <p class="fine">Tạo đơn chưa phải là thanh toán. D’AUBE không yêu cầu PIN, OTP, CVV, mật khẩu hoặc thông tin đăng nhập ngân hàng.</p>
       <p id="order-error" class="errorState" role="alert" hidden></p>
@@ -55,15 +56,15 @@
   </section>
 
   <section id="payment-panel" class="paymentPanel" hidden aria-labelledby="payment-title">
-    <p class="storeKicker">ORDER CREATED · PAYMENT PENDING</p>
+    <p class="storeKicker">ĐÃ TẠO ĐƠN · CHỜ THANH TOÁN</p>
     <h2 id="payment-title"></h2>
     <p id="payment-summary"></p>
     <dl id="payment-details"></dl>
-    <p class="fine light">Payment instruction ≠ settlement. Doanh thu chỉ được ghi nhận sau khi đối chiếu thanh toán thành công.</p>
+    <p class="fine light">Hướng dẫn thanh toán chưa phải là tiền đã về. Doanh thu chỉ được ghi nhận sau khi đối chiếu thanh toán thành công.</p>
   </section>
 
   <section id="order-status" class="storeSection statusSection">
-    <div><p class="storeKicker">Order status</p><h2>Kiểm tra bằng mã đơn.</h2><p>Mã đơn + email hoặc 4 số cuối điện thoại được dùng để đối chiếu.</p></div>
+    <div><p class="storeKicker">TRẠNG THÁI ĐƠN</p><h2>Kiểm tra bằng mã đơn.</h2><p>Mã đơn + email hoặc 4 số cuối điện thoại được dùng để đối chiếu.</p></div>
     <form id="status-form" class="statusForm">
       <label>Mã đơn<input id="status-code" autocomplete="off" placeholder="DS-…" required></label>
       <label>Email hoặc số điện thoại<input id="status-contact" autocomplete="email" required></label>
@@ -72,7 +73,7 @@
     </form>
   </section>
 
-  <footer class="storeFooter"><div><strong>D’AUBE SONNTAG</strong><span>RẠNG TRONG · MMXXVI</span></div><nav><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/returns/">Returns</a></nav></footer>
+  <footer class="storeFooter"><div><strong>D’AUBE SONNTAG</strong><span>RẠNG TRONG · MMXXVI</span></div><nav><a href="/terms/">Điều khoản</a><a href="/privacy/">Quyền riêng tư</a><a href="/returns/">Đổi trả</a></nav></footer>
 </main>
 <script src="/assets/storefront-v2.js" defer></script>
 </body>

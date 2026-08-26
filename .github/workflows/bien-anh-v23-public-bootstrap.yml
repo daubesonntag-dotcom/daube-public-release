@@ -1,0 +1,131 @@
+name: BIEN ANH V2.9 Reality WIDE
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'compute/bien-anh-v23/**'
+      - '.github/workflows/bien-anh-v23-public-bootstrap.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-v29-reality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  physical-wide:
+    name: Sanitized V2.9 physical WIDE on free public runner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BLENDER_VERSION: '5.2.0'
+      DAUBE_ZERO_SPEND_MODE: '1'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove public zero-spend and privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' \
+            compute/bien-anh-v23/bootstrap_scene.py \
+            compute/bien-anh-v23/bootstrap_scene_pbr.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v24.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v25.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v26.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v27.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28_fix.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v29.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py; then
+            echo '::error::Private character/story marker detected in public bootstrap source.'
+            exit 2
+          fi
+
+      - name: Bind headless EGL runtime required by Blender 5 compositor
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+          ldconfig -p | grep -F 'libEGL.so.1'
+
+      - name: Download official Blender 5.2 LTS portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://download.blender.org/release/Blender5.2"
+          curl -fL --retry 4 --retry-delay 3 -o blender.tar.xz "$base/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl -fL --retry 4 --retry-delay 3 -o blender.sha256 "$base/blender-${BLENDER_VERSION}.sha256"
+          expected="$(grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | awk '{print $1}')"
+          test -n "$expected"
+          echo "$expected  blender.tar.xz" | sha256sum -c -
+          tar -xf blender.tar.xz
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
+
+      - name: Download fixed CC0 physical materials and overcast HDRI
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir='compute/bien-anh-v23/assets_runtime'
+          mkdir -p "$dir"
+          get() { curl -fL --retry 4 --retry-delay 2 -o "$dir/$1" "$2"; test -s "$dir/$1"; }
+          root='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
+          get dirty_concrete_diff_1k.jpg "$root/dirty_concrete/dirty_concrete_diff_1k.jpg"
+          get dirty_concrete_nor_gl_1k.jpg "$root/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
+          get dirty_concrete_rough_1k.jpg "$root/dirty_concrete/dirty_concrete_rough_1k.jpg"
+          get worn_plaster_wall_diff_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_diff_1k.jpg"
+          get worn_plaster_wall_nor_gl_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_nor_gl_1k.jpg"
+          get worn_plaster_wall_rough_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_rough_1k.jpg"
+          get worn_corrugated_iron_diff_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_diff_1k.jpg"
+          get worn_corrugated_iron_nor_gl_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_nor_gl_1k.jpg"
+          get worn_corrugated_iron_rough_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_rough_1k.jpg"
+          get weathered_planks_diff_1k.jpg "$root/weathered_planks/weathered_planks_diff_1k.jpg"
+          get weathered_planks_nor_gl_1k.jpg "$root/weathered_planks/weathered_planks_nor_gl_1k.jpg"
+          get weathered_planks_rough_1k.jpg "$root/weathered_planks/weathered_planks_rough_1k.jpg"
+          get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
+          get overcast_soil_puresky_1k.hdr 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/overcast_soil_puresky_1k.hdr'
+          sha256sum "$dir"/* > "$dir/SHA256SUMS"
+          printf '%s\n' \
+            'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks, overcast_soil_puresky HDRI.' \
+            'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage; V2.9 renders no photo-card set extension.' \
+            > "$dir/PROVENANCE.txt"
+
+      - name: Materialize V2.9 physical metric-material WIDE + blend + receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/bien-anh-v23-public-bootstrap
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py -- \
+            --output-dir outputs/bien-anh-v23-public-bootstrap \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
+          test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
+          test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
+          grep -q 'PHYSICAL_WIDE_V29_METRIC_MATERIAL_REALISM_PRODUCED_REVIEW_REQUIRED' \
+            outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
+          sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
+
+      - name: Upload bounded physical evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-v29-reality-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-v23-public-bootstrap/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

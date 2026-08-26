@@ -112,7 +112,6 @@ def add_soft_sack(name, loc, scale, material, rot_z=0.0):
 
 def add_open_basket(name, loc, scale, material):
     x,y,z = loc
-    # Four thin sides and a bottom read more like an inexpensive plastic basket than a cylinder.
     sx,sy,sz = scale
     box(name+'_BOTTOM', (x,y,z), (sx,sy,0.025), material, 0.006)
     box(name+'_L', (x-sx/2+0.018,y,z+sz/2), (0.035,sy,sz), material, 0.008)
@@ -140,7 +139,6 @@ def add_irregular_grime(name, x, y, z, sy, sz, material, phase=0.0):
 
 
 def add_v27_documentary_refinement():
-    # Remove the most obvious primitive/read-as-CG props from earlier passes.
     hide(
         prefixes=(
             'V24_BUCKET','V24_BOTTLE','V24_BASIN','V24_STOOL','V24_WET','V25_BUCKET','V25_BASIN',
@@ -149,14 +147,12 @@ def add_v27_documentary_refinement():
         contains=('SPHERE','ROUND_PROP')
     )
 
-    # Break the continuous right corrugated wall into irregular openings. Keep enough sheet to preserve shelter/privacy.
     for idx in (2,4,6,8):
         obj=bpy.data.objects.get(f'V24_CORR_PARTITION_{idx:02d}')
         if obj:
             obj.hide_render=True
             obj.hide_viewport=True
 
-    # Actual Hlaing Thar Yar photograph becomes a side/depth set extension, visible only through physical gaps.
     add_side_photo_plate('V27_HLAING_SIDE_SET_EXTENSION', HLAING_PHOTO)
 
     rubber=mat('V27 aged cable rubber',(0.012,0.013,0.012),0.96)
@@ -166,30 +162,24 @@ def add_v27_documentary_refinement():
     curtain=mat('V27 washed floral curtain base',(0.18,0.13,0.10),0.98)
     mosquito=mat('V27 mosquito net',(0.37,0.40,0.34),0.99)
 
-    # Low-cost utility wires with natural sag and non-CAD routing.
     add_sag_wire('V27_MAIN_SAG_WIRE',[(-0.47,-5.3,2.06),(-0.50,-1.8,1.94),(-0.46,1.8,2.02),(-0.48,5.0,1.91)],0.0065,rubber)
     add_sag_wire('V27_RIGHT_SAG_WIRE',[(0.47,-4.7,2.01),(0.44,-1.0,1.88),(0.48,2.8,1.96)],0.0055,rubber)
 
-    # Soft household items replace foreground cylinders.
     add_soft_sack('V27_RICE_SACK_A',(-0.39,-3.25,0.18),(0.17,0.24,0.28),sack,-7)
     add_soft_sack('V27_LAUNDRY_BAG_A',(0.35,1.38,0.16),(0.16,0.22,0.24),curtain,11)
     add_open_basket('V27_OPEN_BASKET_A',(0.32,-1.22,0.03),(0.30,0.36,0.20),plastic)
 
-    # Net/curtain depth at occupied openings; no decorative symmetry.
     v24.add_drape('V27_MOSQUITO_NET_ROOM_2',(-0.49,-2.05,1.44),0.62,1.05,mosquito,0.10,-1.5)
     v24.add_drape('V27_CURTAIN_ROOM_4',(-0.49,2.76,1.48),0.58,0.98,curtain,0.08,2.2)
 
-    # Human-contact grime follows jamb/floor logic rather than uniform procedural dirt.
     for i,(y,z,sy,sz,ph) in enumerate([
         (-4.45,0.55,0.18,0.25,0.2),(-2.05,0.45,0.22,0.20,0.8),(0.35,0.52,0.20,0.26,1.3),(2.75,0.48,0.24,0.22,2.0)
     ],1):
         add_irregular_grime(f'V27_JAMB_GRIME_{i}',-0.515,y,z,sy,sz,grime,ph)
 
-    # Small, motivated damp patches near the open edge and wash zone.
     for i,(x,y,sy,sz) in enumerate([(0.22,-3.0,0.24,0.14),(0.18,-0.4,0.18,0.12),(0.20,3.6,0.28,0.16)],1):
         add_irregular_grime(f'V27_FLOOR_DAMP_{i}',x,y,0.007,sy,sz,mat('V27 damp concrete '+str(i),(0.055,0.058,0.052),0.48),0.4*i)
 
-    # Camera is slightly off-centre and shoulder-height rather than perfectly architectural.
     scene=bpy.context.scene
     cam=bpy.data.objects.get('CAM_WIDE_INTERIOR')
     if cam:
@@ -200,16 +190,15 @@ def add_v27_documentary_refinement():
 
     scene.view_settings.look='AgX - Medium Low Contrast'
     scene.view_settings.exposure=0.62
-    scene.cycles.samples=96
+    scene.cycles.samples=48
     scene.cycles.use_denoising=True
-    scene.render.resolution_x=1600
-    scene.render.resolution_y=900
+    scene.render.resolution_x=1280
+    scene.render.resolution_y=720
     if scene.world and scene.world.use_nodes:
         bg=scene.world.node_tree.nodes.get('Background')
         if bg:
             bg.inputs['Strength'].default_value=0.68
 
-    # Broad overcast side light motivated by the new openings.
     base.add_area('V27_OVERCAST_SIDE',(3.4,-0.3,3.2),(0.0,0.2,1.0),760,6.0,(0.73,0.80,0.84))
 
 
@@ -219,6 +208,7 @@ def patch_receipt(out: Path):
     receipt['schema']='daube.bien-anh.v27.documentary-realism.v1'
     receipt['visualRetakeVersion']='BA-MMR-HLAING-THARYAR-WORKER-HOSTEL-V2.7'
     receipt['status']='PHYSICAL_WIDE_V27_DOCUMENTARY_REALISM_PRODUCED_REVIEW_REQUIRED'
+    receipt['qcRender']={'samples':48,'resolution':'1280x720','denoising':True,'purpose':'fast realism gate before final-sample render'}
     receipt['retakeTargets']=[
         'remove-obvious-primitive-props','irregular-openings-with-real-location-depth','soft-household-items',
         'sagging-utility-wires','occupied-room-curtain-net-depth','contact-driven-grime','documentary-camera-not-archviz',
@@ -231,7 +221,7 @@ def patch_receipt(out: Path):
     png=out/'plate-wide-interior-v23-public-bootstrap.png'
     receipt['artifacts']['blend']={'name':blend.name,'bytes':blend.stat().st_size,'sha256':sha256(blend)}
     receipt['artifacts']['widePng']={'name':png.name,'bytes':png.stat().st_size,'sha256':sha256(png)}
-    receipt['truthBoundary']='V2.7 documentary-realism physical WIDE candidate. Still review-required; no fan-out/location lock until geography + socioeconomic + cultural + visual QC passes.'
+    receipt['truthBoundary']='V2.7 documentary-realism fast physical WIDE QC candidate. Still review-required; no fan-out/location lock until geography + socioeconomic + cultural + visual QC passes.'
     path.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 
 

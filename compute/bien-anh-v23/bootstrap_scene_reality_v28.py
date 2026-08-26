@@ -62,23 +62,19 @@ def configure_hdri():
 
 
 def configure_subtle_compositor(scene):
-    """Install the tiny V2.8 lens integration using the version-correct compositor API.
-
-    Blender 5 removed Scene.node_tree.  The compositor is now a standalone
-    CompositorNodeTree assigned through Scene.compositing_node_group, with a
-    group output socket.  Keep the legacy branch only for older Blender so this
-    public worker remains deterministic across the migration boundary.
-    """
+    """Very small optical integration, using version-correct socket direction."""
     scene.render.use_compositing=True
     if bpy.app.version >= (5,0,0):
         nt=bpy.data.node_groups.new('V28_COMPOSITOR','CompositorNodeTree')
         scene.compositing_node_group=nt
         rl=nt.nodes.new('CompositorNodeRLayers')
-        lens=nt.nodes.new('CompositorNodeLensdist'); lens.inputs['Distortion'].default_value=.004; lens.inputs['Dispersion'].default_value=.001
+        lens=nt.nodes.new('CompositorNodeLensdist')
+        lens.inputs['Distortion'].default_value=.004
+        lens.inputs['Dispersion'].default_value=.001
         comp=nt.nodes.new('NodeGroupOutput')
         nt.interface.new_socket(name='Image',in_out='OUTPUT',socket_type='NodeSocketColor')
-        nt.links.new(lens.inputs['Image'],rl.outputs['Image'])
-        nt.links.new(comp.inputs['Image'],lens.outputs['Image'])
+        nt.links.new(rl.outputs['Image'],lens.inputs['Image'])
+        nt.links.new(lens.outputs['Image'],comp.inputs['Image'])
         return
     scene.use_nodes=True
     nt=scene.node_tree
@@ -86,11 +82,10 @@ def configure_subtle_compositor(scene):
     rl=nt.nodes.new('CompositorNodeRLayers')
     lens=nt.nodes.new('CompositorNodeLensdist'); lens.inputs['Distortion'].default_value=.004; lens.inputs['Dispersion'].default_value=.001
     comp=nt.nodes.new('CompositorNodeComposite')
-    nt.links.new(lens.inputs['Image'],rl.outputs['Image']); nt.links.new(comp.inputs['Image'],lens.outputs['Image'])
+    nt.links.new(rl.outputs['Image'],lens.inputs['Image']); nt.links.new(lens.outputs['Image'],comp.inputs['Image'])
 
 
 def add_v28_physical_edge():
-    # Remove all photo-card extensions and legacy primitive props visible in V2.7.
     hide_prefixes((
         'V27_HLAING_SIDE_SET_EXTENSION','V26_HLAING_CC0_SET_EXTENSION',
         'V24_SLIPPER_','V24_BUCKET_','V24_BASIN','V24_REUSED_WATER_','V24_FAN_','V24_COOK_POT',
@@ -101,46 +96,40 @@ def add_v28_physical_edge():
     concrete=pbr.pbr_material('V28 exterior dirty concrete',pbr.PBR['floor'],scale=(1.4,5.0,1),normal_strength=.34,rough_fallback=.90)
     plaster=pbr.pbr_material('V28 exterior patched plaster',pbr.PBR['wall'],scale=(1.2,3.5,1),normal_strength=.38,rough_fallback=.92)
     corr=pbr.pbr_material('V28 corrugated service roof',pbr.PBR['roof'],scale=(4.5,1.2,1),normal_strength=.72,rough_fallback=.73,metallic=.16)
-    wood=v25.pbr_wood_material('V28 weathered timber')
+    wood=pbr.pbr_material('V28 weathered timber',v25.WOOD_MAPS,scale=(1.4,2.4,1.0),normal_strength=.52,rough_fallback=.88)
+    v25.brighten_pbr(wood,1.14,.90)
     rubber=mat('V28 cable rubber',(0.012,0.013,0.012),.97)
     cloth_a=mat('V28 faded laundry blue',(0.065,0.10,0.12),.98)
     cloth_b=mat('V28 faded laundry beige',(0.26,0.22,0.17),.98)
     drain=mat('V28 drain dark concrete',(0.03,0.035,0.032),.94)
 
-    # Exterior service ground visible through the irregular right-side gaps.
     box('V28_SERVICE_GROUND',(2.35,0,-.10),(3.6,12.5,.18),concrete,.015)
     box('V28_DRAIN_CHANNEL',(0.86,0,-.015),(.22,11.5,.09),drain,.01)
 
-    # Three low-cost service/hostel-edge volumes. Nonuniform dimensions and roof pitch avoid CAD repetition.
     sheds=[
         (2.15,-3.85,1.25,2.0,2.05,1.72,-2.0),
         (3.05,-.85,1.35,2.45,2.25,1.88,1.4),
         (2.35,2.85,1.22,2.15,2.05,1.68,-1.1),
     ]
     for i,(x,y,z,w,d,h,rz) in enumerate(sheds,1):
-        wall=box(f'V28_SHED_WALL_{i}',(x,y,h/2-.02),(w,d,h),plaster,.008,(0,0,math.radians(rz)))
-        roof=box(f'V28_SHED_ROOF_{i}',(x,y,h+.07),(w+.28,d+.35,.065),corr,.004,(0,math.radians((i-2)*1.3),math.radians(rz)))
-        # narrow dark doorway with a timber lintel
+        box(f'V28_SHED_WALL_{i}',(x,y,h/2-.02),(w,d,h),plaster,.008,(0,0,math.radians(rz)))
+        box(f'V28_SHED_ROOF_{i}',(x,y,h+.07),(w+.28,d+.35,.065),corr,.004,(0,math.radians((i-2)*1.3),math.radians(rz)))
         dark=mat(f'V28_SHED_DARK_{i}',(.012,.013,.012),.99)
         box(f'V28_SHED_DOOR_{i}',(x-.01,y-d*.49,h*.48),(.58,.045,h*.88),dark,.002,(0,0,math.radians(rz)))
         box(f'V28_SHED_LINTEL_{i}',(x-.01,y-d*.50,h*.93),(.72,.07,.07),wood,.004,(0,0,math.radians(rz)))
 
-    # Utility posts and sagging wires across the service edge.
     for i,(x,y) in enumerate([(1.25,-5.1),(3.85,-1.6),(1.45,4.6)],1):
         box(f'V28_UTILITY_POST_{i}',(x,y,1.65),(.085,.085,3.3),wood,.006)
     add_sag_wire('V28_EXT_WIRE_A',[(1.25,-5.1,2.65),(2.25,-3.2,2.43),(3.85,-1.6,2.62)],.006,rubber)
     add_sag_wire('V28_EXT_WIRE_B',[(3.85,-1.6,2.40),(2.9,1.6,2.20),(1.45,4.6,2.38)],.005,rubber)
 
-    # Sparse laundry traces outside: lived-in, not art-directed.
     add_distant_cloth('V28_EXT_CLOTH_A',(1.55,-2.65,1.38),.32,.44,cloth_a,.04,-2)
     add_distant_cloth('V28_EXT_CLOTH_B',(2.90,2.25,1.28),.38,.50,cloth_b,.04,1.5)
 
-    # Add a few thin floor-edge repair strips and threshold grime, not round puddles.
     repair=mat('V28 floor repair',(0.12,0.115,0.10),.93)
     box('V28_REPAIR_STRIP_A',(0.18,-1.8,.012),(.12,.82,.018),repair,.003,(0,0,math.radians(4)))
     box('V28_REPAIR_STRIP_B',(-.15,2.65,.012),(.10,.64,.018),repair,.003,(0,0,math.radians(-6)))
 
-    # Replace older broad area lights; rely on real overcast HDRI plus a modest opening bounce.
     for o in bpy.data.objects:
         if o.type=='LIGHT' and not o.name.startswith('V28'):
             o.hide_render=True; o.hide_viewport=True
@@ -156,13 +145,12 @@ def add_v28_physical_edge():
         cam.location=(-.03,-5.12,1.52); cam.data.lens=31.0; base.point_at(cam,(-.08,2.15,1.08)); cam.rotation_euler[2]+=math.radians(-.22)
         cam.data.dof.use_dof=True; cam.data.dof.focus_distance=6.2; cam.data.dof.aperture_fstop=6.3
 
-    # Subtle optical integration only; no heavy stylization.
     configure_subtle_compositor(scene)
 
 
 def patch_receipt(out:Path):
     path=out/'bien-anh-v23-public-bootstrap-receipt.json'; r=json.loads(path.read_text(encoding='utf-8'))
-    r['schema']='daube.bien-anh.v28.physical-industrial-edge.v1'
+    r['schema']='daube.bien-anh.v28.physical-industrial-edge.v2'
     r['visualRetakeVersion']='BA-MMR-HLAING-THARYAR-WORKER-HOSTEL-V2.8'
     r['status']='PHYSICAL_WIDE_V28_INDUSTRIAL_EDGE_REALISM_PRODUCED_REVIEW_REQUIRED'
     r['qcRender']={'samples':24,'resolution':'1280x720','denoising':True,'purpose':'physical realism gate'}

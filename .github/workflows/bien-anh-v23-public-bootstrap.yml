@@ -1,4 +1,4 @@
-name: BIEN ANH V2.3 Public Bootstrap
+name: BIEN ANH V2.4 Reality WIDE
 
 on:
   pull_request:
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-v23-public-bootstrap-${{ github.event.pull_request.number }}
+  group: bien-anh-v24-reality-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   physical-wide:
-    name: Sanitized physical WIDE on free public runner
+    name: Sanitized V2.4 physical WIDE on free public runner
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Prove public zero-spend boundary
+      - name: Prove public zero-spend and privacy boundary
         shell: bash
         run: |
           set -euo pipefail
@@ -39,7 +39,10 @@ jobs:
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
-          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/bootstrap_scene.py compute/bien-anh-v23/bootstrap_scene_pbr.py; then
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' \
+            compute/bien-anh-v23/bootstrap_scene.py \
+            compute/bien-anh-v23/bootstrap_scene_pbr.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v24.py; then
             echo '::error::Private character/story marker detected in public bootstrap source.'
             exit 2
           fi
@@ -77,28 +80,30 @@ jobs:
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
             'Poly Haven CC0 assets used: dirty_concrete, worn_plaster_wall, worn_corrugated_iron.' \
-            'Fixed asset downloads only; no live API call is made by this workflow.' \
+            'Fixed asset downloads only; no live API call is made by the Blender scene.' \
             > "$dir/PROVENANCE.txt"
 
-      - name: Materialize physical PBR WIDE + blend + receipt
+      - name: Materialize V2.4 physical reality WIDE + blend + receipt
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p outputs/bien-anh-v23-public-bootstrap
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/bootstrap_scene_pbr.py -- \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v24.py -- \
             --output-dir outputs/bien-anh-v23-public-bootstrap \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap.blend
           test -s outputs/bien-anh-v23-public-bootstrap/plate-wide-interior-v23-public-bootstrap.png
           test -s outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
+          grep -q 'PHYSICAL_WIDE_V24_REALITY_RECONSTRUCTION_PRODUCED_REVIEW_REQUIRED' \
+            outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json
           sha256sum outputs/bien-anh-v23-public-bootstrap/* > outputs/bien-anh-v23-public-bootstrap/SHA256SUMS
           cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt outputs/bien-anh-v23-public-bootstrap/PBR-PROVENANCE.txt
 
       - name: Upload bounded physical evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-v23-public-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}
+          name: bien-anh-v24-reality-${{ github.run_id }}-${{ github.run_attempt }}
           path: outputs/bien-anh-v23-public-bootstrap/
           if-no-files-found: error
           retention-days: 1

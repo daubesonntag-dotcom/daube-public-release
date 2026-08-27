@@ -85,6 +85,7 @@ jobs:
           get weathered_planks_diff_2k.jpg "$root/weathered_planks/weathered_planks_diff_2k.jpg"
           get weathered_planks_nor_gl_2k.jpg "$root/weathered_planks/weathered_planks_nor_gl_2k.jpg"
           get weathered_planks_rough_2k.jpg "$root/weathered_planks/weathered_planks_rough_2k.jpg"
+          get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
           root1='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
           get dirty_concrete_diff_1k.jpg "$root1/dirty_concrete/dirty_concrete_diff_1k.jpg"
           get dirty_concrete_nor_gl_1k.jpg "$root1/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
@@ -102,7 +103,7 @@ jobs:
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
             'Poly Haven CC0 PBR/HDRI assets; 2K FINAL surfaces plus 1K legacy imports.' \
-            'No photo-card set extension in converged FINAL WIDE.' \
+            'Hlaing Thar Yar CC0 photo is loaded by the inherited stage then hidden before final render; no photo-card appears in final pixels.' \
             > "$dir/PROVENANCE.txt"
 
       - name: Download verified CC0 physical props

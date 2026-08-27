@@ -1,0 +1,109 @@
+name: BIEN ANH ZeroGPU Wan I2V Clean
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/bien-anh-zero-i2v-clean.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-zero-i2v-clean-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zero-i2v-clean:
+    name: Wan2.2 ZeroGPU true I2V clean reference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DAUBE_ZERO_SPEND_MODE: '1'
+      REFERENCE_URL: 'https://cdn.creativeclaw.co/u/218f016f/images/8ed30be9-c008-40e6-ad89-43359ae04bd4.jpg'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove zero-spend boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Install bounded client and image crop dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-cache-dir 'gradio_client>=1.8,<2' 'Pillow>=10,<12'
+
+      - name: Build clean 16:9 film reference from approved sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs
+          curl -fL --retry 4 --retry-delay 2 -o inputs/reference-sheet.jpg "$REFERENCE_URL"
+          python - <<'PY'
+          from PIL import Image
+          src=Image.open('inputs/reference-sheet.jpg').convert('RGB')
+          w,h=src.size
+          # Original approved sheet is 3:2. Remove top QC labels, bottom metadata strip,
+          # and the left signage zone while preserving the corridor/exterior authority.
+          if w < 1200 or h < 800:
+              raise SystemExit(f'unexpected_reference_size:{src.size}')
+          left=170; top=72; right=min(w-6,1530); bottom=min(h,837)
+          crop=src.crop((left,top,right,bottom))
+          # Enforce 16:9 by center trimming only a few pixels vertically if needed.
+          cw,ch=crop.size
+          target_h=round(cw*9/16)
+          if target_h < ch:
+              y=(ch-target_h)//2
+              crop=crop.crop((0,y,cw,y+target_h))
+          crop.save('inputs/hlaing-tharyar-reference-clean.jpg',quality=96,subsampling=0)
+          print('clean_reference', crop.size)
+          PY
+          test -s inputs/hlaing-tharyar-reference-clean.jpg
+          sha256sum inputs/hlaing-tharyar-reference-clean.jpg
+
+      - name: Generate true I2V from clean reference on public ZeroGPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/bien-anh-zero-i2v-clean
+          python compute/bien-anh-zero-i2v/run_zero_wan.py \
+            --reference inputs/hlaing-tharyar-reference-clean.jpg \
+            --output-dir outputs/bien-anh-zero-i2v-clean \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          mv outputs/bien-anh-zero-i2v-clean/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V.mp4 \
+             outputs/bien-anh-zero-i2v-clean/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_CLEAN.mp4
+          test -s outputs/bien-anh-zero-i2v-clean/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_CLEAN.mp4
+
+      - name: QC frames and receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          v='outputs/bien-anh-zero-i2v-clean/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_CLEAN.mp4'
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$v" \
+            > outputs/bien-anh-zero-i2v-clean/FFPROBE.json
+          ffmpeg -y -i "$v" -vf "select='eq(n,0)+eq(n,16)+eq(n,32)+eq(n,48)'" -vsync vfr \
+            outputs/bien-anh-zero-i2v-clean/qc-frame-%02d.png
+          cp inputs/hlaing-tharyar-reference-clean.jpg outputs/bien-anh-zero-i2v-clean/REFERENCE_CLEAN.jpg
+          (cd outputs/bien-anh-zero-i2v-clean && sha256sum * > SHA256SUMS)
+
+      - name: Upload clean I2V evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-zero-i2v-clean-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-zero-i2v-clean/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

@@ -1,4 +1,4 @@
-name: BIEN ANH ZeroGPU I2V Final Candidate
+name: BIEN ANH ZeroGPU TV Drama Candidate
 
 on:
   pull_request:
@@ -6,17 +6,18 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/bien-anh-zero-i2v-final-candidate.yml'
+      - 'compute/bien-anh-zero-i2v/run_zero_wan_tight.py'
 
 permissions:
   contents: read
 
 concurrency:
-  group: bien-anh-zero-i2v-final-${{ github.event.pull_request.number }}
+  group: bien-anh-zero-i2v-tvdrama-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  final-candidate:
-    name: Wan2.2 ZeroGPU tight-preservation I2V
+  tv-drama-candidate:
+    name: Wan2.2 ZeroGPU grounded TV-drama I2V
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -37,12 +38,16 @@ jobs:
           test "${{ github.event.repository.private }}" = "false"
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          grep -q 'premium television drama' compute/bien-anh-zero-i2v/run_zero_wan_tight.py
+          grep -q 'Rec.709' compute/bien-anh-zero-i2v/run_zero_wan_tight.py
 
-      - name: Install bounded Gradio client
+      - name: Install bounded client and tools
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --no-cache-dir 'gradio_client>=1.8,<2' 'Pillow>=10,<12'
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Build signage-free 16:9 authority crop
         shell: bash
@@ -54,49 +59,63 @@ jobs:
           from PIL import Image
           src=Image.open('inputs/reference-sheet.jpg').convert('RGB')
           w,h=src.size
-          if w < 1200 or h < 800: raise SystemExit(f'unexpected_reference_size:{src.size}')
-          # Remove all overlay text, bottom metadata, and the Burmese-signage cluster at far left.
+          if w < 1200 or h < 800:
+              raise SystemExit(f'unexpected_reference_size:{src.size}')
+          # Preserve the long corridor, wet floor and worker settlement while removing
+          # overlay text, the bottom QC strip and the far-left signage cluster.
           left=300; top=72; right=min(w-6,1530)
           width=right-left; target_h=round(width*9/16)
           max_bottom=min(h,837)
           top=max(72, max_bottom-target_h)
           crop=src.crop((left,top,right,top+target_h))
-          crop.save('inputs/reference-final.jpg',quality=96,subsampling=0)
-          print('reference_final', crop.size)
+          crop.save('inputs/reference-tvdrama.jpg',quality=96,subsampling=0)
+          print('reference_tvdrama', crop.size)
           PY
-          test -s inputs/reference-final.jpg
+          test -s inputs/reference-tvdrama.jpg
+          sha256sum inputs/reference-tvdrama.jpg
 
-      - name: Generate tight true-I2V candidate on public ZeroGPU
+      - name: Generate true TV-drama I2V on public ZeroGPU
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p outputs/bien-anh-zero-i2v-final
+          mkdir -p outputs/bien-anh-tvdrama
           python compute/bien-anh-zero-i2v/run_zero_wan_tight.py \
-            --reference inputs/reference-final.jpg \
-            --output-dir outputs/bien-anh-zero-i2v-final \
+            --reference inputs/reference-tvdrama.jpg \
+            --output-dir outputs/bien-anh-tvdrama \
             --source-revision "${{ github.event.pull_request.head.sha }}"
-          test -s outputs/bien-anh-zero-i2v-final/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_FINAL_CANDIDATE.mp4
-          test -s outputs/bien-anh-zero-i2v-final/ZERO_I2V_TIGHT_RECEIPT.json
+          test -s outputs/bien-anh-tvdrama/EP01_SC01_SH01_CAM01_WAN22_TVDRAMA_RAW.mp4
+          test -s outputs/bien-anh-tvdrama/TV_DRAMA_I2V_RECEIPT.json
 
-      - name: Extract temporal QC frames
+      - name: Conform to restrained 720p24 television-drama master
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          v='outputs/bien-anh-zero-i2v-final/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_FINAL_CANDIDATE.mp4'
-          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$v" \
-            > outputs/bien-anh-zero-i2v-final/FFPROBE.json
-          ffmpeg -y -i "$v" -vf "select='eq(n,0)+eq(n,12)+eq(n,24)+eq(n,36)'" -vsync vfr \
-            outputs/bien-anh-zero-i2v-final/qc-frame-%02d.png
-          cp inputs/reference-final.jpg outputs/bien-anh-zero-i2v-final/REFERENCE_FINAL.jpg
-          (cd outputs/bien-anh-zero-i2v-final && sha256sum * > SHA256SUMS)
+          raw='outputs/bien-anh-tvdrama/EP01_SC01_SH01_CAM01_WAN22_TVDRAMA_RAW.mp4'
+          master='outputs/bien-anh-tvdrama/EP01_SC01_SH01_CAM01_TVDRAMA_MASTER_720P24.mp4'
+          # Keep the generated geometry intact; only cadence, resolution and a very mild
+          # broadcast-neutral grade are applied. No synthetic camera move is introduced here.
+          ffmpeg -y -i "$raw" \
+            -vf "scale=1280:720:flags=lanczos,minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,eq=contrast=1.025:brightness=-0.006:saturation=0.94:gamma=1.00,setsar=1" \
+            -an -c:v libx264 -profile:v high -level 4.0 -pix_fmt yuv420p -preset medium -crf 17 -movflags +faststart "$master"
+          test -s "$master"
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,avg_frame_rate -show_entries format=duration -of json "$master" \
+            > outputs/bien-anh-tvdrama/FFPROBE_MASTER.json
 
-      - name: Upload final-candidate evidence
+      - name: Extract TV-drama temporal QC frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          master='outputs/bien-anh-tvdrama/EP01_SC01_SH01_CAM01_TVDRAMA_MASTER_720P24.mp4'
+          ffmpeg -y -i "$master" -vf "select='eq(n,0)+eq(n,18)+eq(n,36)+eq(n,54)'" -vsync vfr \
+            outputs/bien-anh-tvdrama/qc-tv-frame-%02d.png
+          cp inputs/reference-tvdrama.jpg outputs/bien-anh-tvdrama/REFERENCE_TVDRAMA.jpg
+          (cd outputs/bien-anh-tvdrama && find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > outputs/bien-anh-tvdrama/SHA256SUMS
+
+      - name: Upload TV-drama candidate evidence
         uses: actions/upload-artifact@v4
         with:
-          name: bien-anh-zero-i2v-final-${{ github.run_id }}-${{ github.run_attempt }}
-          path: outputs/bien-anh-zero-i2v-final/
+          name: bien-anh-tvdrama-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-tvdrama/
           if-no-files-found: error
           retention-days: 1
           compression-level: 6

@@ -1,0 +1,85 @@
+name: D'AUBE Portable Native Engine Proof
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/engine-portable-native-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove-native-engines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Prove zero-spend public-runner context
+        run: |
+          echo "repo=${GITHUB_REPOSITORY}"
+          echo "visibility=public"
+          echo "runner=${RUNNER_OS}/${RUNNER_ARCH}"
+          test "${GITHUB_REPOSITORY}" = "daubesonntag-dotcom/daube-public-release"
+
+      - name: Install and prove Godot 4.7.2 portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/daube-engines/godot"
+          cd "$RUNNER_TEMP/daube-engines"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  godot.zip' | sha256sum -c -
+          unzip -q godot.zip -d godot
+          chmod +x godot/Godot_v4.7.2-stable_linux.x86_64
+          godot/Godot_v4.7.2-stable_linux.x86_64 --headless --version | tee godot-version.txt
+          grep -q '^4\.7\.2' godot-version.txt
+
+      - name: Install and prove Blender 5.2.1 portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/daube-engines"
+          BASE='https://download.blender.org/release/Blender5.2'
+          ARCHIVE='blender-5.2.1-linux-x64.tar.xz'
+          curl -fL --retry 3 --retry-delay 2 -o "$ARCHIVE" "$BASE/$ARCHIVE"
+          curl -fL --retry 3 --retry-delay 2 -o blender.sha256 "$BASE/blender-5.2.1.sha256"
+          EXPECTED="$(awk -v f="$ARCHIVE" '$2==f || $2=="*"f {print $1; exit}' blender.sha256)"
+          test "${#EXPECTED}" -eq 64
+          echo "$EXPECTED  $ARCHIVE" | sha256sum -c -
+          tar -xJf "$ARCHIVE"
+          BLENDER="$RUNNER_TEMP/daube-engines/blender-5.2.1-linux-x64/blender"
+          test -x "$BLENDER"
+          "$BLENDER" --version | tee blender-version.txt
+          grep -q '^Blender 5\.2\.1' blender-version.txt
+
+      - name: Emit machine-readable receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/daube-engines"
+          GODOT_VERSION="$(head -1 godot-version.txt | tr -d '\r')"
+          BLENDER_VERSION="$(head -1 blender-version.txt | tr -d '\r')"
+          python3 - <<'PY'
+          import json, os
+          receipt = {
+            'schema': 'daube.public-native-engine-proof.v1',
+            'repository': os.environ['GITHUB_REPOSITORY'],
+            'runId': os.environ['GITHUB_RUN_ID'],
+            'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
+            'runnerOs': os.environ['RUNNER_OS'],
+            'runnerArch': os.environ['RUNNER_ARCH'],
+            'zeroSpendPublicSafe': True,
+            'privateRepositoryCheckout': False,
+            'engines': {
+              'godot': {'status': 'ACTIVE', 'version': open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','godot-version.txt')).read().strip()},
+              'blender': {'status': 'ACTIVE', 'version': open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','blender-version.txt')).read().splitlines()[0].strip()},
+            },
+          }
+          print(json.dumps(receipt, sort_keys=True))
+          with open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','receipt.json'),'w') as f:
+            json.dump(receipt, f, indent=2, sort_keys=True)
+            f.write('\n')
+          PY
+          cat receipt.json

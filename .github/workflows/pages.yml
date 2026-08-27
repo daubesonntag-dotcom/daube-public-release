@@ -1,9 +1,12 @@
-name: Publish D’AUBE Public Site
+name: Publish D’AUBE Release Mirror
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      release_manifest:
+        description: "Path to an approved daube.public-release.handoff.v1 manifest on this exact ref"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,21 +16,30 @@ permissions:
   statuses: write
 
 concurrency:
-  group: pages
+  group: pages-release-mirror
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  deploy-mirror:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout
+      - name: Checkout exact dispatched ref
         uses: actions/checkout@v7
 
-      - name: Ensure GitHub Pages workflow hosting is enabled
+      - name: Validate approved release handoff before any publication
+        shell: bash
+        env:
+          RELEASE_MANIFEST: ${{ inputs.release_manifest }}
+        run: |
+          set -euo pipefail
+          test -n "$RELEASE_MANIFEST"
+          node scripts/validate-release-mirror-handoff.mjs "$RELEASE_MANIFEST"
+
+      - name: Fail closed if GitHub Pages still owns canonical apex
         id: pages-preflight
         shell: bash
         env:
@@ -57,61 +69,92 @@ jobs:
             exit 1
           fi
 
-          build_type="$(python3 -c "import json; print((json.load(open('/tmp/pages.json', encoding='utf-8')).get('build_type') or ''))")"
-          echo "Pages enabled with build type: ${build_type:-unknown}"
+          readarray -t page_fields < <(python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/pages.json', encoding='utf-8'))
+          print(data.get('build_type') or '')
+          print(data.get('cname') or '')
+          print(data.get('html_url') or '')
+          PY
+          )
+          build_type="${page_fields[0]:-}"
+          cname="${page_fields[1]:-}"
+          html_url="${page_fields[2]:-}"
+
+          case "${cname,,}" in
+            daubesonntag.com|www.daubesonntag.com)
+              echo "::error title=Homepage authority collision::GitHub Pages custom domain is ${cname}. Canonical apex authority belongs to daube-web/Cloudflare. Detach the Pages custom domain before publishing this release mirror."
+              exit 3
+              ;;
+          esac
+
+          echo "Pages mirror preflight OK: build_type=${build_type:-unknown}; cname=${cname:-none}; url=${html_url:-unknown}"
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
-      - name: Upload current public site
+      - name: Upload immutable public release projection
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
 
-      - name: Deploy public site
+      - name: Deploy release mirror
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify deployed endpoint matches current homepage artifact
+      - name: Verify release mirror matches approved artifact
         shell: bash
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_MANIFEST: ${{ inputs.release_manifest }}
         run: |
           set -euo pipefail
           test -n "$PAGE_URL"
-          test -s index.html
-          expected_sha="$(sha256sum index.html | awk '{print $1}')"
+          case "$PAGE_URL" in
+            https://daubesonntag.com*|https://www.daubesonntag.com*)
+              echo "::error title=Canonical apex is not a mirror endpoint::Refusing to treat ${PAGE_URL} as daube-public-release authority."
+              exit 3
+              ;;
+          esac
+
+          expected_sha="$(python3 - "$RELEASE_MANIFEST" <<'PY'
+          import json, sys
+          print(json.load(open(sys.argv[1], encoding='utf-8'))['artifactDigest'])
+          PY
+          )"
           verified=0
           code=unknown
           actual_sha=unknown
           for attempt in $(seq 1 12); do
-            code="$(curl --silent --show-error --location --output /tmp/daube-live.html --write-out '%{http_code}' "$PAGE_URL" || true)"
-            if [[ "$code" == "200" ]] && test -s /tmp/daube-live.html; then
-              actual_sha="$(sha256sum /tmp/daube-live.html | awk '{print $1}')"
+            code="$(curl --silent --show-error --location --output /tmp/daube-release-mirror.html --write-out '%{http_code}' "$PAGE_URL" || true)"
+            if [[ "$code" == "200" ]] && test -s /tmp/daube-release-mirror.html; then
+              actual_sha="$(sha256sum /tmp/daube-release-mirror.html | awk '{print $1}')"
               if [[ "$actual_sha" == "$expected_sha" ]] \
-                && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-live.html \
-                && grep -q 'Meaning,' /tmp/daube-live.html; then
+                && grep -q 'Public release channel' /tmp/daube-release-mirror.html \
+                && grep -q 'daube-web' /tmp/daube-release-mirror.html; then
                 verified=1
                 break
               fi
             fi
             sleep 2
           done
+
           if [[ "$verified" != "1" ]]; then
-            echo "::error title=Public artifact readback failed::Endpoint did not converge to the exact current index.html artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
+            echo "::error title=Release mirror readback failed::Mirror did not converge to the approved handoff artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
             exit 1
           fi
+
           {
-            echo '## Live public artifact verified'
+            echo '## Release mirror verified'
             echo
-            echo "Endpoint: $PAGE_URL"
-            echo "Current index.html SHA-256: ${expected_sha}"
-            echo 'RẠNG TRONG marker: VERIFIED'
-            echo 'Meaning marker: VERIFIED'
-            echo 'Exact current homepage bytes: VERIFIED'
+            echo "Mirror endpoint: $PAGE_URL"
+            echo "Approved index.html SHA-256: ${expected_sha}"
+            echo "Release handoff: ${RELEASE_MANIFEST}"
+            echo 'Canonical apex authority: daube-web / Cloudflare (NOT this repository)'
+            echo 'Exact approved release mirror bytes: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish observable commit status
+      - name: Publish observable mirror status
         if: always()
         shell: bash
         env:
@@ -120,102 +163,16 @@ jobs:
         run: |
           set -euo pipefail
           case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='GitHub Pages exact current homepage publication verified' ;;
-            cancelled) STATE=error; DESCRIPTION='GitHub Pages publication cancelled' ;;
-            *) STATE=failure; DESCRIPTION='GitHub Pages exact current homepage publication failed' ;;
+            success) STATE=success; DESCRIPTION='GitHub Pages release mirror verified; canonical apex remains external' ;;
+            cancelled) STATE=error; DESCRIPTION='GitHub Pages release mirror publication cancelled' ;;
+            *) STATE=failure; DESCRIPTION='GitHub Pages release mirror publication blocked or failed' ;;
           esac
           export STATE DESCRIPTION
           payload="$(python3 - <<'PY'
           import json, os
           print(json.dumps({
             'state': os.environ['STATE'],
-            'context': 'ci/github-pages: publish',
-            'description': os.environ['DESCRIPTION'][:140],
-            'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
-          }))
-          PY
-          )"
-          curl --fail --silent --show-error \
-            --request POST \
-            --header 'Accept: application/vnd.github+json' \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header 'X-GitHub-Api-Version: 2022-11-28' \
-            --header 'Content-Type: application/json' \
-            --data "$payload" \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
-
-  https-proof:
-    needs: deploy
-    if: ${{ needs.deploy.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    steps:
-      - name: Checkout current homepage artifact
-        uses: actions/checkout@v7
-
-      - name: Verify canonical HTTPS apex matches current homepage artifact
-        id: verify-https
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s index.html
-          expected_sha="$(sha256sum index.html | awk '{print $1}')"
-          verified=0
-          code=unknown
-          actual_sha=unknown
-          for attempt in $(seq 1 15); do
-            code="$(curl --silent --show-error --output /tmp/daube-https.html --write-out '%{http_code}' https://daubesonntag.com/ || true)"
-            if [[ "$code" == "200" ]] && test -s /tmp/daube-https.html; then
-              actual_sha="$(sha256sum /tmp/daube-https.html | awk '{print $1}')"
-              if [[ "$actual_sha" == "$expected_sha" ]] \
-                && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-https.html \
-                && grep -q 'Meaning,' /tmp/daube-https.html; then
-                verified=1
-                break
-              fi
-            fi
-            echo "HTTPS readback attempt ${attempt}: code=${code:-curl-error}; expected_sha=${expected_sha}; actual_sha=${actual_sha}"
-            sleep 2
-          done
-          if [[ "$verified" != "1" ]]; then
-            echo "::error title=Canonical HTTPS readback failed::HTTPS apex did not match the exact current homepage artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
-            exit 1
-          fi
-
-          effective_url="$(curl --fail --silent --show-error --location \
-            --output /tmp/daube-http-follow.html --write-out '%{url_effective}' \
-            http://daubesonntag.com/ || true)"
-          if [[ "$effective_url" == https://daubesonntag.com* ]]; then
-            echo 'HTTP_UPGRADE=verified' >> "$GITHUB_ENV"
-          else
-            echo 'HTTP_UPGRADE=not-enforced' >> "$GITHUB_ENV"
-            echo "::warning title=HTTP transport upgrade not enforced::Direct HTTPS is verified, but HTTP effective URL is ${effective_url:-unknown}. This is a separate Pages setting hardening item."
-          fi
-          {
-            echo '## Canonical HTTPS proof'
-            echo "- https://daubesonntag.com/: 200 + exact current homepage SHA-256 ${expected_sha} VERIFIED"
-            echo "- HTTP effective URL: ${effective_url:-unknown}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Publish HTTPS proof status
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          set -euo pipefail
-          case "$JOB_STATUS" in
-            success) STATE=success; DESCRIPTION='Canonical HTTPS apex matches exact current homepage artifact' ;;
-            cancelled) STATE=error; DESCRIPTION='Canonical HTTPS homepage proof cancelled' ;;
-            *) STATE=failure; DESCRIPTION='Canonical HTTPS exact-homepage proof failed' ;;
-          esac
-          export STATE DESCRIPTION
-          payload="$(python3 - <<'PY'
-          import json, os
-          print(json.dumps({
-            'state': os.environ['STATE'],
-            'context': 'ci/github-pages: https',
+            'context': 'ci/github-pages: mirror',
             'description': os.environ['DESCRIPTION'][:140],
             'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
           }))

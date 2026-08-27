@@ -13,8 +13,9 @@ on:
       - "**/*.webp"
       - ".daube/visual-locks/**"
       - ".daube/releases/**"
+      - "release-authority.v1.json"
       - "scripts/ux-quality-audit.mjs"
-      - "scripts/homepage-browser-evidence.mjs"
+      - "scripts/release-channel-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
       - "tests/free-first-homepage-convergence.test.mjs"
@@ -32,8 +33,9 @@ on:
       - "**/*.webp"
       - ".daube/visual-locks/**"
       - ".daube/releases/**"
+      - "release-authority.v1.json"
       - "scripts/ux-quality-audit.mjs"
-      - "scripts/homepage-browser-evidence.mjs"
+      - "scripts/release-channel-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
       - "tests/free-first-homepage-convergence.test.mjs"
@@ -56,20 +58,20 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Verify approved homepage visual lock contract
+      - name: Verify release-channel authority contract
         run: node --test tests/founder-visual-lock-homepage.test.mjs
-      - name: Verify Free-First homepage convergence
+      - name: Verify Free-First provenance without homepage authority
         run: node --test tests/free-first-homepage-convergence.test.mjs
       - name: Audit UX, accessibility, email safety and asset budgets
         run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
-      - name: Render approved desktop, mobile and reduced-motion homepage evidence in Chromium
-        run: node scripts/homepage-browser-evidence.mjs
-      - name: Upload audit and approved-mockup browser evidence
+      - name: Render desktop, mobile and reduced-motion release-channel evidence in Chromium
+        run: node scripts/release-channel-browser-evidence.mjs
+      - name: Upload audit and release-channel browser evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ux-quality-report
           path: |
             artifacts/ux-quality-report.json
-            .daube/evidence/approved-mockup-homepage/
+            .daube/evidence/release-channel-browser/
           retention-days: 7

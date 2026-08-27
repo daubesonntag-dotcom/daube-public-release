@@ -38,8 +38,8 @@ jobs:
           test "${{ github.event.repository.private }}" = "false"
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-          grep -qi 'FINAL_REALITY_LOCK' compute/bien-anh-v23/final_reality_lock.py
-          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/final_reality_lock.py; then
+          grep -qi 'FINAL_REALITY_LOCK' compute/bien-anh-v23/final_reality_lock_converged.py
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/final_reality_lock_converged.py; then
             echo '::error::Private character/story marker detected in public FINAL REALITY LOCK source.'
             exit 2
           fi
@@ -85,8 +85,6 @@ jobs:
           get weathered_planks_diff_2k.jpg "$root/weathered_planks/weathered_planks_diff_2k.jpg"
           get weathered_planks_nor_gl_2k.jpg "$root/weathered_planks/weathered_planks_nor_gl_2k.jpg"
           get weathered_planks_rough_2k.jpg "$root/weathered_planks/weathered_planks_rough_2k.jpg"
-          get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
-          # Keep legacy 1k assets required by imported scene stages.
           root1='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
           get dirty_concrete_diff_1k.jpg "$root1/dirty_concrete/dirty_concrete_diff_1k.jpg"
           get dirty_concrete_nor_gl_1k.jpg "$root1/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
@@ -103,8 +101,8 @@ jobs:
           get overcast_soil_puresky_1k.hdr 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/overcast_soil_puresky_1k.hdr'
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
           printf '%s\n' \
-            'Poly Haven CC0 PBR/HDRI assets; 2K for FINAL visible surfaces, 1K retained for imported legacy stages.' \
-            'Wikimedia Commons CC0 Hlaing Thar Yar image used only as distant VFX set-extension, not topology authority.' \
+            'Poly Haven CC0 PBR/HDRI assets; 2K FINAL surfaces plus 1K legacy imports.' \
+            'No photo-card set extension in converged FINAL WIDE.' \
             > "$dir/PROVENANCE.txt"
 
       - name: Download verified CC0 physical props
@@ -123,7 +121,7 @@ jobs:
           out='outputs/bien-anh-final-reality-lock'
           mkdir -p "$out"
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/final_reality_lock.py -- \
+            --python compute/bien-anh-v23/final_reality_lock_converged.py -- \
             --output-dir "$out" \
             --source-revision "${{ github.event.pull_request.head.sha }}"
           test -s "$out/bien-anh-v23-public-bootstrap.blend"

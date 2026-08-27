@@ -1,0 +1,93 @@
+name: BIEN ANH ZeroGPU Wan I2V
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'compute/bien-anh-zero-i2v/**'
+      - '.github/workflows/bien-anh-zero-i2v.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-zero-i2v-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  zero-i2v:
+    name: Wan2.2 ZeroGPU true I2V candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DAUBE_ZERO_SPEND_MODE: '1'
+      REFERENCE_URL: 'https://cdn.creativeclaw.co/u/218f016f/images/8ed30be9-c008-40e6-ad89-43359ae04bd4.jpg'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove public zero-spend boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          grep -q 'automaticPaidSpend' compute/bien-anh-zero-i2v/run_zero_wan.py
+          grep -q 'kulkas2pintu/wan555' compute/bien-anh-zero-i2v/run_zero_wan.py
+
+      - name: Install bounded Gradio client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-cache-dir 'gradio_client>=1.8,<2'
+
+      - name: Download Founder-approved reference frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs
+          curl -fL --retry 4 --retry-delay 2 -o inputs/hlaing-tharyar-reference.jpg "$REFERENCE_URL"
+          test -s inputs/hlaing-tharyar-reference.jpg
+          sha256sum inputs/hlaing-tharyar-reference.jpg
+
+      - name: Generate true image-to-video candidate on public ZeroGPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/bien-anh-zero-i2v
+          python compute/bien-anh-zero-i2v/run_zero_wan.py \
+            --reference inputs/hlaing-tharyar-reference.jpg \
+            --output-dir outputs/bien-anh-zero-i2v \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          test -s outputs/bien-anh-zero-i2v/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V.mp4
+          test -s outputs/bien-anh-zero-i2v/ZERO_I2V_RECEIPT.json
+          grep -q 'ZERO_GPU_I2V_CANDIDATE_REVIEW_REQUIRED' outputs/bien-anh-zero-i2v/ZERO_I2V_RECEIPT.json
+
+      - name: Probe motion evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,duration -of json \
+            outputs/bien-anh-zero-i2v/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V.mp4 \
+            > outputs/bien-anh-zero-i2v/FFPROBE.json
+          ffmpeg -y -i outputs/bien-anh-zero-i2v/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V.mp4 \
+            -vf "select='eq(n,0)+eq(n,16)+eq(n,32)'" -vsync vfr \
+            outputs/bien-anh-zero-i2v/qc-frame-%02d.png
+          (cd outputs/bien-anh-zero-i2v && sha256sum * > SHA256SUMS)
+
+      - name: Upload bounded I2V evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-zero-i2v-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-zero-i2v/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

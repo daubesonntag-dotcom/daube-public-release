@@ -1,0 +1,102 @@
+name: BIEN ANH ZeroGPU I2V Final Candidate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/bien-anh-zero-i2v-final-candidate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-zero-i2v-final-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  final-candidate:
+    name: Wan2.2 ZeroGPU tight-preservation I2V
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DAUBE_ZERO_SPEND_MODE: '1'
+      REFERENCE_URL: 'https://cdn.creativeclaw.co/u/218f016f/images/8ed30be9-c008-40e6-ad89-43359ae04bd4.jpg'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove zero-spend boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+
+      - name: Install bounded Gradio client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-cache-dir 'gradio_client>=1.8,<2' 'Pillow>=10,<12'
+
+      - name: Build signage-free 16:9 authority crop
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inputs
+          curl -fL --retry 4 --retry-delay 2 -o inputs/reference-sheet.jpg "$REFERENCE_URL"
+          python - <<'PY'
+          from PIL import Image
+          src=Image.open('inputs/reference-sheet.jpg').convert('RGB')
+          w,h=src.size
+          if w < 1200 or h < 800: raise SystemExit(f'unexpected_reference_size:{src.size}')
+          # Remove all overlay text, bottom metadata, and the Burmese-signage cluster at far left.
+          left=300; top=72; right=min(w-6,1530)
+          width=right-left; target_h=round(width*9/16)
+          max_bottom=min(h,837)
+          top=max(72, max_bottom-target_h)
+          crop=src.crop((left,top,right,top+target_h))
+          crop.save('inputs/reference-final.jpg',quality=96,subsampling=0)
+          print('reference_final', crop.size)
+          PY
+          test -s inputs/reference-final.jpg
+
+      - name: Generate tight true-I2V candidate on public ZeroGPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p outputs/bien-anh-zero-i2v-final
+          python compute/bien-anh-zero-i2v/run_zero_wan_tight.py \
+            --reference inputs/reference-final.jpg \
+            --output-dir outputs/bien-anh-zero-i2v-final \
+            --source-revision "${{ github.event.pull_request.head.sha }}"
+          test -s outputs/bien-anh-zero-i2v-final/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_FINAL_CANDIDATE.mp4
+          test -s outputs/bien-anh-zero-i2v-final/ZERO_I2V_TIGHT_RECEIPT.json
+
+      - name: Extract temporal QC frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          v='outputs/bien-anh-zero-i2v-final/EP01_SC01_SH01_CAM01_WAN22_ZERO_I2V_FINAL_CANDIDATE.mp4'
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$v" \
+            > outputs/bien-anh-zero-i2v-final/FFPROBE.json
+          ffmpeg -y -i "$v" -vf "select='eq(n,0)+eq(n,12)+eq(n,24)+eq(n,36)'" -vsync vfr \
+            outputs/bien-anh-zero-i2v-final/qc-frame-%02d.png
+          cp inputs/reference-final.jpg outputs/bien-anh-zero-i2v-final/REFERENCE_FINAL.jpg
+          (cd outputs/bien-anh-zero-i2v-final && sha256sum * > SHA256SUMS)
+
+      - name: Upload final-candidate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-zero-i2v-final-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-zero-i2v-final/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

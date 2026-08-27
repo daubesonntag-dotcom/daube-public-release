@@ -19,7 +19,7 @@ jobs:
   final-wide:
     name: FINAL REALITY LOCK physical WIDE
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
       BLENDER_VERSION: '5.2.0'
       DAUBE_ZERO_SPEND_MODE: '1'
@@ -38,9 +38,9 @@ jobs:
           test "${{ github.event.repository.private }}" = "false"
           test "$DAUBE_ZERO_SPEND_MODE" = "1"
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-          grep -qi 'FINAL_REALITY_LOCK' compute/bien-anh-v23/final_reality_lock_converged.py
-          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/final_reality_lock_converged.py; then
-            echo '::error::Private character/story marker detected in public FINAL REALITY LOCK source.'
+          grep -q 'CLEAN_REBUILD_FROM_ZERO' compute/bien-anh-v23/final_reality_lock_clean.py
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' compute/bien-anh-v23/final_reality_lock_clean.py; then
+            echo '::error::Private marker detected in public clean scene.'
             exit 2
           fi
 
@@ -50,9 +50,8 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libegl1
-          ldconfig -p | grep -F 'libEGL.so.1'
 
-      - name: Download official Blender 5.2 LTS portable
+      - name: Download Blender 5.2 LTS
         shell: bash
         run: |
           set -euo pipefail
@@ -60,17 +59,14 @@ jobs:
           curl -fL --retry 4 --retry-delay 2 -o blender.tar.xz "$base/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           curl -fL --retry 4 --retry-delay 2 -o blender.sha256 "$base/blender-${BLENDER_VERSION}.sha256"
           expected="$(grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | awk '{print $1}')"
-          test -n "$expected"
           echo "$expected  blender.tar.xz" | sha256sum -c -
           tar -xf blender.tar.xz
-          "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
 
-      - name: Download fixed CC0 FINAL REALITY assets
+      - name: Download only FINAL CC0 PBR and HDRI
         shell: bash
         run: |
           set -euo pipefail
-          dir='compute/bien-anh-v23/assets_runtime'
-          mkdir -p "$dir"
+          dir='compute/bien-anh-v23/assets_runtime'; mkdir -p "$dir"
           get() { curl -fL --retry 4 --retry-delay 2 -o "$dir/$1" "$2"; test -s "$dir/$1"; }
           root='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k'
           get dirty_concrete_diff_2k.jpg "$root/dirty_concrete/dirty_concrete_diff_2k.jpg"
@@ -85,52 +81,23 @@ jobs:
           get weathered_planks_diff_2k.jpg "$root/weathered_planks/weathered_planks_diff_2k.jpg"
           get weathered_planks_nor_gl_2k.jpg "$root/weathered_planks/weathered_planks_nor_gl_2k.jpg"
           get weathered_planks_rough_2k.jpg "$root/weathered_planks/weathered_planks_rough_2k.jpg"
-          get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
-          root1='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
-          get dirty_concrete_diff_1k.jpg "$root1/dirty_concrete/dirty_concrete_diff_1k.jpg"
-          get dirty_concrete_nor_gl_1k.jpg "$root1/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
-          get dirty_concrete_rough_1k.jpg "$root1/dirty_concrete/dirty_concrete_rough_1k.jpg"
-          get worn_plaster_wall_diff_1k.jpg "$root1/worn_plaster_wall/worn_plaster_wall_diff_1k.jpg"
-          get worn_plaster_wall_nor_gl_1k.jpg "$root1/worn_plaster_wall/worn_plaster_wall_nor_gl_1k.jpg"
-          get worn_plaster_wall_rough_1k.jpg "$root1/worn_plaster_wall/worn_plaster_wall_rough_1k.jpg"
-          get worn_corrugated_iron_diff_1k.jpg "$root1/worn_corrugated_iron/worn_corrugated_iron_diff_1k.jpg"
-          get worn_corrugated_iron_nor_gl_1k.jpg "$root1/worn_corrugated_iron/worn_corrugated_iron_nor_gl_1k.jpg"
-          get worn_corrugated_iron_rough_1k.jpg "$root1/worn_corrugated_iron/worn_corrugated_iron_rough_1k.jpg"
-          get weathered_planks_diff_1k.jpg "$root1/weathered_planks/weathered_planks_diff_1k.jpg"
-          get weathered_planks_nor_gl_1k.jpg "$root1/weathered_planks/weathered_planks_nor_gl_1k.jpg"
-          get weathered_planks_rough_1k.jpg "$root1/weathered_planks/weathered_planks_rough_1k.jpg"
           get overcast_soil_puresky_1k.hdr 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/overcast_soil_puresky_1k.hdr'
           sha256sum "$dir"/* > "$dir/SHA256SUMS"
-          printf '%s\n' \
-            'Poly Haven CC0 PBR/HDRI assets; 2K FINAL surfaces plus 1K legacy imports.' \
-            'Hlaing Thar Yar CC0 photo is loaded by the inherited stage then hidden before final render; no photo-card appears in final pixels.' \
-            > "$dir/PROVENANCE.txt"
 
-      - name: Download verified CC0 physical props
+      - name: Render clean FINAL REALITY LOCK WIDE
         shell: bash
         run: |
           set -euo pipefail
-          python3 compute/bien-anh-v23/polyhaven_bundle.py \
-            plastic_bottle_gallon plastic_broom \
-            --output compute/bien-anh-v23/assets_runtime/polyhaven \
-            --max-bytes 120000000
-
-      - name: Render FINAL REALITY LOCK WIDE
-        shell: bash
-        run: |
-          set -euo pipefail
-          out='outputs/bien-anh-final-reality-lock'
-          mkdir -p "$out"
+          out='outputs/bien-anh-final-reality-lock'; mkdir -p "$out"
           "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
-            --python compute/bien-anh-v23/final_reality_lock_converged.py -- \
+            --python compute/bien-anh-v23/final_reality_lock_clean.py -- \
             --output-dir "$out" \
             --source-revision "${{ github.event.pull_request.head.sha }}"
-          test -s "$out/bien-anh-v23-public-bootstrap.blend"
-          test -s "$out/plate-wide-interior-v23-public-bootstrap.png"
-          test -s "$out/bien-anh-v23-public-bootstrap-receipt.json"
-          grep -q 'FINAL_REALITY_LOCK_WIDE_CANDIDATE_REVIEW_REQUIRED' "$out/bien-anh-v23-public-bootstrap-receipt.json"
+          test -s "$out/bien-anh-final-reality-lock.blend"
+          test -s "$out/EP01_SC01_SH01_CAM01_WIDE_FINAL_REALITY_LOCK.png"
+          test -s "$out/FINAL_REALITY_LOCK_RECEIPT.json"
+          grep -q 'FINAL_REALITY_LOCK_WIDE_CANDIDATE_REVIEW_REQUIRED' "$out/FINAL_REALITY_LOCK_RECEIPT.json"
           (cd "$out" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum) > "$out/SHA256SUMS"
-          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt "$out/PBR-PROVENANCE.txt"
 
       - name: Upload FINAL REALITY LOCK evidence
         uses: actions/upload-artifact@v4

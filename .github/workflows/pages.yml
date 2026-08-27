@@ -2,6 +2,11 @@ name: Publish D’AUBE Release Mirror
 
 on:
   workflow_dispatch:
+    inputs:
+      release_manifest:
+        description: "Path to an approved daube.public-release.handoff.v1 manifest on this exact ref"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,8 +27,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout
+      - name: Checkout exact dispatched ref
         uses: actions/checkout@v7
+
+      - name: Validate approved release handoff before any publication
+        shell: bash
+        env:
+          RELEASE_MANIFEST: ${{ inputs.release_manifest }}
+        run: |
+          set -euo pipefail
+          test -n "$RELEASE_MANIFEST"
+          node scripts/validate-release-mirror-handoff.mjs "$RELEASE_MANIFEST"
 
       - name: Fail closed if GitHub Pages still owns canonical apex
         id: pages-preflight
@@ -88,10 +102,11 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify release mirror matches current artifact
+      - name: Verify release mirror matches approved artifact
         shell: bash
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_MANIFEST: ${{ inputs.release_manifest }}
         run: |
           set -euo pipefail
           test -n "$PAGE_URL"
@@ -102,8 +117,11 @@ jobs:
               ;;
           esac
 
-          test -s index.html
-          expected_sha="$(sha256sum index.html | awk '{print $1}')"
+          expected_sha="$(python3 - "$RELEASE_MANIFEST" <<'PY'
+          import json, sys
+          print(json.load(open(sys.argv[1], encoding='utf-8'))['artifactDigest'])
+          PY
+          )"
           verified=0
           code=unknown
           actual_sha=unknown
@@ -112,8 +130,8 @@ jobs:
             if [[ "$code" == "200" ]] && test -s /tmp/daube-release-mirror.html; then
               actual_sha="$(sha256sum /tmp/daube-release-mirror.html | awk '{print $1}')"
               if [[ "$actual_sha" == "$expected_sha" ]] \
-                && grep -q 'D’AUBE SONNTAG · RẠNG TRONG' /tmp/daube-release-mirror.html \
-                && grep -q 'Meaning,' /tmp/daube-release-mirror.html; then
+                && grep -q 'Public release channel' /tmp/daube-release-mirror.html \
+                && grep -q 'daube-web' /tmp/daube-release-mirror.html; then
                 verified=1
                 break
               fi
@@ -122,7 +140,7 @@ jobs:
           done
 
           if [[ "$verified" != "1" ]]; then
-            echo "::error title=Release mirror readback failed::Mirror did not converge to the exact current index.html artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
+            echo "::error title=Release mirror readback failed::Mirror did not converge to the approved handoff artifact. expected_sha=${expected_sha} actual_sha=${actual_sha} code=${code}"
             exit 1
           fi
 
@@ -130,9 +148,10 @@ jobs:
             echo '## Release mirror verified'
             echo
             echo "Mirror endpoint: $PAGE_URL"
-            echo "Current index.html SHA-256: ${expected_sha}"
+            echo "Approved index.html SHA-256: ${expected_sha}"
+            echo "Release handoff: ${RELEASE_MANIFEST}"
             echo 'Canonical apex authority: daube-web / Cloudflare (NOT this repository)'
-            echo 'Exact release mirror bytes: VERIFIED'
+            echo 'Exact approved release mirror bytes: VERIFIED'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish observable mirror status

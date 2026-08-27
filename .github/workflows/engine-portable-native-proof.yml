@@ -22,7 +22,7 @@ jobs:
           echo "runner=${RUNNER_OS}/${RUNNER_ARCH}"
           test "${GITHUB_REPOSITORY}" = "daubesonntag-dotcom/daube-public-release"
 
-      - name: Install and prove Godot 4.7.2 portable
+      - name: Install and execute Godot 4.7.2 portable
         shell: bash
         run: |
           set -euo pipefail
@@ -33,11 +33,20 @@ jobs:
             https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
           echo 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4  godot.zip' | sha256sum -c -
           unzip -q godot.zip -d godot
-          chmod +x godot/Godot_v4.7.2-stable_linux.x86_64
-          godot/Godot_v4.7.2-stable_linux.x86_64 --headless --version | tee godot-version.txt
+          GODOT="$RUNNER_TEMP/daube-engines/godot/Godot_v4.7.2-stable_linux.x86_64"
+          chmod +x "$GODOT"
+          "$GODOT" --headless --version | tee godot-version.txt
           grep -q '^4\.7\.2' godot-version.txt
+          cat > godot-probe.gd <<'GD'
+          extends SceneTree
+          func _initialize():
+              print('DAUBE_GODOT_EXECUTION_OK')
+              quit()
+          GD
+          "$GODOT" --headless --script godot-probe.gd | tee godot-execution.txt
+          grep -q 'DAUBE_GODOT_EXECUTION_OK' godot-execution.txt
 
-      - name: Install and prove Blender 5.2.1 portable
+      - name: Install and execute Blender 5.2.1 portable
         shell: bash
         run: |
           set -euo pipefail
@@ -54,6 +63,9 @@ jobs:
           test -x "$BLENDER"
           "$BLENDER" --version | tee blender-version.txt
           grep -q '^Blender 5\.2\.1' blender-version.txt
+          "$BLENDER" -b --factory-startup --python-expr "import bpy; bpy.ops.mesh.primitive_cube_add(); bpy.ops.wm.save_as_mainfile(filepath='$RUNNER_TEMP/daube-engines/daube-probe.blend'); print('DAUBE_BLENDER_EXECUTION_OK')" | tee blender-execution.txt
+          grep -q 'DAUBE_BLENDER_EXECUTION_OK' blender-execution.txt
+          test -s "$RUNNER_TEMP/daube-engines/daube-probe.blend"
 
       - name: Emit machine-readable receipt
         shell: bash
@@ -61,9 +73,13 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/daube-engines"
           python3 - <<'PY'
-          import json, os
+          import hashlib, json, os
+          root = os.path.join(os.environ['RUNNER_TEMP'], 'daube-engines')
+          blend = os.path.join(root, 'daube-probe.blend')
+          with open(blend, 'rb') as f:
+              blend_sha = hashlib.sha256(f.read()).hexdigest()
           receipt = {
-            'schema': 'daube.public-native-engine-proof.v1',
+            'schema': 'daube.public-native-engine-proof.v2',
             'repository': os.environ['GITHUB_REPOSITORY'],
             'runId': os.environ['GITHUB_RUN_ID'],
             'runAttempt': os.environ['GITHUB_RUN_ATTEMPT'],
@@ -72,8 +88,17 @@ jobs:
             'zeroSpendPublicSafe': True,
             'privateRepositoryCheckout': False,
             'engines': {
-              'godot': {'status': 'ACTIVE', 'version': open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','godot-version.txt')).read().strip()},
-              'blender': {'status': 'ACTIVE', 'version': open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','blender-version.txt')).read().splitlines()[0].strip()},
+              'godot': {
+                'status': 'ACTIVE',
+                'version': open(os.path.join(root,'godot-version.txt')).read().strip(),
+                'execution': 'GDSCRIPT_HEADLESS_OK'
+              },
+              'blender': {
+                'status': 'ACTIVE',
+                'version': open(os.path.join(root,'blender-version.txt')).read().splitlines()[0].strip(),
+                'execution': 'HEADLESS_PYTHON_BLEND_SAVE_OK',
+                'probeBlendSha256': blend_sha
+              },
             },
           }
           print(json.dumps(receipt, sort_keys=True))

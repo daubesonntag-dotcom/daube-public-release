@@ -1,7 +1,8 @@
 name: D'AUBE Portable Native Engine Proof
 
 on:
-  pull_request:
+  push:
+    branches: [main]
     paths:
       - '.github/workflows/engine-portable-native-proof.yml'
   workflow_dispatch:
@@ -59,8 +60,6 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/daube-engines"
-          GODOT_VERSION="$(head -1 godot-version.txt | tr -d '\r')"
-          BLENDER_VERSION="$(head -1 blender-version.txt | tr -d '\r')"
           python3 - <<'PY'
           import json, os
           receipt = {
@@ -78,8 +77,4 @@ jobs:
             },
           }
           print(json.dumps(receipt, sort_keys=True))
-          with open(os.path.join(os.environ['RUNNER_TEMP'],'daube-engines','receipt.json'),'w') as f:
-            json.dump(receipt, f, indent=2, sort_keys=True)
-            f.write('\n')
           PY
-          cat receipt.json

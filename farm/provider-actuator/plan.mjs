@@ -78,7 +78,7 @@ const plan = {
     publicInputsOnly: true,
     privateAssetsUsed: false,
     paidSpendAuthorized: false,
-    maxGitHubReplicas,
+    maxGitHubReplicas: maxGitHub,
     maxSupabaseReplicas: maxSupabase,
   },
 };

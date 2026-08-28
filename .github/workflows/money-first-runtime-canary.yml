@@ -24,8 +24,8 @@ jobs:
           cat > /tmp/preempt.json <<'JSON'
           {
             "jobs": [
-              {"jobId":"spec-runtime","priorityClass":"P5_SPECULATIVE","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary","state":"RUNNING","nodeId":"gpu-live-1","preemptible":true},
-              {"jobId":"paid-runtime","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary"}
+              {"jobId":"spec-runtime","opportunityRef":"canary-order-001","priorityClass":"P5_SPECULATIVE","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","fallbackPolicy":"degrade-queue-block","evidenceDestination":"runtime-canary","state":"RUNNING","nodeId":"gpu-live-1","preemptible":true},
+              {"jobId":"paid-runtime","opportunityRef":"canary-order-001","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","fallbackPolicy":"degrade-queue-block","evidenceDestination":"runtime-canary"}
             ],
             "nodes": [
               {"id":"gpu-live-1","status":"READY","backends":["gpu"],"trustClass":"public-untrusted","consented":true,"costKnown":true,"estimatedCostUnits":0,"availableSlots":0,"queueDepth":1,"reliability":0.99,"vramGiB":0}
@@ -36,7 +36,7 @@ jobs:
           cat > /tmp/unknown-cost.json <<'JSON'
           {
             "jobs": [
-              {"jobId":"paid-no-cost-truth","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary"}
+              {"jobId":"paid-no-cost-truth","opportunityRef":"canary-order-002","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","fallbackPolicy":"explicit-block","evidenceDestination":"runtime-canary"}
             ],
             "nodes": [
               {"id":"gpu-unknown-cost","status":"READY","backends":["gpu"],"trustClass":"public-untrusted","consented":true,"costKnown":false,"estimatedCostUnits":0,"availableSlots":1,"queueDepth":0,"reliability":0.99,"vramGiB":0}
@@ -45,22 +45,26 @@ jobs:
           JSON
           curl --fail-with-body --silent --show-error --max-time 20 -H 'content-type: application/json' --data-binary @/tmp/unknown-cost.json "$endpoint" -o evidence/unknown-cost.json
           python - <<'PY'
-          import json, hashlib
+          import json
           from pathlib import Path
           health=json.loads(Path('evidence/health.json').read_text())
           pre=json.loads(Path('evidence/preempt.json').read_text())
           unk=json.loads(Path('evidence/unknown-cost.json').read_text())
           assert health['status']=='LIVE' and health['paidSpendAuthorized'] is False and health['oauthRequired'] is False
+          assert 'opportunityRef' in health['requiredAuditFields'] and 'fallbackPolicy' in health['requiredAuditFields']
           assert pre['status']=='GREEN' and pre['paidDeliveryProtected'] is True
           d=pre['decisions'][0]
-          assert d['action']=='PREEMPT_AND_DISPATCH' and d['preemptedJobId']=='spec-runtime' and d['paidSpendAuthorized'] is False
+          assert d['action']=='PREEMPT_AND_DISPATCH' and d['preemptedJobId']=='spec-runtime'
+          assert d['opportunityRef']=='canary-order-001' and d['fallbackPolicy']=='degrade-queue-block' and d['paidSpendAuthorized'] is False
           assert unk['status']=='DEGRADED' and unk['decisions'][0]['action']=='BLOCKED_CAPACITY'
           receipt={
-            'schema':'daube.money-first-runtime-canary.v1',
+            'schema':'daube.money-first-runtime-canary.v2',
             'status':'GREEN',
             'runtimeEndpointLive':True,
             'paidDeliveryPreemptionProven':True,
             'unknownCostFailClosedProven':True,
+            'traceableOpportunityProven':True,
+            'explicitFallbackPolicyProven':True,
             'oauthRequired':False,
             'paidSpendAuthorized':False,
             'preemptionAction':d['action'],

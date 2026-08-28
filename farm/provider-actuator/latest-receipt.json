@@ -29,7 +29,7 @@
     "paidSpendAuthorized": false,
     "automaticPrivilegeExpansion": false,
     "newOAuthRequired": false,
-    "observedAt": "2026-08-28T19:55:13.525Z"
+    "observedAt": "2026-08-28T19:58:29.842Z"
   },
   "feedback": {
     "previousReceiptSeen": true,
@@ -44,5 +44,5 @@
   "paidSpendAuthorized": false,
   "privateAssetsUsed": false,
   "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers and requires Ecology GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
-  "observedAt": "2026-08-28T19:55:38.128Z"
+  "observedAt": "2026-08-28T19:58:59.861Z"
 }

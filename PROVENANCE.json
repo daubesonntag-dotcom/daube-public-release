@@ -1,7 +1,7 @@
 {
   "schema": "daube.oracle-free-host-public-projection.v1",
   "sourceRepository": "daubesonntag-dotcom/daube-compute-mesh",
-  "sourceRevision": "8c917c95d69fae0a6bd897010e85214daa693281",
+  "sourceRevision": "0ad5a7fca483805ab1b05367ce5eeec80383f8e4",
   "projectionRepository": "daubesonntag-dotcom/daube-public-release",
   "projectionBranch": "oci-free-host-v1",
   "terraformVersion": "1.5.7",
@@ -11,11 +11,11 @@
   "generatedFiles": {
     "main.tf": "dc086d5a55cb8573525448a8a3c3da4055e955de",
     "variables.tf": "4f3a4bb0b11f76f7fc0278e20eb3109430b77121",
-    "schema.yaml": "cb7a2470126e58545949d27573f8d8b9159b7065",
+    "schema.yaml": "9744b9be909baba38520d4e35448991001502b20",
     "cloud-init.yaml.tftpl": "99ae2c97b84a40dd82f18e6f4efa39131c58d356",
     "worker.py": "e3e781623e7b066e8d43bbc57e3f7382e3e88ed3",
     "tls-bootstrap.sh": "19b5264b3228793330109d0e627d97f59aa8b4bb",
-    "README.md": "c281ddfb7262ff7e97df5e69ed554fb07b3d9044"
+    "README.md": "a834b88ff4fdcccb10299329ccc9696bc910eba8"
   },
   "truthBoundary": {
     "publicProjectionContainsCredentials": false,

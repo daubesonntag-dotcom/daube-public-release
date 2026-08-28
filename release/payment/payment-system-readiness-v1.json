@@ -14,9 +14,11 @@
   "eurRuntimeAdmitted": false,
   "truthBoundary": "System readiness is technical readiness only. External customer, provider, bank, government and GitHub Support evidence gates its own claims and cannot be fabricated by score or CI.",
   "canonicalAuthority": "daubesonntag-dotcom/daube-commerce",
-  "canonicalCommerceRevision": "78341d1114875ecb205d4bf6edfcf1655375c01d",
+  "canonicalCommerceRevision": "82e7e2bdbb1a3f7420c96d2e69b80a3d63c4f83d",
   "canonicalCommerceRevisionStatus": "CURRENT_MAIN_NO_CIRCLECI_FAILURE_STATUS",
   "currentDomesticRail": "Direct VietQR / merchant-direct VND bank transfer",
+  "directInternationalBankCandidateCurrencies": ["USD"],
+  "directInternationalBankUnadmittedCurrencies": ["EUR"],
   "internationalFallbackClasses": [
     "licensed-card-or-merchant-of-record-provider",
     "PayPal Business cross-border candidate",

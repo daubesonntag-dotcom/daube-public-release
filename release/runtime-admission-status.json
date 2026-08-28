@@ -1,0 +1,38 @@
+{
+  "schema": "daube.runtime-admission-status.v1",
+  "updatedAt": "2026-08-28T17:52:39+07:00",
+  "state": "HOLD",
+  "classification": "DEPLOYMENT_DRIFT",
+  "candidate": {
+    "repository": "daubesonntag-dotcom/daube-commerce",
+    "sha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73"
+  },
+  "externalRuntime": {
+    "reportedSha": "10ae70d33ae34bdd7925b528068c72d5891acbd3",
+    "health": "READY",
+    "healthHttp": 200,
+    "productsHttp": 200,
+    "turnsHttp": 404
+  },
+  "blockers": [
+    "EXACT_SHA_NOT_DEPLOYED",
+    "TURNS_HTTP_NOT_200",
+    "FIRST_DAWN_PRODUCT_MISSING",
+    "FIRST_DAWN_TURN_MISSING_OR_UNAVAILABLE"
+  ],
+  "notBlockers": [
+    "PUBLIC_APEX",
+    "PROVIDER_CHOICE",
+    "PADDLE_OPTIONAL_RAIL",
+    "CLOUDFLARE_OPTIONAL_EXECUTOR",
+    "SELF_HOSTED_RUNNER_AS_SOLE_GATE"
+  ],
+  "automaticNextAction": "DISPATCH_APPROVED_PROVIDER_NEUTRAL_RUNTIME_RECOVERY_FOR_FROZEN_CANDIDATE",
+  "founderActionRequiredNow": false,
+  "paymentEvidence": {
+    "directVietQrRuntimeOperational": false,
+    "externalSettlementProven": false,
+    "independentCustomerRevenueProven": false,
+    "refundProven": false
+  }
+}

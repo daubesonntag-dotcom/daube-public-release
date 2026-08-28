@@ -1,0 +1,8 @@
+{
+  "schema": "daube.commerce-rescue-request.v1",
+  "requestId": "commerce-e98f4beb-20260828-1453",
+  "sourceRepository": "daubesonntag-dotcom/daube-commerce",
+  "expectedSha": "e98f4beb41713307d10e25bcae368472fa564425",
+  "verificationProfile": "first-dawn-hardening",
+  "containsSecrets": false
+}

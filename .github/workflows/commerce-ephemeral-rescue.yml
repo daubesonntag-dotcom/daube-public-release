@@ -23,20 +23,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Editing the workflow itself must never restart an older outstanding
-          # request. A push-run becomes executable only when request.json changed;
-          # workflow_dispatch remains the explicit retry path.
+          # Workflow-definition pushes must never restart an older request.
+          # For push events, inspect the checked-out commit tree directly rather
+          # than relying on optional/shape-sensitive push-payload commit arrays.
           if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
-            request_changed="$(jq -r '
-              [(.commits[]? | ((.added // []) + (.modified // []) + (.removed // [])))[]?]
-              | any(. == "release/commerce-rescue/request.json")
-            ' "$GITHUB_EVENT_PATH")"
-            if [[ "$request_changed" != 'true' ]]; then
+            if ! git diff-tree --no-commit-id --name-only -r HEAD | grep -Fxq 'release/commerce-rescue/request.json'; then
               echo 'pending=false' >> "$GITHUB_OUTPUT"
               {
                 echo '## Commerce rescue'
                 echo 'NO_REQUEST_EVENT'
-                echo '- Workflow-definition or unrelated push detected; an older request was not restarted.'
+                echo '- HEAD does not mutate release/commerce-rescue/request.json; an older request was not restarted.'
                 echo '- No encryption identity, payload wait, decryption, verification or mutation was attempted.'
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0

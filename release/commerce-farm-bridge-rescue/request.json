@@ -1,0 +1,7 @@
+{
+  "requestId": "farmbridge-20260829-0126",
+  "expectedSha": "7bf4e2bca1b6b11f3cb54026b290996bcd126848",
+  "verificationProfile": "resource-farm-integration-v1",
+  "sourceRepository": "daubesonntag-dotcom/daube-commerce",
+  "truthBoundary": "Request metadata only. Private source must remain encrypted in transit and must not be committed to this public repository."
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "daube.provider-neutral-public-readback.v3",
+  "evidenceClass": "EXTERNAL_SANITIZED_READBACK",
+  "observedAt": "2026-08-28T17:52:39+07:00",
+  "workflow": {
+    "repository": "daubesonntag-dotcom/daube-public-release",
+    "name": "Launch Critical Public Readback V3",
+    "runId": 33165009947,
+    "jobId": 98828214842,
+    "artifactId": 9683201591
+  },
+  "expectedRevision": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "reportedRevision": "10ae70d33ae34bdd7925b528068c72d5891acbd3",
+  "runtimeAdmission": "HOLD",
+  "requiredProvider": null,
+  "publicApex": {
+    "https": true,
+    "brandMarkers": true,
+    "viteAssets": true
+  },
+  "healthHttp": "200",
+  "productsHttp": "200",
+  "turnsHttp": "404",
+  "healthStatus": "READY",
+  "publicProductsValid": true,
+  "firstDawnProductPresent": false,
+  "firstDawnTurnAvailable": false,
+  "directVietQrRuntimeOperational": false,
+  "directVietQrSettlementProvenByThisReceipt": false,
+  "independentCustomerRevenueProvenByThisReceipt": false,
+  "refundProvenByThisReceipt": false,
+  "productionMutationPerformed": false,
+  "secretMaterialSerialized": false,
+  "blockers": [
+    "TURNS_HTTP_NOT_200",
+    "EXACT_SHA_NOT_DEPLOYED",
+    "FIRST_DAWN_PRODUCT_MISSING",
+    "FIRST_DAWN_TURN_MISSING_OR_UNAVAILABLE"
+  ],
+  "diagnosis": "DEPLOYMENT_DRIFT",
+  "nextGate": "MATERIALIZE_FROZEN_CANDIDATE_THEN_RERUN_V3"
+}

@@ -1,0 +1,26 @@
+name: GitHub Hosted Runner Health
+
+on:
+  push:
+    branches:
+      - ci/github-hosted-runner-health-20260828
+    paths:
+      - '.github/workflows/github-hosted-runner-health.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Runner acquisition proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DAUBE_GITHUB_HOSTED_RUNNER_OK"
+          uname -a
+          node --version
+          python3 --version

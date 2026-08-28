@@ -1,0 +1,23 @@
+{
+  "schema": "daube.resource-farm-consumer-supply-contract.v1",
+  "minimumGreenScore": 95,
+  "consumers": [
+    {
+      "id": "FACTORY",
+      "requiredResourceClasses": ["compute", "ci-build", "storage", "network", "browser", "model-service"],
+      "claim": "Digital production/factory resource supply"
+    },
+    {
+      "id": "COMPANY",
+      "requiredResourceClasses": ["hosting", "edge", "compute", "storage", "database", "queue-cache", "network"],
+      "claim": "Shared enterprise/business-unit resource supply"
+    },
+    {
+      "id": "RESTAURANT_DIGITAL",
+      "requiredResourceClasses": ["hosting", "edge", "storage", "database", "queue-cache", "network"],
+      "claim": "Restaurant digital operations/orchestration resource supply",
+      "physicalRestaurantReadiness": "EXTERNAL_EVIDENCE_GATE"
+    }
+  ],
+  "truthBoundary": "GREEN proves digital infrastructure supply readiness only. Physical premises, food-safety certification, cold-chain, inventory, kitchen equipment, permits and real-world restaurant operations require separate external evidence and are not scored as software blockers."
+}

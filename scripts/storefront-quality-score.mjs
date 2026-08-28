@@ -21,18 +21,64 @@ function check(category, id, points, pass, detail) {
   checks.push({ category, id, points, pass: Boolean(pass), earned: pass ? points : 0, detail });
 }
 
-// International pricing and truthful settlement — 25 points.
-check('international-pricing', 'usd-default-control', 5, /id="currency-usd"[^>]*isActive/.test(html), 'USD is the visible default currency control.');
-check('international-pricing', 'usd-default-state', 5, /localStorage\.getItem\(CURRENCY_KEY\) === 'VND' \? 'VND' : 'USD'/.test(js) && /return 'USD'/.test(js), 'Runtime defaults to USD unless the visitor explicitly saved VND.');
-check('international-pricing', 'truthful-fx-reference', 5, /USD_REFERENCE_VND\s*=\s*26100/.test(js), 'USD equivalent uses an explicit reference rather than relabeling VND as USD.');
-check('international-pricing', 'local-settlement-boundary', 5, /(Local VND settlement remains|local settlement in VND)/i.test(html) && /moneyVnd\(receipt\.payment\.amountVnd\)/.test(js), 'Exact VND appears only where local settlement requires it.');
-check('international-pricing', 'exact-usd-surface', 5, /href="\/pay\/"/.test(html) && /US\$15/.test(pay) && /US\$39/.test(pay) && /US\$95/.test(pay), 'Exact USD Workflow Kit surface remains linked and truthful.');
+// Native-currency pricing and truthful settlement — 25 points.
+// Do not reward browser-side FX estimates. VND and USD price books must remain native and explicit.
+check(
+  'native-currency-pricing',
+  'native-price-book-separation',
+  5,
+  /No silent FX/i.test(html) && /canonical VND amounts/i.test(html) && /Native USD offers/i.test(html),
+  'VND and USD offers are presented as separate native price books with an explicit no-silent-FX boundary.',
+);
+check(
+  'native-currency-pricing',
+  'no-browser-fx',
+  5,
+  !/USD_REFERENCE_VND/.test(js) && !/moneyUsdEquivalent/.test(js) && /function moneyVnd\(/.test(js),
+  'Runtime contains no hard-coded browser FX conversion and keeps canonical VND rendering deterministic.',
+);
+check(
+  'native-currency-pricing',
+  'local-settlement-boundary',
+  5,
+  /(exact canonical VND amount|exact VND settlement amount|local catalog uses VND)/i.test(html)
+    && /moneyVnd\(receipt\.payment\.amountVnd\)/.test(js),
+  'Local settlement uses the exact order-bound VND amount rather than an estimated converted display price.',
+);
+check(
+  'native-currency-pricing',
+  'exact-usd-surface',
+  5,
+  /href="\/pay\/"/.test(html) && /US\$15/.test(pay) && /US\$39/.test(pay) && /US\$95/.test(pay),
+  'Exact native USD Workflow Kit prices remain on the dedicated USD surface.',
+);
+check(
+  'native-currency-pricing',
+  'currency-truth-copy',
+  5,
+  /does not calculate a browser-side USD equivalent/i.test(html)
+    && /international USD products use their own native USD price book/i.test(html),
+  'Customer-facing copy explains that D’AUBE does not invent an FX equivalent between native price books.',
+);
 
 // Information architecture and conversion clarity — 25 points.
 check('information-architecture', 'single-purpose-hero', 5, /Better work,<br><em>without the clutter\.<\/em>/.test(html), 'Hero states one clear customer proposition.');
-check('information-architecture', 'curated-catalog', 5, /CURATED CATALOG/.test(html) && /Choose what moves the work forward/.test(html), 'Catalog is framed around customer outcomes.');
+check(
+  'information-architecture',
+  'curated-catalog',
+  5,
+  /VND CATALOG/.test(html) && /Choose what moves the work forward\./.test(html),
+  'Catalog is framed around customer outcomes and clearly names its native price book.',
+);
 check('information-architecture', 'professional-collections', 5, ['Infrastructure & Operations','Business Tools & Growth','Gifting & Personal Services','Experimental Studio'].every((value) => js.includes(value)), 'Unrelated offers are separated into professional collections.');
-check('information-architecture', 'checkout-paths', 5, /CHECKOUT PATHS/.test(html) && /Global first\. Local when useful\./.test(html), 'Payment methods are explained below the catalog instead of dominating the hero.');
+check(
+  'information-architecture',
+  'checkout-paths',
+  5,
+  /CHECKOUT PATHS/.test(html) && /Native currency first\. Settlement truth always\./.test(html)
+    && html.indexOf('CHECKOUT PATHS') > html.indexOf('id="catalog"'),
+  'Payment paths are explained after the catalog and preserve native-currency settlement truth.',
+);
 check('information-architecture', 'order-recovery', 5, /id="order-status"/.test(html) && /Track without chasing\./.test(html), 'Order status is a dedicated recovery path.');
 
 // Accessibility and interaction quality — 25 points.
@@ -60,7 +106,7 @@ const max = checks.reduce((sum, item) => sum + item.points, 0);
 const threshold = 95;
 const failed = checks.filter((item) => !item.pass);
 const report = {
-  schema: 'daube.storefront-quality-score.v1',
+  schema: 'daube.storefront-quality-score.v2',
   generatedAt: new Date().toISOString(),
   score,
   max,
@@ -69,6 +115,7 @@ const report = {
   failed: failed.map(({ category, id, detail }) => ({ category, id, detail })),
   checks,
   storefrontBytes,
+  truthBoundary: 'A GREEN score proves the bounded storefront source-quality contract. It does not prove external settlement, customer conversion, provider admission, or deployed-domain readback.',
 };
 
 const output = path.join(root, 'artifacts/storefront-quality-score.json');

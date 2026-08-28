@@ -1,17 +1,8 @@
 (() => {
   const API = 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-storefront-api';
   const ORDER_KEY = 'daube-storefront-order-v2';
-  const CURRENCY_KEY = 'daube-storefront-display-currency-v1';
-  const USD_REFERENCE_VND = 26100;
   let catalog = [];
   let selected = null;
-  let displayCurrency = (() => {
-    try {
-      return localStorage.getItem(CURRENCY_KEY) === 'VND' ? 'VND' : 'USD';
-    } catch {
-      return 'USD';
-    }
-  })();
 
   const $ = (id) => document.getElementById(id);
   const text = (value) => String(value ?? '').trim();
@@ -20,18 +11,8 @@
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(amount || 0))} VND`;
   }
 
-  function moneyUsdEquivalent(amountVnd) {
-    const value = Number(amountVnd || 0) / USD_REFERENCE_VND;
-    const digits = value >= 50 ? 0 : value >= 10 ? 1 : 2;
-    return `US$${new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: digits,
-    }).format(value)}`;
-  }
-
   function displayMoney(product) {
-    const amount = Number(product?.price?.amountMinor || 0);
-    return displayCurrency === 'VND' ? moneyVnd(amount) : moneyUsdEquivalent(amount);
+    return moneyVnd(Number(product?.price?.amountMinor || 0));
   }
 
   const COLLECTIONS = [
@@ -151,9 +132,7 @@
     bottom.className = 'catalogBottom';
     const price = document.createElement('strong');
     price.textContent = displayMoney(product);
-    price.title = displayCurrency === 'USD'
-      ? `USD display equivalent using a reference rate of ${moneyVnd(USD_REFERENCE_VND)} per US$1. Local bank settlement remains in VND.`
-      : 'Exact local catalog amount in VND.';
+    price.title = 'Exact local catalog amount in VND. Native USD products use the separate D’AUBE Pay USD catalog.';
 
     const link = document.createElement('a');
     link.href = productLink(product);
@@ -211,9 +190,7 @@
     $('product-subtitle').textContent = selected.subtitle || '';
     $('product-description').textContent = selected.description || '';
     $('product-price').textContent = displayMoney(selected);
-    $('product-currency-note').textContent = displayCurrency === 'USD'
-      ? 'USD display equivalent · local settlement in VND'
-      : 'Exact local catalog amount';
+    $('product-currency-note').textContent = 'Exact local VND catalog amount · no browser FX';
     $('product-meta').textContent = `${offerType(selected)} · One-time offer`;
 
     if (updateUrl) {
@@ -228,24 +205,6 @@
         block: 'start',
       });
     }
-  }
-
-  function applyCurrency(nextCurrency) {
-    displayCurrency = nextCurrency === 'VND' ? 'VND' : 'USD';
-    try { localStorage.setItem(CURRENCY_KEY, displayCurrency); } catch {}
-
-    const usd = $('currency-usd');
-    const vnd = $('currency-vnd');
-    if (usd && vnd) {
-      const usdActive = displayCurrency === 'USD';
-      usd.classList.toggle('isActive', usdActive);
-      vnd.classList.toggle('isActive', !usdActive);
-      usd.setAttribute('aria-pressed', String(usdActive));
-      vnd.setAttribute('aria-pressed', String(!usdActive));
-    }
-
-    renderCatalog();
-    if (selected) chooseProduct(selected.slug, { updateUrl: false });
   }
 
   async function copyValue(value, button) {
@@ -285,7 +244,7 @@
 
     panel.hidden = false;
     $('payment-title').textContent = `Order ${receipt.order.publicCode}`;
-    $('payment-summary').textContent = `Local settlement amount: ${moneyVnd(receipt.payment.amountVnd)}. Use transfer reference ${receipt.payment.reference || receipt.order.publicCode} and verify the beneficiary in your banking app before confirming.`;
+    $('payment-summary').textContent = `Local settlement amount: ${moneyVnd(receipt.payment.amountVnd)}. Use transfer reference ${receipt.payment.reference || receipt.order.publicCode} and verify the beneficiary shown by your banking app before confirming.`;
 
     const qrHost = $('payment-qr');
     qrHost.replaceChildren();
@@ -310,7 +269,7 @@
       const steps = document.createElement('ol');
       [
         'Open a banking app that supports VietQR.',
-        'Scan the code and verify the beneficiary.',
+        'Scan the code and verify the beneficiary inside your banking app.',
         `Confirm the exact amount ${moneyVnd(receipt.payment.amountVnd)} and transfer reference ${receipt.payment.reference}.`,
         'Return to Order status after payment. D’AUBE updates the order only after bank verification.',
       ].forEach((value) => {
@@ -330,7 +289,7 @@
     details.innerHTML = '';
     paymentDetail(details, 'Bank', text(receipt.payment.bankName));
     paymentDetail(details, 'Account number', text(receipt.payment.accountNumber), { copy: true });
-    paymentDetail(details, 'Beneficiary', text(receipt.payment.beneficiaryName));
+    paymentDetail(details, 'Beneficiary verification', 'Verify the beneficiary identity in your banking app before confirming the transfer.');
     paymentDetail(details, 'Settlement amount', moneyVnd(receipt.payment.amountVnd));
     paymentDetail(details, 'Transfer reference', text(receipt.payment.reference || receipt.order.publicCode), { copy: true });
     paymentDetail(details, 'Payment status', 'Awaiting verification');
@@ -344,14 +303,11 @@
   async function loadCatalog() {
     const payload = await api('/products');
     catalog = Array.isArray(payload.products) ? payload.products : [];
-    applyCurrency(displayCurrency);
+    renderCatalog();
     const requested = new URLSearchParams(location.search).get('product');
     chooseProduct(requested || catalog.find((item) => item.featured)?.slug || catalog[0]?.slug || '');
     document.querySelector('.storeShell')?.setAttribute('data-storefront-state', 'ready');
   }
-
-  $('currency-usd')?.addEventListener('click', () => applyCurrency('USD'));
-  $('currency-vnd')?.addEventListener('click', () => applyCurrency('VND'));
 
   $('catalog-grid')?.addEventListener('click', (event) => {
     const anchor = event.target.closest('a');
@@ -463,7 +419,6 @@
     }
   });
 
-  applyCurrency(displayCurrency);
   loadCatalog().catch(() => {
     const grid = $('catalog-grid');
     if (grid) grid.innerHTML = '<p class="errorState">The store is temporarily unavailable. Please try again shortly.</p>';

@@ -108,6 +108,40 @@ def _configure_libcrypto(lib: ctypes.CDLL) -> int:
     return nid
 
 
+def _sign_with_pkey(lib: ctypes.CDLL, pkey: ctypes.c_void_p, message: bytes | None) -> tuple[bytes, bytes | None]:
+    public_buffer = (ctypes.c_ubyte * 32)()
+    public_length = ctypes.c_size_t(32)
+    if lib.EVP_PKEY_get_raw_public_key(pkey, public_buffer, ctypes.byref(public_length)) != 1:
+        raise RuntimeError("libcrypto could not derive Ed25519 public key.")
+    public_key = bytes(public_buffer[: public_length.value])
+    if message is None:
+        return public_key, None
+
+    ctx = lib.EVP_MD_CTX_new()
+    if not ctx:
+        raise RuntimeError("libcrypto could not allocate signing context.")
+    try:
+        if lib.EVP_DigestSignInit(ctx, None, None, None, pkey) != 1:
+            raise RuntimeError("libcrypto Ed25519 signing initialization failed.")
+        signature_buffer = (ctypes.c_ubyte * 64)()
+        signature_length = ctypes.c_size_t(64)
+        message_buffer = (ctypes.c_ubyte * len(message)).from_buffer_copy(message)
+        if lib.EVP_DigestSign(
+            ctx,
+            signature_buffer,
+            ctypes.byref(signature_length),
+            message_buffer,
+            len(message),
+        ) != 1:
+            raise RuntimeError("libcrypto Ed25519 signing failed.")
+        signature = bytes(signature_buffer[: signature_length.value])
+        if len(signature) != 64:
+            raise RuntimeError("libcrypto returned an invalid Ed25519 signature length.")
+        return public_key, signature
+    finally:
+        lib.EVP_MD_CTX_free(ctx)
+
+
 def _libcrypto_public_and_sign(seed: bytes, message: bytes | None = None) -> tuple[bytes, bytes | None]:
     if len(seed) != 32:
         raise RuntimeError("Ed25519 raw private key must be exactly 32 bytes.")
@@ -120,39 +154,45 @@ def _libcrypto_public_and_sign(seed: bytes, message: bytes | None = None) -> tup
     if not pkey:
         raise RuntimeError("libcrypto could not construct Ed25519 private key.")
     try:
-        public_buffer = (ctypes.c_ubyte * 32)()
-        public_length = ctypes.c_size_t(32)
-        if lib.EVP_PKEY_get_raw_public_key(pkey, public_buffer, ctypes.byref(public_length)) != 1:
-            raise RuntimeError("libcrypto could not derive Ed25519 public key.")
-        public_key = bytes(public_buffer[: public_length.value])
-        if message is None:
-            return public_key, None
-
-        ctx = lib.EVP_MD_CTX_new()
-        if not ctx:
-            raise RuntimeError("libcrypto could not allocate signing context.")
-        try:
-            if lib.EVP_DigestSignInit(ctx, None, None, None, pkey) != 1:
-                raise RuntimeError("libcrypto Ed25519 signing initialization failed.")
-            signature_buffer = (ctypes.c_ubyte * 64)()
-            signature_length = ctypes.c_size_t(64)
-            message_buffer = (ctypes.c_ubyte * len(message)).from_buffer_copy(message)
-            if lib.EVP_DigestSign(
-                ctx,
-                signature_buffer,
-                ctypes.byref(signature_length),
-                message_buffer,
-                len(message),
-            ) != 1:
-                raise RuntimeError("libcrypto Ed25519 signing failed.")
-            signature = bytes(signature_buffer[: signature_length.value])
-            if len(signature) != 64:
-                raise RuntimeError("libcrypto returned an invalid Ed25519 signature length.")
-            return public_key, signature
-        finally:
-            lib.EVP_MD_CTX_free(ctx)
+        return _sign_with_pkey(lib, pkey, message)
     finally:
         lib.EVP_PKEY_free(pkey)
+
+
+def _libcrypto_public_and_sign_pem(pem: bytes, message: bytes | None = None) -> tuple[bytes, bytes | None]:
+    lib = _load_libcrypto()
+    if lib is None:
+        raise RuntimeError("OpenSSL libcrypto is unavailable.")
+    _configure_libcrypto(lib)
+    try:
+        lib.BIO_new_mem_buf.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        lib.BIO_new_mem_buf.restype = ctypes.c_void_p
+        lib.BIO_free.argtypes = [ctypes.c_void_p]
+        lib.BIO_free.restype = ctypes.c_int
+        lib.PEM_read_bio_PrivateKey.argtypes = [
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+        ]
+        lib.PEM_read_bio_PrivateKey.restype = ctypes.c_void_p
+    except AttributeError as exc:
+        raise RuntimeError("libcrypto PEM private-key APIs are unavailable.") from exc
+
+    pem_buffer = ctypes.create_string_buffer(pem)
+    bio = lib.BIO_new_mem_buf(pem_buffer, len(pem))
+    if not bio:
+        raise RuntimeError("libcrypto could not allocate PEM input buffer.")
+    try:
+        pkey = lib.PEM_read_bio_PrivateKey(bio, None, None, None)
+        if not pkey:
+            raise RuntimeError("libcrypto could not parse Ed25519 PEM private key.")
+        try:
+            return _sign_with_pkey(lib, pkey, message)
+        finally:
+            lib.EVP_PKEY_free(pkey)
+    finally:
+        lib.BIO_free(bio)
 
 
 def _public_pem(raw_public: bytes) -> str:
@@ -190,8 +230,8 @@ def ensure_identity() -> tuple[str, str]:
     HOME.mkdir(parents=True, exist_ok=True)
     os.chmod(HOME, 0o700)
 
-    # Preserve identity continuity. Once a backend-created key exists, never silently
-    # replace it just because another crypto frontend later appears.
+    # Preserve identity continuity. Once a key exists, never silently replace it
+    # merely because a crypto frontend becomes unavailable or behaves differently.
     if RAW_KEY.exists():
         seed = RAW_KEY.read_bytes()
         raw_public, _ = _libcrypto_public_and_sign(seed)
@@ -199,10 +239,26 @@ def ensure_identity() -> tuple[str, str]:
         PUB.write_text(public_pem, encoding="utf-8")
     elif KEY.exists():
         openssl = shutil.which("openssl")
-        if openssl is None:
-            raise RuntimeError("Existing PEM identity requires the openssl CLI to derive its public key.")
-        run(openssl, "pkey", "-in", str(KEY), "-pubout", "-out", str(PUB))
-        public_pem = PUB.read_text(encoding="utf-8")
+        public_pem: str | None = None
+        if openssl is not None:
+            try:
+                run(openssl, "pkey", "-in", str(KEY), "-pubout", "-out", str(PUB))
+                public_pem = PUB.read_text(encoding="utf-8")
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+                public_pem = None
+        if public_pem is None:
+            raw_public, _ = _libcrypto_public_and_sign_pem(KEY.read_bytes())
+            public_pem = _public_pem(raw_public)
+            PUB.write_text(public_pem, encoding="utf-8")
+    elif _load_libcrypto() is not None:
+        # Prefer a backend-neutral raw seed for fresh identities. Existing PEM
+        # identities are preserved and remain fully supported.
+        seed = os.urandom(32)
+        RAW_KEY.write_bytes(seed)
+        os.chmod(RAW_KEY, 0o600)
+        raw_public, _ = _libcrypto_public_and_sign(seed)
+        public_pem = _public_pem(raw_public)
+        PUB.write_text(public_pem, encoding="utf-8")
     elif shutil.which("openssl") is not None:
         openssl = shutil.which("openssl")
         assert openssl is not None
@@ -211,12 +267,7 @@ def ensure_identity() -> tuple[str, str]:
         run(openssl, "pkey", "-in", str(KEY), "-pubout", "-out", str(PUB))
         public_pem = PUB.read_text(encoding="utf-8")
     else:
-        seed = os.urandom(32)
-        RAW_KEY.write_bytes(seed)
-        os.chmod(RAW_KEY, 0o600)
-        raw_public, _ = _libcrypto_public_and_sign(seed)
-        public_pem = _public_pem(raw_public)
-        PUB.write_text(public_pem, encoding="utf-8")
+        raise RuntimeError("No usable Ed25519 backend is available.")
 
     os.chmod(PUB, 0o600)
     return public_pem, hashlib.sha256(public_pem.encode()).hexdigest()
@@ -338,7 +389,7 @@ def storage_canary() -> dict[str, object]:
 def network_canary() -> dict[str, object]:
     req = urllib.request.Request(
         INTAKE_URL,
-        headers={"Accept": "application/json", "User-Agent": "daube-sovereign-agent/3"},
+        headers={"Accept": "application/json", "User-Agent": "daube-sovereign-agent/4"},
     )
     start = time.perf_counter()
     try:
@@ -362,6 +413,33 @@ def canonical_json(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
 
+def _openssl_sign_pem_file(openssl: str, message: bytes) -> bytes:
+    # Ed25519 is a one-shot algorithm. Some Android/Termux OpenSSL builds reject
+    # stdin/pipes because pkeyutl cannot determine the message size. A real file
+    # provides a stat-able length and avoids that implementation-specific failure.
+    with tempfile.NamedTemporaryFile(prefix="daube-ed25519-msg-", dir=str(HOME), delete=False) as handle:
+        path = Path(handle.name)
+        handle.write(message)
+        handle.flush()
+        os.fsync(handle.fileno())
+    try:
+        signature = run(
+            openssl,
+            "pkeyutl",
+            "-sign",
+            "-rawin",
+            "-inkey",
+            str(KEY),
+            "-in",
+            str(path),
+        )
+        if len(signature) != 64:
+            raise RuntimeError("openssl returned an invalid Ed25519 signature length.")
+        return signature
+    finally:
+        path.unlink(missing_ok=True)
+
+
 def sign(payload: dict[str, object]) -> str:
     message = canonical_json(payload)
     if RAW_KEY.exists():
@@ -370,10 +448,22 @@ def sign(payload: dict[str, object]) -> str:
             raise RuntimeError("libcrypto did not return a signature.")
         return base64.b64encode(signature).decode("ascii")
 
+    if not KEY.exists():
+        raise RuntimeError("Ed25519 private identity is missing.")
+
     openssl = shutil.which("openssl")
-    if openssl is None:
-        raise RuntimeError("PEM Ed25519 identity exists but openssl CLI is unavailable.")
-    signature = run(openssl, "pkeyutl", "-sign", "-rawin", "-inkey", str(KEY), input_bytes=message)
+    if openssl is not None:
+        try:
+            signature = _openssl_sign_pem_file(openssl, message)
+            return base64.b64encode(signature).decode("ascii")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError, RuntimeError):
+            # Do not rotate or replace an existing identity merely because the CLI
+            # frontend is incompatible. Fall through to libcrypto using the same PEM.
+            pass
+
+    _, signature = _libcrypto_public_and_sign_pem(KEY.read_bytes(), message)
+    if signature is None:
+        raise RuntimeError("libcrypto did not return a PEM Ed25519 signature.")
     return base64.b64encode(signature).decode("ascii")
 
 
@@ -433,7 +523,7 @@ def submit(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "daube-sovereign-agent/3",
+            "User-Agent": "daube-sovereign-agent/4",
         },
         method="POST",
     )

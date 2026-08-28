@@ -30,9 +30,11 @@ jobs:
           if (x.systemReadiness !== 100 || x.maxScore !== 100 || x.color !== 'GREEN') throw new Error('readiness_not_green_100');
           if (x.systemBlocked !== false) throw new Error('system_blocked');
           if (x.paymentInstructionLive !== true || x.settlementIngressConfigured !== true) throw new Error('payment_runtime_not_ready');
+          if (!/^[0-9a-f]{40}$/.test(x.canonicalCommerceRevision || '')) throw new Error('canonical_commerce_revision_invalid');
+          if (x.canonicalCommerceRevisionStatus !== 'CURRENT_MAIN_NO_CIRCLECI_FAILURE_STATUS') throw new Error('canonical_revision_status_invalid');
           for (const key of ['independentCustomerRevenueProven','commercialRevenueVerified','complianceComplete','historyPurgeComplete','usdCardLive','eurRuntimeAdmitted']) {
             if (x[key] !== false) throw new Error(`${key}_must_remain_false_without_external_evidence`);
           }
-          console.log('PAYMENT_READINESS_PUBLIC_GATE=GREEN_100');
+          console.log(`PAYMENT_READINESS_PUBLIC_GATE=GREEN_100 revision=${x.canonicalCommerceRevision}`);
           console.log('EXTERNAL_CLAIMS_FAIL_CLOSED=true');
           NODE

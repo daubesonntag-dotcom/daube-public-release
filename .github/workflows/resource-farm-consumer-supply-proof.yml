@@ -1,0 +1,80 @@
+name: Resource Farm Consumer Supply Proof
+
+on:
+  push:
+    paths:
+      - 'farm/consumer-supply/contract.json'
+      - 'farm/consumer-supply/prove.mjs'
+      - '.github/workflows/resource-farm-consumer-supply-proof.yml'
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resource-farm-consumer-supply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Probe Farm -> Factory / Company / Restaurant Digital
+        run: |
+          set -euo pipefail
+          node farm/consumer-supply/prove.mjs \
+            farm/consumer-supply/contract.json \
+            /tmp/resource-farm-consumer-supply-receipt.json
+          jq -e '
+            .status == "GREEN" and
+            (.consumers | length) == 3 and
+            ([.consumers[].score] | min) >= 95 and
+            ([.consumers[].status] | all(. == "GREEN")) and
+            .paidSpendAuthorized == false and
+            .newOAuthRequired == false
+          ' /tmp/resource-farm-consumer-supply-receipt.json >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resource-farm-consumer-supply-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/resource-farm-consumer-supply-receipt.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish immutable + latest receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          receipt=/tmp/resource-farm-consumer-supply-receipt.json
+          body_b64="$(base64 -w0 "$receipt")"
+          history="farm/consumer-supply/receipts/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
+            -f message="farm(consumer-supply): record run ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null
+
+          latest='farm/consumer-supply/latest-receipt.json'
+          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
+            -f message="farm(consumer-supply): advance latest receipt" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
+          gh api "${args[@]}" >/dev/null
+
+      - name: Report score board
+        run: |
+          jq '{status,farmStatus,farmLiveEvidenceCount,farmTotalResourceClasses,lifecycleStatus,operatingMode,consumers:[.consumers[]|{id,status,score,missingResourceClasses,physicalRestaurantReadiness}],paidSpendAuthorized,newOAuthRequired}' \
+            /tmp/resource-farm-consumer-supply-receipt.json >> "$GITHUB_STEP_SUMMARY"

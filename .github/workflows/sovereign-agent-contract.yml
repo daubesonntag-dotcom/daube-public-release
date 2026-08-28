@@ -89,7 +89,7 @@ jobs:
           assert local['detected'] is False, local
           print('anti-cloud classification contracts: PASS')
           PY
-      - name: Ed25519 runtime contract
+      - name: OpenSSL CLI Ed25519 contract
         shell: bash
         run: |
           set -euo pipefail
@@ -100,3 +100,37 @@ jobs:
           printf '%s' '{"daube":"sovereign-agent-contract"}' > "$msg"
           openssl pkeyutl -sign -rawin -inkey "$key" -in "$msg" -out "$sig"
           openssl pkeyutl -verify -rawin -pubin -inkey "$pub" -in "$msg" -sigfile "$sig"
+      - name: libcrypto ctypes Ed25519 fallback contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, importlib.util, pathlib, shutil, subprocess, tempfile
+          path=pathlib.Path('farm/sovereign-agent/direct-agent.py')
+          spec=importlib.util.spec_from_file_location('agent_fallback', path)
+          agent=importlib.util.module_from_spec(spec); spec.loader.exec_module(agent)
+          real_which=shutil.which
+          with tempfile.TemporaryDirectory() as tmp:
+              root=pathlib.Path(tmp)
+              agent.HOME=root
+              agent.KEY=root/'host-ed25519.pem'
+              agent.RAW_KEY=root/'host-ed25519.raw'
+              agent.PUB=root/'host-ed25519.pub.pem'
+              agent.LATEST=root/'latest-direct-proof.json'
+              agent.shutil.which=lambda name: None if name=='openssl' else real_which(name)
+              agent.require_runtime()
+              public_pem, fingerprint=agent.ensure_identity()
+              assert agent.RAW_KEY.exists() and len(agent.RAW_KEY.read_bytes())==32
+              assert not agent.KEY.exists()
+              payload={'daube':'libcrypto-fallback-contract'}
+              signature=base64.b64decode(agent.sign(payload))
+              assert len(signature)==64
+              msg=root/'msg.json'; sigfile=root/'sig.bin'; pub=root/'pub.pem'
+              msg.write_bytes(agent.canonical_json(payload)); sigfile.write_bytes(signature); pub.write_text(public_pem)
+              subprocess.check_call([
+                  real_which('openssl'),'pkeyutl','-verify','-rawin','-pubin','-inkey',str(pub),
+                  '-in',str(msg),'-sigfile',str(sigfile)
+              ])
+              assert fingerprint==agent.hashlib.sha256(public_pem.encode()).hexdigest()
+          print('libcrypto fallback contract: PASS')
+          PY

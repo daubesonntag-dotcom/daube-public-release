@@ -1,26 +1,35 @@
 {
-  "schema": "daube.runtime-admission-target.v3",
-  "frozenAt": "2026-08-28T20:10:00+07:00",
+  "schema": "daube.runtime-admission-target.v4",
+  "frozenAt": "2026-08-28T20:20:36+07:00",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
-  "sourceTreeSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
-  "admissionMarker": "supabase-provider-neutral-runtime-v1",
+  "expectedSha": "9ca371eabeb3dbb0adfb9d904dd4023647908d06",
+  "sourceTreeSha": "9ca371eabeb3dbb0adfb9d904dd4023647908d06",
   "runtimeGate": "provider_neutral_runtime_admission",
   "runtimeOrigin": "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-commerce-runtime",
   "observedRuntimeProvider": "supabase-edge",
   "requiredProvider": null,
   "runtimeBinding": {
-    "receiptId": "7b458634-ec24-4b2f-9b8e-dfa3a8ce5933",
+    "receiptId": "f8f4b9d0-660c-45fb-81b2-af506ac90ba2",
+    "contentHash": "ecdc989df2aa3ad35b9d7c1eeb37387b6591ffaa0c6cf98652f1b48492b4ee54",
     "function": "daube-commerce-runtime",
     "functionVersion": 2,
     "functionDigest": "1c4a09712520138bee35143c80474de21afb33029584065f25088d942ff79d7e",
-    "migration": "provider_neutral_commerce_runtime_v1",
+    "canonicalEdgeSourceRevision": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
+    "edgeSourceUnchangedSinceRevision": true,
+    "migrations": [
+      "provider_neutral_commerce_runtime_v1",
+      "provider_neutral_commerce_runtime_rls_hardening_v1",
+      "provider_neutral_commerce_runtime_perf_v1"
+    ],
     "recoveryDrill": {
       "method": "same-source-redeploy",
+      "fromFunctionVersion": 1,
+      "toFunctionVersion": 2,
       "canonicalSourceReadbackMatched": true,
-      "previousFunctionVersion": 1,
-      "currentFunctionVersion": 2,
-      "externalReadbackRequiredAfterRecovery": true
+      "postRecoveryExternalRunId": 33174716841,
+      "postRecoveryExternalJobId": 98860232371,
+      "postRecoveryExternalArtifactId": 9687067139,
+      "postRecoveryExternalConclusion": "success"
     }
   },
   "primaryDomesticRail": "direct_vietqr",

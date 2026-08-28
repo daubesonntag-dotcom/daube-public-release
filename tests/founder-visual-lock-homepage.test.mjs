@@ -4,25 +4,37 @@ import test from "node:test";
 
 const index = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const robots = fs.readFileSync(new URL("../robots.txt", import.meta.url), "utf8");
+const pay = fs.readFileSync(new URL("../pay/index.html", import.meta.url), "utf8");
 const pagesWorkflow = fs.readFileSync(new URL("../.github/workflows/pages.yml", import.meta.url), "utf8");
+const recoveryWorkflow = fs.readFileSync(new URL("../.github/workflows/payment-domain-recovery-pages.yml", import.meta.url), "utf8");
 const authority = JSON.parse(fs.readFileSync(new URL("../release-authority.v1.json", import.meta.url), "utf8"));
+const recovery = JSON.parse(fs.readFileSync(new URL("../release/payment-domain-recovery-v1.json", import.meta.url), "utf8"));
 const historicalLock = JSON.parse(fs.readFileSync(new URL("../.daube/visual-locks/homepage-approved-mockup-v2.json", import.meta.url), "utf8"));
 const historicalRelease = JSON.parse(fs.readFileSync(new URL("../.daube/releases/approved-mockup-homepage-v2.json", import.meta.url), "utf8"));
 
 const historicalVisualLockSha = "079c497356b44ce29cf3b43a81a8902b1847266c4c24c8bc550b80825ea1c2f8";
 
-test("public-release root is a noindex release channel, not a second homepage", () => {
+test("bounded payment recovery makes the actual legacy Pages apex review-ready", () => {
+  assert.equal(recovery.schema, "daube.payment-domain-recovery.v1");
+  assert.equal(recovery.status, "ACTIVE_RECOVERY");
+  assert.equal(recovery.recoveryAuthority.publisher, "github-pages");
+  assert.equal(recovery.recoveryAuthority.temporary, true);
   assert.match(index, /<html lang="en">/);
-  assert.match(index, /name="viewport"/);
-  assert.match(index, /name="robots" content="noindex,nofollow,noarchive,nosnippet"/);
+  assert.match(index, /name="robots" content="index,follow/);
   assert.match(index, /rel="canonical" href="https:\/\/daubesonntag\.com\/"/);
-  assert.match(index, /Public release channel/);
-  assert.match(index, /not the canonical homepage authority/i);
-  assert.equal((index.match(/<h1\b/gi) || []).length, 1);
-  assert.match(robots, /^User-agent: \*\s+Disallow: \/$/m);
+  assert.match(index, /\/pay\//);
+  assert.match(robots, /^User-agent: \*\s+Allow: \/$/m);
+  assert.match(pay, /Workflow Kit — Single/);
+  assert.match(pay, /US\$15/);
+  assert.match(pay, /US\$39/);
+  assert.match(pay, /US\$95/);
+  assert.match(pay, /\.\.\/terms\//);
+  assert.match(pay, /\.\.\/privacy\//);
+  assert.match(pay, /\.\.\/refund\//);
+  assert.match(pay, /\.\.\/contact\//);
 });
 
-test("canonical homepage authority is explicitly daube-web on Cloudflare", () => {
+test("canonical long-term homepage authority remains daube-web on Cloudflare", () => {
   assert.equal(authority.schema, "daube.public-release.authority.v1");
   assert.equal(authority.role, "PUBLIC_RELEASE_PROJECTION");
   assert.equal(authority.canonicalHomepageAuthority.repository, "daubesonntag-dotcom/daube-web");
@@ -30,39 +42,40 @@ test("canonical homepage authority is explicitly daube-web on Cloudflare", () =>
   assert.equal(authority.canonicalHomepageAuthority.canonicalApex, "https://daubesonntag.com/");
   assert.equal(authority.mayAuthorCanonicalHomepage, false);
   assert.equal(authority.mayClaimCanonicalApexDeployment, false);
-  assert.equal(authority.pagesPolicy.automaticPushDeployment, false);
-  assert.equal(authority.pagesPolicy.mirrorOnly, true);
-  assert.equal(authority.pagesPolicy.canonicalApexCustomDomainForbidden, true);
+  assert.match(recovery.exitCondition, /Cloudflare\/daube-web/);
 });
 
-test("GitHub Pages cannot automatically race the canonical apex", () => {
+test("normal Pages mirror stays quarantined while a separate recovery publisher is explicitly bounded", () => {
   assert.match(pagesWorkflow, /workflow_dispatch:/);
-  assert.equal(/\n\s*push:\s*\n/.test(pagesWorkflow), false, "automatic push publication must stay disabled");
+  assert.equal(/\n\s*push:\s*\n/.test(pagesWorkflow), false, "normal mirror automatic push publication must stay disabled");
   assert.match(pagesWorkflow, /Homepage authority collision/);
-  assert.match(pagesWorkflow, /daubesonntag\.com\|www\.daubesonntag\.com/);
   assert.match(pagesWorkflow, /ci\/github-pages: mirror/);
-  assert.equal(pagesWorkflow.includes("ci/github-pages: https"), false);
-  assert.equal(pagesWorkflow.includes("Verify canonical HTTPS apex matches current homepage artifact"), false);
+  assert.match(recoveryWorkflow, /payment-domain-recovery-pages/);
+  assert.match(recoveryWorkflow, /branches: \[main\]/);
+  assert.match(recoveryWorkflow, /pay\/index\.html/);
+  assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
+  assert.match(recoveryWorkflow, /Payment domain recovery verified/);
 });
 
-test("historical visual lock is preserved as provenance but no longer drives this root", () => {
+test("historical visual lock is preserved as provenance and recovery uses a later approved V3 artifact", () => {
   assert.equal(historicalLock.id, "DAUBE-APPROVED-HOMEPAGE-MOCKUP-V2");
   assert.equal(historicalLock.reference.sha256, historicalVisualLockSha);
   assert.equal(historicalRelease.visualLock.sha256, historicalVisualLockSha);
   assert.equal(index.includes(historicalVisualLockSha), false);
-  assert.equal(index.includes("assets/maison-homepage-v2.css"), false);
-  assert.equal(index.includes("assets/maison-homepage-v2.js"), false);
+  assert.match(index, /assets\/mobile-first-flagship-v3\.css/);
+  assert.match(index, /assets\/mobile-first-flagship-v3\.js/);
 });
 
-test("public channel carries no private controls or unsupported outcome claims", () => {
+test("public recovery channel carries no private controls, secrets or unsupported economic claims", () => {
   for (const forbidden of ["/creative-market", "/forge", "/founder-os", "/staff-studio", "/engineering-studio", "/revenue-factory"]) {
     assert.equal(index.includes(forbidden), false, `private/draft route leaked: ${forbidden}`);
   }
   for (const unsupported of ["COMMERCE LIVE", "award-winning", "customers", "revenue verified", "production complete"]) {
     assert.equal(index.toLowerCase().includes(unsupported.toLowerCase()), false, `unsupported public claim: ${unsupported}`);
   }
-  assert.equal(authority.truthBoundary.repositoryArtifactIsNotProductionDeployment, true);
-  assert.equal(authority.truthBoundary.pagesMirrorIsNotCanonicalApex, true);
+  assert.equal(recovery.paymentTruth.pagesOwnsOrderTruth, false);
+  assert.equal(recovery.paymentTruth.pagesOwnsSettlementTruth, false);
+  assert.equal(recovery.paymentTruth.checkoutRedirectCountsAsRevenue, false);
   assert.equal(authority.truthBoundary.releaseProjectionDoesNotOwnCommerceTruth, true);
   assert.equal(authority.truthBoundary.externalReadbackRequiredForLiveClaims, true);
 });

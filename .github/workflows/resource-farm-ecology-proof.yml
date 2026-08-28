@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'farm/ecology/contract.json'
+      - 'farm/ecology/publish-receipt.sh'
       - '.github/workflows/resource-farm-ecology-proof.yml'
   schedule:
     - cron: '17 */6 * * *'
@@ -53,30 +54,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish immutable + latest ecology receipt
+      - name: Publish immutable + latest ecology receipt with optimistic retry
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          body_b64="$(base64 -w0 /tmp/ecology.json)"
-          history="farm/ecology/receipts/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
-          gh api --method PUT -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
-            -f message="farm(ecology): record run ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-            -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME" >/dev/null
-
-          latest='farm/ecology/latest-receipt.json'
-          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
-            --jq '.sha' 2>/dev/null || true)"
-          args=(--method PUT -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
-            -f message="farm(ecology): advance latest receipt" \
-            -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME")
-          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
-          gh api "${args[@]}" >/dev/null
+        run: bash farm/ecology/publish-receipt.sh /tmp/ecology.json
 
       - name: Report GREEN board
         run: |

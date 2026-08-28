@@ -1,11 +1,14 @@
 {
-  "schema": "daube.runtime-admission-status.v1",
-  "updatedAt": "2026-08-28T17:52:39+07:00",
-  "state": "HOLD",
-  "classification": "DEPLOYMENT_DRIFT",
+  "schema": "daube.runtime-admission-status.v2",
+  "updatedAt": "2026-08-28T19:44:17+07:00",
+  "state": "CONTINUING",
+  "classification": "RUNTIME_MATERIALIZATION_PENDING_EVIDENCE",
+  "globalFlowStalled": false,
   "candidate": {
     "repository": "daubesonntag-dotcom/daube-commerce",
-    "sha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73"
+    "admissionSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
+    "sourceTreeSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+    "sourceTreeUnchanged": true
   },
   "externalRuntime": {
     "reportedSha": "10ae70d33ae34bdd7925b528068c72d5891acbd3",
@@ -14,25 +17,37 @@
     "productsHttp": 200,
     "turnsHttp": 404
   },
-  "blockers": [
-    "EXACT_SHA_NOT_DEPLOYED",
+  "pendingGates": [
+    "EXACT_ADMISSION_SHA_NOT_YET_MATERIALIZED",
     "TURNS_HTTP_NOT_200",
-    "FIRST_DAWN_PRODUCT_MISSING",
-    "FIRST_DAWN_TURN_MISSING_OR_UNAVAILABLE"
+    "FIRST_DAWN_PRODUCT_NOT_YET_VISIBLE_ON_CANONICAL_RUNTIME",
+    "FIRST_DAWN_TURN_NOT_YET_VISIBLE_OR_AVAILABLE"
   ],
-  "notBlockers": [
-    "PUBLIC_APEX",
-    "PROVIDER_CHOICE",
-    "PADDLE_OPTIONAL_RAIL",
-    "CLOUDFLARE_OPTIONAL_EXECUTOR",
-    "SELF_HOSTED_RUNNER_AS_SOLE_GATE"
+  "flowPolicy": {
+    "pendingGateIsGlobalBottleneck": false,
+    "unrelatedLanesContinue": true,
+    "executorFailureAction": "REPLAN",
+    "providerFailureAction": "SKIP_AND_REPLAN",
+    "externalAuthorityAction": "AUTHORITY_HANDOFF_AND_CONTINUE",
+    "evidenceWaitAction": "CONTINUE_OTHER_ELIGIBLE_WORK"
+  },
+  "automaticNextActions": [
+    "REPLAN_PROVIDER_NEUTRAL_RUNTIME_MATERIALIZATION",
+    "KEEP_PUBLIC_READBACK_ACTIVE",
+    "KEEP_DIRECT_VIETQR_CANARY_PREPARED",
+    "REUSE_SUPABASE_EXISTING_RUNTIME_AND_EVIDENCE_WHERE_CONTRACT_COMPATIBLE",
+    "PROMOTE_ONLY_AFTER_EXACT_EXTERNAL_EVIDENCE"
   ],
-  "automaticNextAction": "DISPATCH_APPROVED_PROVIDER_NEUTRAL_RUNTIME_RECOVERY_FOR_FROZEN_CANDIDATE",
   "founderActionRequiredNow": false,
   "paymentEvidence": {
-    "directVietQrRuntimeOperational": false,
+    "domesticReceivingReachabilityVerified": true,
+    "directVietQrRuntimeOperationalOnCanonicalRuntime": false,
     "externalSettlementProven": false,
     "independentCustomerRevenueProven": false,
     "refundProven": false
+  },
+  "compatibility": {
+    "legacyBlockerTerminologyDeprecated": true,
+    "previousClassification": "DEPLOYMENT_DRIFT"
   }
 }

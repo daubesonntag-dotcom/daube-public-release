@@ -28,9 +28,9 @@ jobs:
     timeout-minutes: 5
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 6
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: CPU production receipt
         shell: bash
@@ -45,11 +45,14 @@ jobs:
           started=time.perf_counter()
           digest=hashlib.sha256()
           for i in range(work_units):
-              digest.update(f'daube-farm-{shard}-{i}'.encode())
+              digest.update(f'daube-farm-generation-3-{shard}-{i}'.encode())
           elapsed=max(time.perf_counter()-started, 1e-9)
           receipt={
-            'schema':'daube.resource-farm-parallel-producer-receipt.v2',
+            'schema':'daube.resource-farm-parallel-producer-receipt.v3',
+            'generation':3,
             'resourceClasses':['compute','ci-build'],
+            'poolId':f'github-public-runner-{shard}',
+            'providerFamily':'github-public-runner',
             'backend':'github-hosted-linux-cpu',
             'shard':shard,
             'runnerOS':platform.system(),
@@ -59,9 +62,14 @@ jobs:
             'workUnitsPerSecond':round(work_units/elapsed,2),
             'latencyMs':round(elapsed*1000,2),
             'sha256':digest.hexdigest(),
+            'success':True,
+            'observedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
             'paidSpendAuthorized':False,
             'privateAssetsUsed':False,
           }
+          path=f'/tmp/producer-{shard}.json'
+          with open(path,'w',encoding='utf-8') as f:
+              json.dump(receipt,f,sort_keys=True)
           print(json.dumps(receipt, sort_keys=True))
           assert receipt['runnerOS']=='Linux'
           assert receipt['cpuCount'] and receipt['cpuCount'] >= 1
@@ -83,6 +91,14 @@ jobs:
           /tmp/farm_canary "$FARM_SHARD" | tee /tmp/farm_compiler_receipt.txt
           grep -q "^FARM_COMPILED_OK:${FARM_SHARD}:" /tmp/farm_compiler_receipt.txt
 
+      - name: Store producer pollen receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: farm-producer-${{ matrix.shard }}
+          path: /tmp/producer-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 1
+
   browser-canary:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -95,7 +111,7 @@ jobs:
           test -n "$CHROME"
           cat >/tmp/farm-browser.html <<'HTML'
           <!doctype html><html><body><div id="result">boot</div><script>
-          const values=new Uint32Array(16384); for(let i=0;i<values.length;i++) values[i]=(i*2654435761)>>>0;
+          const values=new Uint32Array(32768); for(let i=0;i<values.length;i++) values[i]=(i*2654435761)>>>0;
           let x=0; for(const v of values) x=(x^v)>>>0;
           document.getElementById('result').textContent='FARM_BROWSER_OK:'+navigator.userAgent+':'+values.length+':'+x;
           </script></body></html>
@@ -108,9 +124,88 @@ jobs:
           grep -q 'FARM_BROWSER_OK:' /tmp/farm-browser-receipt.html
           echo "browser_binary=$CHROME"
 
-  prove-public-runner:
+  pollination-harvest:
     if: always()
     needs: [parallel-producers, browser-canary]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Admit pollen sources
+        shell: bash
+        env:
+          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
+          BROWSER_RESULT: ${{ needs.browser-canary.result }}
+        run: |
+          set -euo pipefail
+          test "$PRODUCERS_RESULT" = success
+          test "$BROWSER_RESULT" = success
+
+      - name: Collect producer pollen
+        uses: actions/download-artifact@v4
+        with:
+          pattern: farm-producer-*
+          path: /tmp/farm-pollen
+          merge-multiple: true
+
+      - name: Cross-pollinate and harvest receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, json, os
+          files=sorted(glob.glob('/tmp/farm-pollen/producer-*.json'))
+          if len(files) != 6:
+              raise SystemExit(f'expected 6 producer receipts, got {len(files)}')
+          receipts=[]
+          shards=set()
+          for path in files:
+              with open(path,encoding='utf-8') as f:
+                  r=json.load(f)
+              assert r['schema']=='daube.resource-farm-parallel-producer-receipt.v3'
+              assert r['generation']==3
+              assert r['success'] is True
+              assert r['paidSpendAuthorized'] is False
+              assert r['privateAssetsUsed'] is False
+              assert r['shard'] not in shards
+              shards.add(r['shard'])
+              receipts.append(r)
+          aggregate_work=sum(r['workUnits'] for r in receipts)
+          aggregate_throughput=round(sum(r['workUnitsPerSecond'] for r in receipts),2)
+          best=max(receipts,key=lambda r:r['workUnitsPerSecond'])
+          families=sorted(set(r['providerFamily'] for r in receipts))
+          harvest={
+            'schema':'daube.resource-farm-pollination-harvest.v3',
+            'generation':3,
+            'producerReplicas':len(receipts),
+            'aggregateWorkUnits':aggregate_work,
+            'aggregateThroughput':aggregate_throughput,
+            'providerFamilies':families,
+            'providerFamilyCount':len(families),
+            'monocultureRisk':len(families)<2,
+            'bestProducerShard':best['shard'],
+            'bestProducerThroughput':best['workUnitsPerSecond'],
+            'pollinationMode':'receipt-exchange-and-selection',
+            'paidSpendAuthorized':False,
+            'privateAssetsUsed':False,
+          }
+          assert aggregate_work == 1500000
+          assert aggregate_throughput > 0
+          with open('/tmp/farm-harvest.json','w',encoding='utf-8') as f:
+              json.dump(harvest,f,sort_keys=True)
+          print(json.dumps(harvest,sort_keys=True))
+          PY
+
+      - name: Store seed-bank harvest
+        uses: actions/upload-artifact@v4
+        with:
+          name: farm-generation-3-seed-bank
+          path: /tmp/farm-harvest.json
+          if-no-files-found: error
+          retention-days: 7
+
+  prove-public-runner:
+    if: always()
+    needs: [parallel-producers, browser-canary, pollination-harvest]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -118,10 +213,12 @@ jobs:
         shell: bash
         env:
           PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
+          POLLINATION_RESULT: ${{ needs.pollination-harvest.result }}
         run: |
           set -euo pipefail
           test "$PRODUCERS_RESULT" = success
-          echo 'CPU_HERD_OK:4'
+          test "$POLLINATION_RESULT" = success
+          echo 'CPU_HERD_OK:6'
 
       - name: Compiler and executable receipt
         shell: bash
@@ -130,7 +227,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$PRODUCERS_RESULT" = success
-          echo 'COMPILER_HERD_OK:4'
+          echo 'COMPILER_HERD_OK:6'
 
       - name: Headless browser receipt
         shell: bash
@@ -146,19 +243,23 @@ jobs:
         env:
           PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
           BROWSER_RESULT: ${{ needs.browser-canary.result }}
+          POLLINATION_RESULT: ${{ needs.pollination-harvest.result }}
         run: |
           set -euo pipefail
           test "$PRODUCERS_RESULT" = success
           test "$BROWSER_RESULT" = success
+          test "$POLLINATION_RESULT" = success
           python3 - <<'PY'
           import json, os
           receipt={
-            'schema':'daube.resource-farm-harvest-summary.v2',
-            'parallelProducerReplicas':4,
-            'declaredCpuWorkUnits':1000000,
-            'browserWorkUnits':16384,
+            'schema':'daube.resource-farm-harvest-summary.v3',
+            'generation':3,
+            'parallelProducerReplicas':6,
+            'declaredCpuWorkUnits':1500000,
+            'browserWorkUnits':32768,
             'producerResult':os.environ['PRODUCERS_RESULT'],
             'browserResult':os.environ['BROWSER_RESULT'],
+            'pollinationResult':os.environ['POLLINATION_RESULT'],
             'paidSpendAuthorized':False,
             'privateAssetsUsed':False,
           }

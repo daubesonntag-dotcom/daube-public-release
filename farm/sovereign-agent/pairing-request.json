@@ -1,0 +1,8 @@
+{
+  "schema": "daube.sovereign-edge-pairing-request.v1",
+  "action": "approve",
+  "publicKeySha256": "53abae211e75ba056d2b7b797b950f4f4240314a20a68705c678e1f1d52f5980",
+  "runtimeKind": "android-termux",
+  "source": "founder-confirmed-physical-device",
+  "requestedAt": "2026-08-29T01:45:00+07:00"
+}

@@ -1,0 +1,20 @@
+{
+  "schema": "daube.resource-farm-ecology-proof-contract.v1",
+  "endpoint": "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-ecology",
+  "minimumGreenScore": 95,
+  "requiredSystemCount": 10,
+  "requiredStatus": "GREEN",
+  "requirements": {
+    "farm12Of12Live": true,
+    "lifecycleSelfPlayGuarded": true,
+    "consumerSupplyGreen": true,
+    "providerActuatorClosedLoop": true,
+    "allSystemsGreen": true,
+    "zeroUnattendedPaidSpend": true,
+    "noAutomaticPrivilegeExpansion": true,
+    "noNewOAuth": true,
+    "actuatorAdmitted": true
+  },
+  "refresh": "every_6_hours",
+  "truthBoundary": "This proof covers digital ecology control readiness and live dependency admission only. Business returns and physical-world outcomes require their own evidence."
+}

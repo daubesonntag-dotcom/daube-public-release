@@ -6,25 +6,30 @@
   <meta name="theme-color" content="#f5f2e9">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="Cửa hàng D’AUBE SONNTAG — sản phẩm số và dịch vụ đã được duyệt, với trạng thái đơn hàng và thanh toán được đối chiếu rõ ràng.">
+  <meta name="description" content="Cửa hàng D’AUBE SONNTAG — sản phẩm số và dịch vụ với Direct VietQR cho VND, mã đơn riêng và trạng thái thanh toán được đối chiếu rõ ràng.">
   <link rel="canonical" href="https://daubesonntag.com/storefront/">
   <link rel="stylesheet" href="/assets/storefront-v2.css">
   <link rel="stylesheet" href="/assets/storefront-mobile-v3.css">
-  <title>Cửa hàng D’AUBE · Meaning, made visible.</title>
+  <title>Cửa hàng D’AUBE · Direct VietQR · Meaning, made visible.</title>
 </head>
 <body>
 <main class="storeShell" data-storefront-state="loading">
   <header class="storeHeader">
     <a class="storeBrand" href="/"><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></a>
-    <nav><a href="/">Trang chủ</a><a href="#catalog">Sản phẩm VND</a><a href="/pay/">USD / D’AUBE Pay</a><a href="#order-status">Tra đơn</a><a href="/privacy/">Quyền riêng tư</a><a href="/returns/">Đổi trả</a></nav>
+    <nav><a href="/">Trang chủ</a><a href="#catalog">Sản phẩm VND</a><a href="#direct-pay">Direct Pay</a><a href="/pay/">USD / card</a><a href="#order-status">Tra đơn</a><a href="/privacy/">Quyền riêng tư</a></nav>
   </header>
 
   <section class="storeHero" aria-labelledby="store-title">
-    <p class="storeKicker">D’AUBE / CỬA HÀNG</p>
-    <h1 id="store-title">Đồ hữu ích,<br><em>đặt được ngay.</em></h1>
-    <p>Sản phẩm số và dịch vụ có phạm vi rõ ràng. Danh mục, giá, mã đơn và trạng thái thanh toán được đọc từ hệ thống thương mại D’AUBE — không lấy từ lời quảng cáo tĩnh.</p>
-    <div class="storeTruth"><span>Hạ tầng cửa hàng không tốn phí cố định</span><span>Tạo đơn ≠ thanh toán</span><span>Chỉ ghi nhận đã trả khi đối chiếu thành công</span></div>
-    <p class="fine"><strong>International / USD:</strong> xem Workflow Kit một lần US$15 / US$39 / US$95 cùng deliverables, license và trạng thái Paddle tại <a href="/pay/">D’AUBE Pay</a>. Live card checkout vẫn khóa cho tới khi Paddle phê duyệt domain và tax category.</p>
+    <p class="storeKicker">D’AUBE / CỬA HÀNG / DIRECT PAY</p>
+    <h1 id="store-title">Đồ hữu ích,<br><em>trả thẳng.</em></h1>
+    <p>Chọn sản phẩm, tạo mã đơn và nhận VietQR riêng theo đúng số tiền + nội dung chuyển khoản. Tiền VND đi thẳng qua rail ngân hàng/NAPAS vào tài khoản nhận của D’AUBE; D’AUBE không thu PIN, OTP, CVV hay mật khẩu ngân hàng.</p>
+    <div class="storeTruth"><span>Direct VietQR · VND</span><span>Tạo đơn ≠ đã trả</span><span>QR scan ≠ settlement</span><span>Chỉ ghi nhận PAID sau đối chiếu</span></div>
+    <p class="fine"><strong>Card / international:</strong> Paddle và các licensed rail khác là adapter tùy chọn, không còn chặn checkout VND. Workflow Kit USD vẫn được công bố tại <a href="/pay/">D’AUBE Pay</a> trong lúc card rail chờ provider approval.</p>
+  </section>
+
+  <section id="direct-pay" class="directPayExplainer">
+    <p class="storeKicker">D’AUBE DIRECT PAY · VIETQR / NAPAS</p>
+    <div><h2>Quét một lần.<br>Đối chiếu đàng hoàng.</h2><p>Sau khi tạo đơn, QR chứa sẵn số tiền và reference của chính đơn đó. Hãy kiểm tra tên người thụ hưởng trong app ngân hàng trước khi xác nhận. Nếu bạn chuyển thủ công, giữ nguyên nội dung được cấp để D’AUBE đối chiếu chính xác.</p></div>
   </section>
 
   <section id="catalog" class="storeSection">
@@ -50,22 +55,23 @@
       </div>
       <label>Kênh liên hệ<select id="preferred-channel" name="preferredChannel"><option value="email">Email</option><option value="phone">Điện thoại</option><option value="zalo">Zalo</option><option value="messenger">Messenger</option></select></label>
       <label class="consent"><input id="consent" type="checkbox" required><span>Tôi đồng ý để D’AUBE xử lý thông tin tối thiểu cần thiết cho đơn hàng theo <a href="/privacy/">Thông báo quyền riêng tư</a>.</span></label>
-      <button id="order-submit" class="primaryButton" type="submit">Tạo đơn &amp; nhận hướng dẫn thanh toán</button>
-      <p class="fine">Tạo đơn chưa phải là thanh toán. D’AUBE không yêu cầu PIN, OTP, CVV, mật khẩu hoặc thông tin đăng nhập ngân hàng.</p>
+      <button id="order-submit" class="primaryButton" type="submit">Tạo đơn &amp; nhận VietQR</button>
+      <p class="fine">Bạn thanh toán trong app ngân hàng của mình. D’AUBE không yêu cầu PIN, OTP, CVV, mật khẩu hoặc thông tin đăng nhập ngân hàng.</p>
       <p id="order-error" class="errorState" role="alert" hidden></p>
     </form>
   </section>
 
   <section id="payment-panel" class="paymentPanel" hidden aria-labelledby="payment-title">
-    <p class="storeKicker">ĐÃ TẠO ĐƠN · CHỜ THANH TOÁN</p>
+    <p class="storeKicker">ĐÃ TẠO ĐƠN · CHỜ CHUYỂN KHOẢN</p>
     <h2 id="payment-title"></h2>
     <p id="payment-summary"></p>
+    <div id="payment-qr" class="paymentQr" hidden></div>
     <dl id="payment-details"></dl>
-    <p class="fine light">Hướng dẫn thanh toán chưa phải là tiền đã về. Doanh thu chỉ được ghi nhận sau khi đối chiếu thanh toán thành công.</p>
+    <p class="fine light">VietQR hoặc hướng dẫn chuyển khoản chưa phải là bằng chứng tiền đã về. Đơn chỉ chuyển sang PAID sau khi giao dịch ngân hàng được đối chiếu đúng số tiền, reference và đơn hàng.</p>
   </section>
 
   <section id="order-status" class="storeSection statusSection">
-    <div><p class="storeKicker">TRẠNG THÁI ĐƠN</p><h2>Kiểm tra bằng mã đơn.</h2><p>Mã đơn + email hoặc 4 số cuối điện thoại được dùng để đối chiếu.</p></div>
+    <div><p class="storeKicker">TRẠNG THÁI ĐƠN</p><h2>Kiểm tra bằng mã đơn.</h2><p>Mã đơn + email hoặc 4 số cuối điện thoại được dùng để đối chiếu. Nếu vừa chuyển khoản, trạng thái có thể vẫn là awaiting_payment cho tới khi D’AUBE xác minh giao dịch.</p></div>
     <form id="status-form" class="statusForm">
       <label>Mã đơn<input id="status-code" autocomplete="off" placeholder="DS-…" required></label>
       <label>Email hoặc số điện thoại<input id="status-contact" autocomplete="email" required></label>
@@ -74,7 +80,7 @@
     </form>
   </section>
 
-  <footer class="storeFooter"><div><strong>D’AUBE SONNTAG</strong><span>RẠNG TRONG · MMXXVI</span></div><nav><a href="/pay/">USD / D’AUBE Pay</a><a href="/terms/">Điều khoản</a><a href="/privacy/">Quyền riêng tư</a><a href="/returns/">Đổi trả</a></nav></footer>
+  <footer class="storeFooter"><div><strong>D’AUBE SONNTAG</strong><span>RẠNG TRONG · MMXXVI</span></div><nav><a href="#direct-pay">Direct VietQR</a><a href="/pay/">USD / card</a><a href="/terms/">Điều khoản</a><a href="/privacy/">Quyền riêng tư</a><a href="/returns/">Đổi trả</a></nav></footer>
 </main>
 <script src="/assets/storefront-v2.js" defer></script>
 </body>

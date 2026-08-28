@@ -1,0 +1,57 @@
+name: sovereign-gpu-agent-contract
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'farm/sovereign-agent/gpu-agent.py'
+      - 'farm/sovereign-agent/upgrade-gpu-termux.sh'
+      - 'farm/sovereign-agent/bin/android-arm64/**'
+      - '.github/workflows/sovereign-gpu-agent-contract.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static and supply-chain checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile farm/sovereign-agent/gpu-agent.py
+          bash -n farm/sovereign-agent/upgrade-gpu-termux.sh
+          expected="$(awk 'NR==1 {print $1}' farm/sovereign-agent/bin/android-arm64/daube-vulkan-compute-canary.sha256)"
+          observed="$(sha256sum farm/sovereign-agent/bin/android-arm64/daube-vulkan-compute-canary | awk '{print $1}')"
+          test "$expected" = "$observed"
+          test "$observed" = '1a821425cc1b8299fee54fe09ad5b0991840e0162b0165b7489aceba3466fa97'
+      - name: Live endpoint and fail-closed checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1'
+          intake="$(curl --fail-with-body -fsS --max-time 20 "$base/daube-sovereign-gpu-direct-intake")"
+          state="$(curl --fail-with-body -fsS --max-time 20 "$base/daube-sovereign-gpu-state")"
+          python - "$intake" "$state" <<'PY'
+          import json,sys
+          intake=json.loads(sys.argv[1]); state=json.loads(sys.argv[2])
+          assert intake['ok'] is True and intake['live'] is True
+          assert intake['requiredBackend']=='vulkan'
+          assert intake['softwareRendererAllowed'] is False
+          assert intake['oauthRequired'] is False and intake['paidSpendAuthorized'] is False
+          assert state['ok'] is True and state['live'] is True
+          assert state['oauthRequired'] is False and state['paidSpendAuthorized'] is False
+          PY
+          code="$(curl -sS -o /tmp/reject.json -w '%{http_code}' --max-time 20 \
+            -H 'content-type: application/json' \
+            --data '{"schema":"daube.sovereign-gpu-direct-submission.v1","attestation":{"schema":"daube.sovereign-gpu-direct-proof.v1"}}' \
+            "$base/daube-sovereign-gpu-direct-intake")"
+          test "$code" = '400'
+          python - <<'PY'
+          import json
+          rejected=json.load(open('/tmp/reject.json'))
+          assert rejected['ok'] is False
+          assert rejected['status']=='REJECTED'
+          assert rejected['gpuReady'] is False
+          assert rejected['paidSpendAuthorized'] is False
+          PY

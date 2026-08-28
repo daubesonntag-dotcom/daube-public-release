@@ -1,0 +1,10 @@
+{
+  "schema": "daube.money-first-cross-repo-target.v1",
+  "repository": "daubesonntag-dotcom/daube-business-os",
+  "revision": "79933822c2c8c5bc2cb1b094b6d318ab59738550",
+  "path": "config/enterprise/money-first-execution-status.v1.json",
+  "packet": "MF-002",
+  "expectedStatus": "PUBLIC_QUALIFICATION_RUNTIME_VERIFIED",
+  "minimumScore": 95,
+  "truthBoundary": "This target validates a public qualification runtime and its fail-closed economic claims. It does not prove an independent customer, payment, settlement, delivery or revenue."
+}

@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-const authority = JSON.parse(fs.readFileSync('governance/repository-contract.json', 'utf8'));
-const recovery = JSON.parse(fs.readFileSync('governance/payment-domain-recovery-v1.json', 'utf8'));
-const lock = JSON.parse(fs.readFileSync('governance/founder-visual-lock.json', 'utf8'));
+const authority = JSON.parse(fs.readFileSync('release-authority.v1.json', 'utf8'));
+const recovery = JSON.parse(fs.readFileSync('release/payment-domain-recovery-v1.json', 'utf8'));
+const lock = JSON.parse(fs.readFileSync('.daube/visual-locks/homepage-approved-mockup-v2.json', 'utf8'));
 const index = fs.readFileSync('index.html', 'utf8');
 const robots = fs.readFileSync('robots.txt', 'utf8');
 const pagesWorkflow = fs.readFileSync('.github/workflows/pages.yml', 'utf8');
@@ -16,9 +16,9 @@ test('Free-First governance remains durable provenance during bounded payment re
   assert.equal(authority.pagesPolicy.automaticPushDeployment, false);
   assert.equal(authority.pagesPolicy.mirrorOnly, true);
   assert.equal(authority.pagesPolicy.canonicalApexCustomDomainForbidden, true);
-  assert.equal(recovery.mode, 'ACTIVE_RECOVERY');
-  assert.equal(recovery.scope.canonicalApex, 'https://daubesonntag.com/');
-  assert.equal(recovery.scope.paymentReviewSurface, 'https://daubesonntag.com/pay/');
+  assert.equal(recovery.status, 'ACTIVE_RECOVERY');
+  assert.ok(recovery.requiredExternalReadback.includes('https://daubesonntag.com/'));
+  assert.ok(recovery.requiredExternalReadback.includes('https://daubesonntag.com/pay/'));
 });
 
 test('historical local scene assets are preserved without driving the payment recovery root', () => {

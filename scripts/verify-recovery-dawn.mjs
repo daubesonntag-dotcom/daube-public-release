@@ -33,13 +33,13 @@ async function runCase(c,def){
   await c.call('Page.navigate',{url}); await waitReady(c); await sleep(def.reduced?120:950);
   const state=await evaluate(c,`(()=>{
     const q=s=>document.querySelector(s); const qa=s=>[...document.querySelectorAll(s)];
-    const body=document.body.innerText; const first=q('.button'); const rect=first?.getBoundingClientRect();
+    const body=document.body.innerText; const normalizedBody=body.toLocaleLowerCase('vi-VN'); const first=q('.button'); const rect=first?.getBoundingClientRect();
     return {
       lang:document.documentElement.lang,title:document.title,h1:q('h1')?.textContent?.replace(/\\s+/g,' ').trim()||'',
       principle:q('#principle-title')?.textContent?.replace(/\\s+/g,' ').trim()||'',
       cards:qa('.card').length,night:!!q('.night'),orb:!!q('.orb'),arch:!!q('.archOuter'),
       heroMedia:q('.heroVisual')?.querySelectorAll('img,video').length??-1,
-      recovery:body.includes('Public recovery surface online'),truth:body.includes('recovery ≠ final sovereign production'),
+      recovery:normalizedBody.includes('public recovery surface online'),truth:normalizedBody.includes('recovery ≠ final sovereign production'),
       width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,
       touchW:rect?.width||0,touchH:rect?.height||0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
       revealHidden:qa('[data-reveal]').filter(x=>getComputedStyle(x).opacity==='0').length,

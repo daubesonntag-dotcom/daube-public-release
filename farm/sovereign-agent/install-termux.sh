@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # D'AUBE Sovereign Edge — Android/Termux one-tap installer.
-# The agent is pinned to an immutable revision that supports Android runtime
-# detection plus Ed25519 through either the openssl CLI or libcrypto via ctypes.
-AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-823bebf5484d283d0b3692428cc9de5c181f5469}"
+# The agent is pinned to an immutable revision that supports Android runtime,
+# Ed25519 via openssl/libcrypto, and PEM signing fallback for Termux builds.
+AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-a78cb41da844eadc32548620ddf4fc26f7c629d7}"
 SOURCE_URL="${DAUBE_SOVEREIGN_AGENT_URL:-https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${AGENT_REVISION}/farm/sovereign-agent/direct-agent.py}"
 PAIRING_URL="https://github.com/daubesonntag-dotcom/daube-public-release/actions/workflows/sovereign-edge-pair.yml"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"

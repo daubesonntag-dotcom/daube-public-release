@@ -1,0 +1,29 @@
+{
+  "schema": "daube.payment-domain-recovery.v1",
+  "status": "ACTIVE_RECOVERY",
+  "reason": "Canonical apex still serves a legacy GitHub Pages artifact while the intended Cloudflare cutover operator is retired. Paddle live checkout domain review is rejected and /pay previously returned a GitHub Pages 404.",
+  "recoveryAuthority": {
+    "repository": "daubesonntag-dotcom/daube-public-release",
+    "publisher": "github-pages",
+    "scope": "public review and payment entry surface only",
+    "temporary": true
+  },
+  "commerceAuthority": "daubesonntag-dotcom/daube-commerce",
+  "paymentTruth": {
+    "pagesOwnsOrderTruth": false,
+    "pagesOwnsSettlementTruth": false,
+    "sandboxCountsAsRevenue": false,
+    "checkoutRedirectCountsAsRevenue": false,
+    "externalSettlementEvidenceRequired": true
+  },
+  "requiredExternalReadback": [
+    "https://daubesonntag.com/",
+    "https://daubesonntag.com/pay/",
+    "https://daubesonntag.com/pricing/",
+    "https://daubesonntag.com/terms/",
+    "https://daubesonntag.com/privacy/",
+    "https://daubesonntag.com/refund/",
+    "https://daubesonntag.com/contact/"
+  ],
+  "exitCondition": "Migrate public serving authority to an independently verified Cloudflare/daube-web deployment only after it can preserve these routes and external readback without 404 or stale-artifact regression."
+}

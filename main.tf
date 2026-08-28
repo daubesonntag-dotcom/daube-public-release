@@ -5,6 +5,10 @@ terraform {
       source  = "oracle/oci"
       version = "8.27.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "3.7.2"
+    }
   }
 }
 
@@ -20,8 +24,18 @@ locals {
     "SpendPolicy"         = "ALWAYS_FREE_ONLY"
     "SovereignLocal"      = "false"
     "ProviderFamily"      = "oracle-cloud"
-    "ProductionAuthority" = "bounded-origin"
+    "ProductionAuthority" = "bounded-origin-worker"
   }
+}
+
+resource "random_password" "worker_auth" {
+  length  = 48
+  special = false
+}
+
+resource "random_password" "worker_receipt" {
+  length  = 64
+  special = false
 }
 
 data "oci_identity_availability_domains" "available" {
@@ -150,6 +164,9 @@ resource "oci_core_instance" "daube_free_host" {
       public_release_repo   = var.public_release_repo
       public_release_branch = var.public_release_branch
       admin_cidr            = var.admin_cidr
+      worker_script_b64     = base64encode(file("${path.module}/worker.py"))
+      worker_auth_token     = random_password.worker_auth.result
+      worker_receipt_secret = random_password.worker_receipt.result
     }))
   }
 
@@ -188,6 +205,23 @@ output "health_url" {
   value = "http://${oci_core_instance.daube_free_host.public_ip}/healthz"
 }
 
+output "worker_direct_url" {
+  value       = "http://${oci_core_instance.daube_free_host.public_ip}"
+  description = "Direct origin URL for bounded bootstrap canaries only. Production Compute Mesh routing still requires an HTTPS edge URL."
+}
+
+output "worker_auth_token" {
+  value       = random_password.worker_auth.result
+  sensitive   = true
+  description = "Bind to DAUBE_ORACLE_A1_WORKER_TOKEN. Store in a secret manager; do not commit."
+}
+
+output "worker_receipt_secret" {
+  value       = random_password.worker_receipt.result
+  sensitive   = true
+  description = "Bind to DAUBE_ORACLE_A1_RECEIPT_SECRET. Store in a secret manager; do not commit."
+}
+
 output "resource_farm_classification" {
   value = {
     hosting               = "CANDIDATE_AFTER_RUNTIME_CANARY"
@@ -195,6 +229,7 @@ output "resource_farm_classification" {
     provider_family       = "oracle-cloud"
     sovereign_local       = false
     paid_spend_authorized = false
-    commercial_role       = "bounded-production-origin"
+    commercial_role       = "bounded-production-origin-worker"
+    worker_contract       = "daube.compute.v1"
   }
 }

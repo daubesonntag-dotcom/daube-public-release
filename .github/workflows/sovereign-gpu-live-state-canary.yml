@@ -17,48 +17,54 @@ jobs:
           set -euo pipefail
           base='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1'
           mkdir -p evidence
-          curl --fail-with-body --silent --show-error --max-time 20 \
-            "$base/daube-compute-mesh/healthz" \
-            -o evidence/compute-mesh-health.json
-          curl --fail-with-body --silent --show-error --max-time 20 \
-            "$base/daube-sovereign-host-state" \
-            -o evidence/sovereign-host-state.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$base/daube-compute-mesh/healthz" -o evidence/compute-mesh-health.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$base/daube-sovereign-host-state" -o evidence/sovereign-host-state.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$base/daube-sovereign-gpu-direct-intake" -o evidence/sovereign-gpu-intake.json
+          curl --fail-with-body --silent --show-error --max-time 20 "$base/daube-sovereign-gpu-state" -o evidence/sovereign-gpu-state.json
           python - <<'PY'
           import json
           from pathlib import Path
           mesh=json.loads(Path('evidence/compute-mesh-health.json').read_text())
           host=json.loads(Path('evidence/sovereign-host-state.json').read_text())
+          intake=json.loads(Path('evidence/sovereign-gpu-intake.json').read_text())
+          gpu=json.loads(Path('evidence/sovereign-gpu-state.json').read_text())
           receipt={
-            'schema':'daube.sovereign-gpu-live-state-canary.v1',
+            'schema':'daube.sovereign-gpu-live-state-canary.v2',
             'compute_mesh':{
-              'ok':mesh.get('ok'), 'status':mesh.get('status'),
-              'storage_contract':mesh.get('storageContract'),
-              'storage_probe':mesh.get('storageProbe'),
-              'volunteer_execution':mesh.get('volunteerExecution'),
-              'paid_spend_authorized':mesh.get('paidSpendAuthorized'),
-              'deployment_id_present':bool(mesh.get('deploymentId')),
+              'ok':mesh.get('ok'),'status':mesh.get('status'),'storage_contract':mesh.get('storageContract'),
+              'storage_probe':mesh.get('storageProbe'),'volunteer_execution':mesh.get('volunteerExecution'),
+              'paid_spend_authorized':mesh.get('paidSpendAuthorized'),'deployment_id_present':bool(mesh.get('deploymentId')),
               'region':mesh.get('region'),
             },
             'sovereign_host':{
-              'ok':host.get('ok'), 'live':host.get('live'), 'ready':host.get('ready'),
-              'status':host.get('status'), 'code':host.get('code'),
-              'host_id_present':bool(host.get('hostId')),
-              'provider':(host.get('proof') or {}).get('provider'),
-              'runtime_kind':(host.get('proof') or {}).get('runtimeKind'),
-              'binding_active':(host.get('binding') or {}).get('active'),
-              'checks':host.get('checks'),
-              'capacity':host.get('capacity'),
-              'paid_spend_authorized':host.get('paidSpendAuthorized'),
+              'ok':host.get('ok'),'live':host.get('live'),'ready':host.get('ready'),'status':host.get('status'),'code':host.get('code'),
+              'host_id_present':bool(host.get('hostId')),'provider':(host.get('proof') or {}).get('provider'),
+              'runtime_kind':(host.get('proof') or {}).get('runtimeKind'),'binding_active':(host.get('binding') or {}).get('active'),
+              'checks':host.get('checks'),'capacity':host.get('capacity'),'paid_spend_authorized':host.get('paidSpendAuthorized'),
             },
-            'authentication_used':False,
-            'paid_spend_authorized':False,
+            'gpu_intake':{
+              'ok':intake.get('ok'),'live':intake.get('live'),'ready':intake.get('ready'),
+              'authentication':intake.get('authentication'),'required_backend':intake.get('requiredBackend'),
+              'software_renderer_allowed':intake.get('softwareRendererAllowed'),'oauth_required':intake.get('oauthRequired'),
+              'paid_spend_authorized':intake.get('paidSpendAuthorized'),
+            },
+            'gpu_state':{
+              'ok':gpu.get('ok'),'live':gpu.get('live'),'ready':gpu.get('ready'),'status':gpu.get('status'),'code':gpu.get('code'),
+              'checks':gpu.get('checks'),'private_capable':gpu.get('privateCapable'),
+              'physical_gpu_24x7_guaranteed':gpu.get('physicalGpu24x7Guaranteed'),
+              'oauth_required':gpu.get('oauthRequired'),'paid_spend_authorized':gpu.get('paidSpendAuthorized'),
+            },
+            'authentication_used':False,'paid_spend_authorized':False,
           }
           Path('evidence/sovereign-gpu-live-state-canary.json').write_text(json.dumps(receipt,indent=2,sort_keys=True))
           print(json.dumps(receipt,sort_keys=True))
-          if mesh.get('ok') is not True or mesh.get('status') != 'LIVE':
-            raise SystemExit('compute mesh is not LIVE')
-          if mesh.get('paidSpendAuthorized') is not False:
-            raise SystemExit('hard-zero invariant failed')
+          if mesh.get('ok') is not True or mesh.get('status') != 'LIVE': raise SystemExit('compute mesh is not LIVE')
+          if host.get('ready') is not True or host.get('status') != 'SOVEREIGN_LOCAL_LIVE': raise SystemExit('sovereign host is not LIVE')
+          if intake.get('ok') is not True or intake.get('live') is not True: raise SystemExit('GPU intake is not LIVE')
+          if gpu.get('ok') is not True or gpu.get('live') is not True: raise SystemExit('GPU state endpoint is not LIVE')
+          for value in (mesh.get('paidSpendAuthorized'),host.get('paidSpendAuthorized'),intake.get('paidSpendAuthorized'),gpu.get('paidSpendAuthorized')):
+            if value is not False: raise SystemExit('hard-zero invariant failed')
+          if intake.get('oauthRequired') is not False or gpu.get('oauthRequired') is not False: raise SystemExit('unexpected OAuth dependency')
           PY
       - name: Upload evidence
         uses: actions/upload-artifact@v4

@@ -7,6 +7,7 @@ on:
     paths:
       - 'recovery/index.html'
       - 'scripts/verify-recovery-dawn.mjs'
+      - 'scripts/recovery-quality-score.mjs'
       - '.github/workflows/recovery-dawn-clarity-visual.yml'
   workflow_dispatch:
 
@@ -36,7 +37,10 @@ jobs:
           exit 1
       - name: Verify desktop mobile accessibility and render evidence
         run: node scripts/verify-recovery-dawn.mjs
-      - name: Upload recovery visual evidence
+      - name: Enforce recovery quality score >= 95
+        run: node scripts/recovery-quality-score.mjs
+      - name: Upload recovery visual and scoring evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: recovery-dawn-clarity-visual-evidence

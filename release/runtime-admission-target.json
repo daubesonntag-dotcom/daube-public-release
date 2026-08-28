@@ -1,0 +1,24 @@
+{
+  "schema": "daube.runtime-admission-target.v1",
+  "frozenAt": "2026-08-28T17:50:00+07:00",
+  "repository": "daubesonntag-dotcom/daube-commerce",
+  "expectedSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "runtimeGate": "provider_neutral_runtime_admission",
+  "requiredProvider": null,
+  "primaryDomesticRail": "direct_vietqr",
+  "requiredRuntimeEvidence": [
+    "exact_sha",
+    "health_readback",
+    "public_products_readback",
+    "public_turns_readback",
+    "rollback_or_recovery_path",
+    "sanitized_execution_receipt"
+  ],
+  "paymentTruth": {
+    "qrOrCheckoutIsSettlement": false,
+    "founderCanaryIsCustomerDemand": false,
+    "externalSettlementEvidenceRequired": true,
+    "refundEvidenceRequiredForRefundClaim": true
+  },
+  "providerSpecificExecutorsLaunchBlocking": false
+}

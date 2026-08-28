@@ -1,0 +1,68 @@
+name: Public contribution / Commons signal
+description: Propose a public-safe, genuinely optional contribution or report a bounded public issue.
+title: "[Public contribution] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for public-safe feedback, documentation, accessibility/UX observations, reproducible public defects, or genuinely optional Commons contribution proposals.
+
+        This is **not** a paid Mission, employment application, contract, customer order, or production-work request. For future paid work interest, use the Talent Pool form instead.
+
+  - type: dropdown
+    id: contribution_type
+    attributes:
+      label: Contribution type
+      options:
+        - Reproducible public bug report
+        - Accessibility / keyboard / screen-reader observation
+        - Mobile / responsive UX observation
+        - Documentation clarity or correction
+        - Localization / wording suggestion
+        - Small public/open contribution proposal
+        - Other public-safe feedback
+    validations:
+      required: true
+
+  - type: textarea
+    id: observation
+    attributes:
+      label: Problem or observation
+      description: Explain what you observed and why it matters.
+      placeholder: Describe the public surface, behavior, expected behavior, and impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction or evidence
+      description: Add public URLs, device/browser information, screenshots that contain no private data, or other reproducible evidence.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_scope
+    attributes:
+      label: Proposed bounded contribution
+      description: Optional. Describe a small change you would be willing to propose. Do not start large work until scope is accepted.
+
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Rights / provenance notes
+      description: If your proposal uses third-party code, text, images, data, or AI-assisted material, state the source/rights basis here. Write N/A when not applicable.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Public contribution boundaries
+      options:
+        - label: I understand this public contribution is voluntary and is not a paid Mission or promise of employment/payment.
+          required: true
+        - label: I have not included government-ID data, bank details, passwords, API keys, private keys, recovery codes, customer secrets, or other sensitive private information.
+          required: true
+        - label: I understand D’AUBE must move production-valued commercial work into a separately funded/contracted lane before relying on it as paid production work.
+          required: true

@@ -1,3 +1,4 @@
+# PR-observable validation receipt for the deploy-only Oracle bundle.
 name: Oracle Resource Manager Worker V2 Validate
 
 on:

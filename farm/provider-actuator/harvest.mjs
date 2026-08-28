@@ -67,7 +67,7 @@ const admitted = ecologyAdmitted && evolutionAdmitted && families.length === 2 &
 const feedbackSeen = Boolean(plan?.feedback?.previousReceiptSeen);
 
 const receipt = {
-  schema: 'daube.resource-farm-provider-actuator-receipt.v2',
+  schema: 'daube.resource-farm-provider-actuator-receipt.v1',
   status: admitted ? 'ADMITTED' : 'REJECTED',
   requestId: plan.requestId,
   requestedWorkUnits: requested,

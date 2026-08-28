@@ -1,26 +1,40 @@
 {
-  "schema": "daube.oracle-free-host-public-projection.v1",
+  "schema": "daube.oracle-free-host-public-projection.v2",
   "sourceRepository": "daubesonntag-dotcom/daube-compute-mesh",
-  "sourceRevision": "0ad5a7fca483805ab1b05367ce5eeec80383f8e4",
+  "sourceRevision": "10bd1629d4d0ad9456f75448b19b0ae9a788b8ff",
   "projectionRepository": "daubesonntag-dotcom/daube-public-release",
   "projectionBranch": "oci-free-host-v1",
   "terraformVersion": "1.5.7",
   "resourceManagerCompatible": true,
   "paidSpendAuthorized": false,
   "strictNoCreditIntent": true,
+  "autonomousRuntimeProof": {
+    "enabled": true,
+    "method": "oci-imds-v2+ed25519+oracle-public-range+https-callback",
+    "stateUrl": "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-oracle-a1-state",
+    "proofTtlHours": 12,
+    "fullInstanceOcidPersisted": false
+  },
   "generatedFiles": {
-    "main.tf": "dc086d5a55cb8573525448a8a3c3da4055e955de",
+    "main.tf": "1bc77617e970a48dac4da6ba92d537f571784ff5",
     "variables.tf": "4f3a4bb0b11f76f7fc0278e20eb3109430b77121",
     "schema.yaml": "9744b9be909baba38520d4e35448991001502b20",
     "cloud-init.yaml.tftpl": "99ae2c97b84a40dd82f18e6f4efa39131c58d356",
     "worker.py": "e3e781623e7b066e8d43bbc57e3f7382e3e88ed3",
-    "tls-bootstrap.sh": "19b5264b3228793330109d0e627d97f59aa8b4bb",
-    "README.md": "a834b88ff4fdcccb10299329ccc9696bc910eba8"
+    "tls-bootstrap.sh": "20e6c150f4656af2b95a895be904d7509fde06f0",
+    "provider-attestation.py": "130278d6206e7cafc1bb6150d2f464c544e7ca5d",
+    "proof-publish.sh": "1f17bcd0317150c91494e31fcbe0fc04606e77e8",
+    "autoproof-bootstrap.sh.tftpl": "e4afa586500e31fc994c87c855b4b88a7414c765",
+    "README.md": "52d33f4d7ae47b765862766ebc697dcf84838e0e"
+  },
+  "projectionDifferences": {
+    "main.tf": "Only the canonical ../common/tls-bootstrap.sh path is flattened to ./tls-bootstrap.sh for root ZIP execution."
   },
   "truthBoundary": {
     "publicProjectionContainsCredentials": false,
     "projectionReadyDoesNotMeanOciAccountBound": true,
     "stackCreatedDoesNotMeanProviderHostLive": true,
-    "providerHostLiveRequiresHttpsSignedRuntimeReceipt": true
+    "providerHostLiveRequiresFreshAutonomousRuntimeProof": true,
+    "oracleA1LiveDoesNotImplyCapacityResalePermission": true
   }
 }

@@ -1,8 +1,11 @@
 {
-  "schema": "daube.runtime-admission-target.v1",
-  "frozenAt": "2026-08-28T17:50:00+07:00",
+  "schema": "daube.runtime-admission-target.v2",
+  "frozenAt": "2026-08-28T18:12:19+07:00",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "expectedSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
+  "sourceTreeSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "sourceTreeUnchangedFromPreviousCandidate": true,
+  "admissionMarker": "prod-admit",
   "runtimeGate": "provider_neutral_runtime_admission",
   "requiredProvider": null,
   "primaryDomesticRail": "direct_vietqr",
@@ -14,6 +17,13 @@
     "rollback_or_recovery_path",
     "sanitized_execution_receipt"
   ],
+  "flowSemantics": {
+    "internalBottleneckConcept": false,
+    "laneIsolationRequired": true,
+    "executorFailureAction": "REPLAN",
+    "externalAuthorityAction": "AUTHORITY_HANDOFF_AND_CONTINUE_UNRELATED_LANES",
+    "evidenceWaitAction": "WAIT_FOR_EVIDENCE_WITHOUT_GLOBAL_STALL"
+  },
   "paymentTruth": {
     "qrOrCheckoutIsSettlement": false,
     "founderCanaryIsCustomerDemand": false,

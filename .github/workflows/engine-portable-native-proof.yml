@@ -12,10 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  ENGINE_HOME: ${{ runner.temp }}/daube-engines
-  ARTIFACT_HOME: ${{ runner.temp }}/daube-engine-artifacts
-
 jobs:
   prove-native-engines:
     runs-on: ubuntu-24.04
@@ -23,11 +19,12 @@ jobs:
     steps:
       - name: Prove zero-spend public-runner context
         run: |
+          set -euo pipefail
           echo "repo=${GITHUB_REPOSITORY}"
           echo "visibility=public"
           echo "runner=${RUNNER_OS}/${RUNNER_ARCH}"
           test "${GITHUB_REPOSITORY}" = "daubesonntag-dotcom/daube-public-release"
-          mkdir -p "$ENGINE_HOME" "$ARTIFACT_HOME"
+          mkdir -p "$RUNNER_TEMP/daube-engines" "$RUNNER_TEMP/daube-engine-artifacts"
 
       - name: Restore portable engine cache
         uses: actions/cache@v4
@@ -39,7 +36,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$ENGINE_HOME/godot"
+          export ENGINE_HOME="$RUNNER_TEMP/daube-engines"
+          export ARTIFACT_HOME="$RUNNER_TEMP/daube-engine-artifacts"
+          mkdir -p "$ENGINE_HOME/godot" "$ARTIFACT_HOME"
           cd "$ENGINE_HOME"
           if [ ! -f godot.zip ]; then
             curl -fL --retry 3 --retry-delay 2 \
@@ -73,7 +72,7 @@ jobs:
           DAUBE_GODOT_CANARY_OUTPUT="$ARTIFACT_HOME/godot-canary.json" \
             "$GODOT" --headless --script "$ARTIFACT_HOME/godot-canary.gd" | tee "$ARTIFACT_HOME/godot-execution.txt"
           grep -q 'DAUBE_GODOT_PRODUCTION_CANARY_OK' "$ARTIFACT_HOME/godot-execution.txt"
-          python3 - <<'PY'
+          ARTIFACT_HOME="$ARTIFACT_HOME" python3 - <<'PY'
           import json, os
           p=os.path.join(os.environ['ARTIFACT_HOME'],'godot-canary.json')
           j=json.load(open(p))
@@ -84,6 +83,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export ENGINE_HOME="$RUNNER_TEMP/daube-engines"
+          export ARTIFACT_HOME="$RUNNER_TEMP/daube-engine-artifacts"
           cd "$ENGINE_HOME"
           BASE='https://download.blender.org/release/Blender5.2'
           ARCHIVE='blender-5.2.1-linux-x64.tar.xz'
@@ -129,7 +130,7 @@ jobs:
           bpy.ops.render.render(write_still=True)
           print('DAUBE_BLENDER_PRODUCTION_CANARY_OK')
           PY
-          "$BLENDER" -b --factory-startup --python "$ARTIFACT_HOME/blender-canary.py" | tee "$ARTIFACT_HOME/blender-execution.txt"
+          ARTIFACT_HOME="$ARTIFACT_HOME" "$BLENDER" -b --factory-startup --python "$ARTIFACT_HOME/blender-canary.py" | tee "$ARTIFACT_HOME/blender-execution.txt"
           grep -q 'DAUBE_BLENDER_PRODUCTION_CANARY_OK' "$ARTIFACT_HOME/blender-execution.txt"
           test -s "$ARTIFACT_HOME/daube-engine-canary.blend"
           test -s "$ARTIFACT_HOME/daube-engine-canary.png"
@@ -138,6 +139,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export ARTIFACT_HOME="$RUNNER_TEMP/daube-engine-artifacts"
           python3 - <<'PY'
           import hashlib, json, os, struct
           root=os.environ['ARTIFACT_HOME']

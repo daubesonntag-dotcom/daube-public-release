@@ -1,28 +1,34 @@
 {
-  "schema": "daube.runtime-admission-status.v2",
-  "updatedAt": "2026-08-28T19:44:17+07:00",
-  "state": "CONTINUING",
-  "classification": "RUNTIME_MATERIALIZATION_PENDING_EVIDENCE",
+  "schema": "daube.runtime-admission-status.v3",
+  "updatedAt": "2026-08-28T20:14:16+07:00",
+  "state": "PASS",
+  "classification": "EXACT_PROVIDER_NEUTRAL_RUNTIME_VERIFIED",
   "globalFlowStalled": false,
   "candidate": {
     "repository": "daubesonntag-dotcom/daube-commerce",
-    "admissionSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
-    "sourceTreeSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
-    "sourceTreeUnchanged": true
+    "admissionSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
+    "sourceTreeSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb"
   },
   "externalRuntime": {
-    "reportedSha": "10ae70d33ae34bdd7925b528068c72d5891acbd3",
+    "provider": "supabase-edge",
+    "function": "daube-commerce-runtime",
+    "functionVersion": 1,
+    "functionDigest": "2d8d36852a297df1843f6e36163e234154458f926aa80b85194c115489c4fdda",
+    "releaseBindingReceiptId": "86ed6483-7297-4c69-9b77-40d531dce7f5",
+    "reportedSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
     "health": "READY",
     "healthHttp": 200,
     "productsHttp": 200,
-    "turnsHttp": 404
+    "turnsHttp": 200,
+    "firstDawnAvailable": true
   },
-  "pendingGates": [
-    "EXACT_ADMISSION_SHA_NOT_YET_MATERIALIZED",
-    "TURNS_HTTP_NOT_200",
-    "FIRST_DAWN_PRODUCT_NOT_YET_VISIBLE_ON_CANONICAL_RUNTIME",
-    "FIRST_DAWN_TURN_NOT_YET_VISIBLE_OR_AVAILABLE"
-  ],
+  "externalReadback": {
+    "workflowRunId": 33174477721,
+    "jobId": 98859424337,
+    "artifactId": 9686973219,
+    "immutableReceipt": "release/runtime-evidence/commerce-fb558d4c-20260828T2014ICT.json"
+  },
+  "pendingGates": [],
   "flowPolicy": {
     "pendingGateIsGlobalBottleneck": false,
     "unrelatedLanesContinue": true,
@@ -31,23 +37,21 @@
     "externalAuthorityAction": "AUTHORITY_HANDOFF_AND_CONTINUE",
     "evidenceWaitAction": "CONTINUE_OTHER_ELIGIBLE_WORK"
   },
-  "automaticNextActions": [
-    "REPLAN_PROVIDER_NEUTRAL_RUNTIME_MATERIALIZATION",
-    "KEEP_PUBLIC_READBACK_ACTIVE",
-    "KEEP_DIRECT_VIETQR_CANARY_PREPARED",
-    "REUSE_SUPABASE_EXISTING_RUNTIME_AND_EVIDENCE_WHERE_CONTRACT_COMPATIBLE",
-    "PROMOTE_ONLY_AFTER_EXACT_EXTERNAL_EVIDENCE"
-  ],
   "founderActionRequiredNow": false,
   "paymentEvidence": {
     "domesticReceivingReachabilityVerified": true,
-    "directVietQrRuntimeOperationalOnCanonicalRuntime": false,
+    "directVietQrInstructionRuntimeOperational": true,
+    "technicalFounderCanaryPrepared": true,
+    "technicalFounderCanaryOrder": "DS-5AD61772",
+    "technicalFounderCanaryState": "ready_for_transfer",
+    "technicalFounderCanaryRevenueCountable": false,
+    "directVietQrAccountOwnershipExternallyVerified": false,
     "externalSettlementProven": false,
     "independentCustomerRevenueProven": false,
     "refundProven": false
   },
   "compatibility": {
     "legacyBlockerTerminologyDeprecated": true,
-    "previousClassification": "DEPLOYMENT_DRIFT"
+    "providerSpecificExecutorRequired": false
   }
 }

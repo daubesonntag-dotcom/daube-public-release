@@ -37,19 +37,16 @@ async function exerciseScrollReveal(c, viewportHeight){
 async function runCase(c,def){
   await c.call('Emulation.setDeviceMetricsOverride',{width:def.width,height:def.height,deviceScaleFactor:1,mobile:def.mobile});
   await c.call('Emulation.setEmulatedMedia',{media:'',features:[{name:'prefers-reduced-motion',value:def.reduced?'reduce':'no-preference'}]});
-  await c.call('Page.navigate',{url}); await waitReady(c); await sleep(def.reduced?180:950);
+  await c.call('Page.navigate',{url}); await waitReady(c); await sleep(def.reduced?120:950);
   if(!def.reduced) await exerciseScrollReveal(c,def.height);
   const state=await evaluate(c,`(()=>{
     const q=s=>document.querySelector(s); const qa=s=>[...document.querySelectorAll(s)];
     const body=document.body.innerText; const normalizedBody=body.toLocaleLowerCase('vi-VN'); const first=q('.button'); const rect=first?.getBoundingClientRect();
-    const heroImg=q('.heroDawnMedia');
     return {
       lang:document.documentElement.lang,title:document.title,h1:q('h1')?.textContent?.replace(/\\s+/g,' ').trim()||'',
       principle:q('#principle-title')?.textContent?.replace(/\\s+/g,' ').trim()||'',
-      cards:qa('.card').length,night:!!q('.night'),orb:!!q('.orb'),archFallback:!!q('.archOuter'),
+      cards:qa('.card').length,night:!!q('.night'),orb:!!q('.orb'),arch:!!q('.archOuter'),
       heroMedia:q('.heroVisual')?.querySelectorAll('img,video').length??-1,
-      heroSrc:heroImg?.getAttribute('src')||'',heroLoaded:!!heroImg&&heroImg.complete&&heroImg.naturalWidth>0&&heroImg.naturalHeight>0,
-      heroNaturalWidth:heroImg?.naturalWidth||0,heroNaturalHeight:heroImg?.naturalHeight||0,
       recovery:normalizedBody.includes('public recovery surface online'),truth:normalizedBody.includes('recovery ≠ final sovereign production'),
       width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,
       touchW:rect?.width||0,touchH:rect?.height||0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -61,9 +58,8 @@ async function runCase(c,def){
   assert(state.title.includes('D’AUBE SONNTAG'),`${def.name}:title`);
   assert(state.h1.includes('Một hiện diện đủ rõ')&&state.h1.includes('hiểu bạn.'),`${def.name}:hero_copy`);
   assert(state.principle.includes('Rõ trước. Đẹp sau.')&&state.principle.includes('Đúng rồi mới mở rộng.'),`${def.name}:principle`);
-  assert(state.cards===3,`${def.name}:cards`); assert(state.night&&state.orb&&state.archFallback,`${def.name}:art_direction_fallback`);
-  assert(state.heroMedia===1,`${def.name}:hero_media_count`); assert(state.heroSrc==='../assets/founder-visual-lock/01-hero-dawn.webp',`${def.name}:hero_asset_lock`); assert(state.heroLoaded,`${def.name}:hero_asset_load`);
-  assert(state.recovery&&state.truth,`${def.name}:truth_boundary`);
+  assert(state.cards===3,`${def.name}:cards`); assert(state.night&&state.orb&&state.arch,`${def.name}:art_direction`);
+  assert(state.heroMedia===0,`${def.name}:hero_media_dependency`); assert(state.recovery&&state.truth,`${def.name}:truth_boundary`);
   assert(state.scroll<=state.width+1,`${def.name}:horizontal_overflow`); assert(state.touchW>=44&&state.touchH>=44,`${def.name}:touch_target`);
   assert(state.reduced===def.reduced,`${def.name}:reduced_motion_query`); assert(state.revealHidden===0,`${def.name}:all_reveals_visible_after_journey`);
   assert(state.errors.length===0,`${def.name}:runtime_errors`);
@@ -73,7 +69,7 @@ async function runCase(c,def){
   assert(nodes.some(n=>n.ignored!==true&&n.role?.value==='link'&&String(n.name?.value||'').includes('Khám phá D’AUBE')),`${def.name}:ax_primary_link`);
   const shot=await c.call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,fromSurface:true});
   const path=resolve(artifactDir,`${def.name}.png`);writeFileSync(path,Buffer.from(shot.data,'base64'));
-  return {name:def.name,viewport:{width:def.width,height:def.height,mobile:def.mobile},reducedMotion:def.reduced,checks:'PASS',allRevealsVisible:true,heroAssetLoaded:true,heroNaturalSize:[state.heroNaturalWidth,state.heroNaturalHeight],screenshot:`${def.name}.png`};
+  return {name:def.name,viewport:{width:def.width,height:def.height,mobile:def.mobile},reducedMotion:def.reduced,checks:'PASS',allRevealsVisible:true,screenshot:`${def.name}.png`};
 }
 
 mkdirSync(artifactDir,{recursive:true});
@@ -85,7 +81,7 @@ try{
   c=new CDP(page.webSocketDebuggerUrl);await c.connect();await Promise.all([c.call('Page.enable'),c.call('Runtime.enable'),c.call('Accessibility.enable')]);
   await c.call('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const a=[];Object.defineProperty(window,'__daubeErrors',{value:a});addEventListener('error',e=>a.push(String(e.message||'error').slice(0,200)));addEventListener('unhandledrejection',e=>a.push(String(e.reason||'rejection').slice(0,200)));})();`});
   const cases=[];cases.push(await runCase(c,{name:'desktop-1440x900',width:1440,height:900,mobile:false,reduced:false}));cases.push(await runCase(c,{name:'mobile-390x844-reduced',width:390,height:844,mobile:true,reduced:true}));
-  const receipt={schema:'daube.recovery-dawn-clarity-browser.v3',ok:true,cases,heroAsset:'assets/founder-visual-lock/01-hero-dawn.webp',heroAssetBlob:'57719bdf056be629b1f179477e0e72b9faca570b',privateSourceRequired:false,externalMediaRequired:false,truthBoundaryPreserved:true,fullPageVisualEvidence:true,verifiedAt:new Date().toISOString()};writeFileSync(resolve(artifactDir,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify({ok:true,cases:cases.length}));
+  const receipt={schema:'daube.recovery-dawn-clarity-browser.v2',ok:true,cases,privateSourceRequired:false,externalMediaRequired:false,truthBoundaryPreserved:true,fullPageVisualEvidence:true,verifiedAt:new Date().toISOString()};writeFileSync(resolve(artifactDir,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify({ok:true,cases:cases.length}));
 }finally{
   c?.close();
   if(child.exitCode===null){

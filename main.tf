@@ -53,10 +53,10 @@ data "oci_core_images" "ubuntu" {
 
 resource "oci_core_vcn" "daube" {
   compartment_id = local.target_compartment_id
-  cidr_block      = "10.42.0.0/16"
-  display_name    = "${var.display_name}-vcn"
-  dns_label       = "daube"
-  freeform_tags   = local.common_tags
+  cidr_block     = "10.42.0.0/16"
+  display_name   = "${var.display_name}-vcn"
+  dns_label      = "daube"
+  freeform_tags  = local.common_tags
 }
 
 resource "oci_core_internet_gateway" "daube" {

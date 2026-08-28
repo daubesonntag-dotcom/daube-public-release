@@ -63,7 +63,8 @@ jobs:
           grep -Fq 'US$95' pay/index.html
           grep -Fq '/pay/' index.html
           grep -Fq 'D’AUBE DIRECT PAY · VIETQR / NAPAS' storefront/index.html
-          grep -Fq 'Tạo đơn &amp; nhận VietQR' storefront/index.html
+          grep -Fq 'Create order &amp; get VietQR' storefront/index.html
+          grep -Fq 'Order created ≠ paid' storefront/index.html
           grep -Fq 'direct_vietqr_bank_transfer' assets/storefront-v2.js
           grep -Fq 'qrSvgDataUrl' assets/storefront-v2.js
           grep -Fq 'paymentQrFrame' assets/storefront-v2.css
@@ -100,7 +101,8 @@ jobs:
               && grep -Fq 'Meaning,' /tmp/root.html \
               && grep -Fq '/storefront/' /tmp/root.html \
               && grep -Fq 'D’AUBE DIRECT PAY · VIETQR / NAPAS' /tmp/storefront.html \
-              && grep -Fq 'Tạo đơn &amp; nhận VietQR' /tmp/storefront.html \
+              && grep -Fq 'Create order &amp; get VietQR' /tmp/storefront.html \
+              && grep -Fq 'Order created ≠ paid' /tmp/storefront.html \
               && grep -Fq 'direct_vietqr_bank_transfer' /tmp/storefront.js \
               && grep -Fq 'qrSvgDataUrl' /tmp/storefront.js \
               && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
@@ -113,7 +115,7 @@ jobs:
               {
                 echo '## D’AUBE payment surface verified'
                 echo '- canonical apex: 200'
-                echo '- /storefront/: 200 · Direct VietQR marker PASS'
+                echo '- /storefront/: 200 · English Direct VietQR marker PASS'
                 echo '- storefront JS: 200 · QR renderer PASS'
                 echo '- /pay/: 200 · optional card/international review surface PASS'
                 echo '- /pricing/, /terms/, /privacy/, /refund/, /contact/: 200'

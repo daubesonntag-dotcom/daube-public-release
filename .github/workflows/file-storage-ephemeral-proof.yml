@@ -23,15 +23,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export_dir="$(mktemp -d /tmp/daube-sftp-export.XXXXXX)"
           mount_dir="$(mktemp -d /tmp/daube-sftp-mount.XXXXXX)"
           key_dir="$(mktemp -d /tmp/daube-sftp-key.XXXXXX)"
           sshd_dir="$(mktemp -d /tmp/daube-sshd.XXXXXX)"
+          test_user='daubefs'
           mounted=0
           cleanup() {
             if [[ "$mounted" == 1 ]]; then fusermount3 -u "$mount_dir" 2>/dev/null || sudo umount "$mount_dir" 2>/dev/null || true; fi
             if [[ -f "$sshd_dir/sshd.pid" ]]; then sudo kill "$(cat "$sshd_dir/sshd.pid")" 2>/dev/null || true; fi
-            rm -rf "$export_dir" "$mount_dir" "$key_dir" "$sshd_dir"
+            sudo userdel -r "$test_user" >/dev/null 2>&1 || true
+            rm -rf "$mount_dir" "$key_dir" "$sshd_dir"
           }
           trap cleanup EXIT
 
@@ -45,10 +46,12 @@ jobs:
           chmod 700 "$key_dir"
           chmod 600 "$key_dir/id_ed25519"
           chmod 644 "$key_dir/id_ed25519.pub"
-          runner_user="$(id -un)"
-          authorized="$key_dir/authorized_keys"
-          cp "$key_dir/id_ed25519.pub" "$authorized"
-          chmod 600 "$authorized"
+
+          sudo useradd --create-home --shell /bin/bash "$test_user"
+          sudo passwd -d "$test_user" >/dev/null
+          sudo install -d -m 700 -o "$test_user" -g "$test_user" "/home/$test_user/.ssh"
+          sudo install -m 600 -o "$test_user" -g "$test_user" "$key_dir/id_ed25519.pub" "/home/$test_user/.ssh/authorized_keys"
+          sudo install -d -m 750 -o "$test_user" -g "$test_user" "/home/$test_user/export"
 
           cat > "$sshd_dir/sshd_config" <<EOF
           Port 2222
@@ -58,9 +61,9 @@ jobs:
           PasswordAuthentication no
           KbdInteractiveAuthentication no
           PubkeyAuthentication yes
-          StrictModes no
-          AuthorizedKeysFile $authorized
-          AllowUsers $runner_user
+          StrictModes yes
+          AuthorizedKeysFile .ssh/authorized_keys
+          AllowUsers $test_user
           PermitRootLogin no
           UsePAM no
           Subsystem sftp internal-sftp
@@ -69,14 +72,15 @@ jobs:
 
           sudo /usr/sbin/sshd -f "$sshd_dir/sshd_config"
           for _ in $(seq 1 20); do
-            ssh -p 2222 -i "$key_dir/id_ed25519" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$runner_user"@127.0.0.1 true >/dev/null 2>&1 && break
+            ssh -p 2222 -i "$key_dir/id_ed25519" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$test_user"@127.0.0.1 true >/dev/null 2>&1 && break
             sleep 1
           done
-          ssh -p 2222 -i "$key_dir/id_ed25519" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$runner_user"@127.0.0.1 true
+          ssh -p 2222 -i "$key_dir/id_ed25519" -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$test_user"@127.0.0.1 true
 
-          sshfs "$runner_user"@127.0.0.1:"$export_dir" "$mount_dir" \
+          sshfs "$test_user"@127.0.0.1:/home/$test_user/export "$mount_dir" \
             -p 2222 \
             -o IdentityFile="$key_dir/id_ed25519" \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null
           mounted=1
@@ -84,14 +88,15 @@ jobs:
           payload='D-AUBE-FILE-STORAGE-CANARY-2026-08-29'
           printf '%s\n' "$payload" > "$mount_dir/canary.txt"
           expected="$(printf '%s\n' "$payload" | sha256sum | awk '{print $1}')"
-          remote_hash="$(sha256sum "$export_dir/canary.txt" | awk '{print $1}')"
+          remote_hash="$(sudo sha256sum "/home/$test_user/export/canary.txt" | awk '{print $1}')"
           test "$remote_hash" = "$expected"
 
           fusermount3 -u "$mount_dir"
           mounted=0
-          sshfs "$runner_user"@127.0.0.1:"$export_dir" "$mount_dir" \
+          sshfs "$test_user"@127.0.0.1:/home/$test_user/export "$mount_dir" \
             -p 2222 \
             -o IdentityFile="$key_dir/id_ed25519" \
+            -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null
           mounted=1

@@ -1,0 +1,293 @@
+name: D'AUBE Web Cloudflare exact-SHA rescue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloudflare-daube-web-builds-rescue.yml'
+      - 'scripts/verify-daube-web-live.mjs'
+      - 'release/cloudflare-daube-web-builds-rescue.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  DAUBE_WORKER_NAME: daube-sonntag-web
+  DAUBE_GITHUB_ACCOUNT_ID: '297018471'
+  DAUBE_GITHUB_ACCOUNT_NAME: daubesonntag-dotcom
+  DAUBE_GITHUB_REPO_ID: '1340463576'
+  DAUBE_GITHUB_REPO_NAME: daube-web
+
+concurrency:
+  group: daube-web-cloudflare-exact-sha-rescue
+  cancel-in-progress: false
+
+jobs:
+  build-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate exact production request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUEST='release/cloudflare-daube-web-builds-rescue.json'
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            if ! git diff-tree --no-commit-id --name-only -r HEAD | grep -Fxq "$REQUEST"; then
+              echo 'pending=false' >> "$GITHUB_OUTPUT"
+              echo 'NO_DAUBE_WEB_CLOUDFLARE_REQUEST' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+          if [[ ! -f "$REQUEST" ]]; then
+            echo 'pending=false' >> "$GITHUB_OUTPUT"
+            echo 'NO_PENDING_DAUBE_WEB_CLOUDFLARE_REQUEST' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, re
+          p=json.load(open('release/cloudflare-daube-web-builds-rescue.json',encoding='utf-8'))
+          rid=str(p.get('requestId','')); sha=str(p.get('expectedSha',''))
+          assert re.fullmatch(r'[a-z0-9-]{8,80}',rid), 'request_id_invalid'
+          assert re.fullmatch(r'[0-9a-f]{40}',sha), 'expected_sha_invalid'
+          assert p.get('repository')=='daubesonntag-dotcom/daube-web', 'repository_invalid'
+          assert p.get('workerName')=='daube-sonntag-web', 'worker_name_invalid'
+          assert p.get('mutationApproved') is True, 'production_mutation_not_approved'
+          assert p.get('zeroSpendOnly') is True, 'zero_spend_boundary_missing'
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
+              f.write(f'pending=true\nrequest_id={rid}\nexpected_sha={sha}\n')
+          PY
+
+      - name: Verify Cloudflare credential and discover canonical Worker
+        id: cf
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || { echo '::error::cloudflare_api_token_missing'; exit 41; }
+          code="$(curl -sS -o /tmp/cf-token.json -w '%{http_code}' -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' https://api.cloudflare.com/client/v4/user/tokens/verify || true)"
+          [[ "$code" == 200 ]] && jq -e '.success == true and .result.status == "active"' /tmp/cf-token.json >/dev/null || { echo '::error::cloudflare_api_token_not_active'; exit 42; }
+          api() { curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "$1"; }
+          api 'https://api.cloudflare.com/client/v4/accounts?per_page=50' >/tmp/cf-accounts.json
+          ACCOUNT_ID=''; WORKER_TAG=''
+          while IFS= read -r candidate; do
+            [[ -n "$candidate" ]] || continue
+            if api "https://api.cloudflare.com/client/v4/accounts/${candidate}/workers/scripts" >/tmp/cf-scripts.json 2>/dev/null; then
+              tag="$(jq -r --arg name "$DAUBE_WORKER_NAME" '.result[]? | select(.id == $name) | .tag // empty' /tmp/cf-scripts.json | head -n1)"
+              if [[ -n "$tag" ]]; then ACCOUNT_ID="$candidate"; WORKER_TAG="$tag"; break; fi
+            fi
+          done < <(jq -r '.result[]?.id' /tmp/cf-accounts.json)
+          [[ -n "$ACCOUNT_ID" && -n "$WORKER_TAG" ]] || { echo '::error::canonical_daube_sonntag_web_worker_not_found'; exit 43; }
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "worker_tag=$WORKER_TAG" >> "$GITHUB_OUTPUT"
+          echo 'CLOUDFLARE_WEB_WORKER_FOUND' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce non-paid build quota before any build
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/account/limits" >/tmp/cf-limits.json
+          jq -e '.success == true' /tmp/cf-limits.json >/dev/null
+          refresh="$(jq -r '.result.build_minutes_refresh_on // empty' /tmp/cf-limits.json)"
+          reached="$(jq -r '.result.has_reached_build_minutes_limit // empty' /tmp/cf-limits.json)"
+          [[ -n "$refresh" ]] || { echo '::error::zero_spend_not_proven_non_paid_build_plan'; exit 44; }
+          [[ "$reached" == false ]] || { echo '::error::cloudflare_free_build_minutes_exhausted'; exit 45; }
+          echo "ZERO_SPEND_BUILD_CAPACITY_GREEN refresh=${refresh}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Connect private daube-web repository through existing Cloudflare Git authority
+        id: repo
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg provider_account_id "$DAUBE_GITHUB_ACCOUNT_ID" --arg provider_account_name "$DAUBE_GITHUB_ACCOUNT_NAME" --arg repo_id "$DAUBE_GITHUB_REPO_ID" --arg repo_name "$DAUBE_GITHUB_REPO_NAME" '{provider_type:"github",provider_account_id:$provider_account_id,provider_account_name:$provider_account_name,repo_id:$repo_id,repo_name:$repo_name}')"
+          code="$(curl -sS -o /tmp/cf-repo.json -w '%{http_code}' -X PUT -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/repos/connections" || true)"
+          [[ "$code" == 200 || "$code" == 201 ]] || { echo '::error::cloudflare_daube_web_repo_connection_failed'; exit 46; }
+          uuid="$(jq -r '.result.repo_connection_uuid // empty' /tmp/cf-repo.json)"
+          [[ -n "$uuid" ]] || { echo '::error::cloudflare_repo_connection_uuid_missing'; exit 47; }
+          echo "repo_uuid=$uuid" >> "$GITHUB_OUTPUT"
+
+      - name: Configure exact-head build and deploy trigger
+        id: trigger
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          WORKER_TAG: ${{ steps.cf.outputs.worker_tag }}
+          REPO_UUID: ${{ steps.repo.outputs.repo_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/tokens" >/tmp/cf-build-tokens.json
+          BUILD_TOKEN_UUID="$(jq -r '.result[0].build_token_uuid // empty' /tmp/cf-build-tokens.json)"
+          [[ -n "$BUILD_TOKEN_UUID" ]] || { echo '::error::cloudflare_build_token_missing'; exit 48; }
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/workers/${WORKER_TAG}/triggers" >/tmp/cf-triggers.json || true
+          TRIGGER_UUID="$(jq -r '.result[]? | select((.branch_includes // []) | index("main")) | .trigger_uuid // empty' /tmp/cf-triggers.json | head -n1)"
+          BUILD_COMMAND='test "$WORKERS_CI_COMMIT_SHA" = "$DAUBE_RELEASE_SHA" && npm install --ignore-scripts --no-audit --no-fund --package-lock=false && npm run verify:release:ci'
+          DEPLOY_COMMAND='npx --yes wrangler@4.115.0 deploy'
+          payload="$(jq -nc --arg external_script_id "$WORKER_TAG" --arg repo_connection_uuid "$REPO_UUID" --arg build_token_uuid "$BUILD_TOKEN_UUID" --arg build_command "$BUILD_COMMAND" --arg deploy_command "$DEPLOY_COMMAND" '{external_script_id:$external_script_id,repo_connection_uuid:$repo_connection_uuid,build_token_uuid:$build_token_uuid,trigger_name:"D’AUBE Web exact-head production",build_command:$build_command,deploy_command:$deploy_command,root_directory:"/",branch_includes:["main"],branch_excludes:[],path_includes:["*"],path_excludes:[],build_caching_enabled:true}')"
+          if [[ -n "$TRIGGER_UUID" ]]; then
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X PATCH -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}" || true)"
+          else
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X POST -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers" || true)"
+            TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          fi
+          [[ "$code" == 200 || "$code" == 201 ]] || { echo '::error::cloudflare_web_trigger_write_failed'; exit 49; }
+          [[ -n "$TRIGGER_UUID" ]] || TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          [[ -n "$TRIGGER_UUID" ]] || { echo '::error::cloudflare_web_trigger_uuid_missing'; exit 50; }
+          env_payload="$(jq -nc --arg sha "$EXPECTED_SHA" '{NODE_ENV:{value:"production",is_secret:false},DAUBE_RELEASE_SHA:{value:$sha,is_secret:false},DAUBE_ZERO_SPEND_MODE:{value:"1",is_secret:false}}')"
+          code="$(curl -sS -o /tmp/cf-trigger-env.json -w '%{http_code}' -X PATCH -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$env_payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/environment_variables" || true)"
+          [[ "$code" == 200 ]] || { echo '::error::cloudflare_web_trigger_environment_write_failed'; exit 51; }
+          echo "trigger_uuid=$TRIGGER_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger exact commit build
+        id: build
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          TRIGGER_UUID: ${{ steps.trigger.outputs.trigger_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg branch main --arg commit_hash "$EXPECTED_SHA" '{branch:$branch,commit_hash:$commit_hash}')"
+          code="$(curl -sS -o /tmp/cf-build.json -w '%{http_code}' -X POST -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/builds" || true)"
+          [[ "$code" == 200 || "$code" == 201 || "$code" == 202 ]] || { echo '::error::cloudflare_web_build_trigger_failed'; exit 52; }
+          uuid="$(jq -r '.result.build_uuid // .result.uuid // empty' /tmp/cf-build.json)"
+          [[ -n "$uuid" ]] || { echo '::error::cloudflare_web_build_uuid_missing'; exit 53; }
+          echo "build_uuid=$uuid" >> "$GITHUB_OUTPUT"
+          echo "CLOUDFLARE_BUILD_ADMITTED uuid=${uuid}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Wait for exact-head build and deployment outcome
+        id: outcome
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          BUILD_UUID: ${{ steps.build.outputs.build_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          outcome=''; observed_sha=''
+          for attempt in $(seq 1 180); do
+            curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/builds/${BUILD_UUID}" >/tmp/cf-build-status.json || true
+            outcome="$(jq -r '.result.build_outcome // empty' /tmp/cf-build-status.json 2>/dev/null || true)"
+            observed_sha="$(jq -r '.result.build_trigger_metadata.commit_hash // empty' /tmp/cf-build-status.json 2>/dev/null || true)"
+            if [[ -n "$observed_sha" && "$observed_sha" != "$EXPECTED_SHA" ]]; then echo '::error::cloudflare_build_commit_mismatch'; exit 54; fi
+            case "$outcome" in
+              success) break ;;
+              fail|cancelled|terminated|skipped) echo "::error::cloudflare_web_build_${outcome}"; exit 55 ;;
+            esac
+            sleep 5
+          done
+          [[ "$outcome" == success ]] || { echo '::error::cloudflare_web_build_timeout'; exit 56; }
+          [[ "$observed_sha" == "$EXPECTED_SHA" ]] || { echo '::error::cloudflare_exact_commit_not_proven'; exit 57; }
+          echo 'build_ok=true' >> "$GITHUB_OUTPUT"
+          echo "CLOUDFLARE_EXACT_SHA_BUILD_GREEN ${EXPECTED_SHA}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Independently verify live Dawn Clarity in desktop and mobile browser
+        id: browser
+        if: ${{ steps.outcome.outputs.build_ok == 'true' }}
+        shell: bash
+        env:
+          DAUBE_RELEASE_SHA: ${{ steps.request.outputs.expected_sha }}
+          DAUBE_WEB_LIVE_URL: https://daubesonntag.com/
+        run: |
+          set -euo pipefail
+          ok=0
+          for attempt in $(seq 1 8); do
+            if node scripts/verify-daube-web-live.mjs >/tmp/web-live-verifier.log 2>&1; then ok=1; break; fi
+            sleep 5
+          done
+          [[ "$ok" == 1 ]] || { echo '::error::live_dawn_clarity_browser_verification_failed'; exit 58; }
+          echo 'browser_ok=true' >> "$GITHUB_OUTPUT"
+          echo 'LIVE_DESKTOP_MOBILE_BROWSER_GREEN' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Emit sanitized production receipt
+        if: ${{ steps.browser.outputs.browser_ok == 'true' }}
+        shell: bash
+        env:
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          BUILD_UUID: ${{ steps.build.outputs.build_uuid }}
+          WORKER_TAG: ${{ steps.cf.outputs.worker_tag }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          browser=pathlib.Path('artifacts/web-live/receipt.json')
+          b=json.loads(browser.read_text())
+          b_digest=hashlib.sha256(browser.read_bytes()).hexdigest()
+          receipt={
+            'schema':'daube.web-cloudflare-production-rescue.v1',
+            'ok':True,
+            'requestId':os.environ['REQUEST_ID'],
+            'sourceRepository':'daubesonntag-dotcom/daube-web',
+            'sourceRevision':os.environ['EXPECTED_SHA'],
+            'cloudflareBuildUuid':os.environ['BUILD_UUID'],
+            'cloudflareWorkerTag':os.environ['WORKER_TAG'],
+            'zeroSpendNonPaidBuildCapacityProven':True,
+            'cloudflareExactShaBuildAndDeployVerified':True,
+            'liveBrowserDesktopMobileVerified':True,
+            'browserReceiptDigest':'sha256:'+b_digest,
+            'browser':b,
+            'privateSourcePublished':False,
+            'secretsPublished':False,
+            'productionMutationPerformed':True,
+            'productionMutationApprovedByRequest':True,
+            'founderVisualAcceptance':False,
+          }
+          canonical=json.dumps(receipt,sort_keys=True,separators=(',',':')).encode()
+          receipt['receiptDigest']='sha256:'+hashlib.sha256(canonical).hexdigest()
+          pathlib.Path('/tmp/daube-web-cloudflare-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'ok':True,'schema':receipt['schema'],'sourceRevision':receipt['sourceRevision'],'receiptDigest':receipt['receiptDigest']}))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ steps.browser.outputs.browser_ok == 'true' }}
+        with:
+          name: daube-web-cloudflare-production-${{ steps.request.outputs.request_id }}
+          path: |
+            /tmp/daube-web-cloudflare-receipt.json
+            artifacts/web-live/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish sanitized receipt and retire request
+        if: ${{ steps.browser.outputs.browser_ok == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          receipt_path="release/cloudflare-daube-web/${REQUEST_ID}/receipt.json"
+          body_b64="$(base64 -w0 /tmp/daube-web-cloudflare-receipt.json)"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${receipt_path}" -f message="ci(web): publish Cloudflare production receipt ${REQUEST_ID}" -f content="$body_b64" -f branch="$GITHUB_REF_NAME" >/dev/null
+          request='release/cloudflare-daube-web-builds-rescue.json'
+          sha="$(gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${request}?ref=${GITHUB_REF_NAME}" --jq '.sha')"
+          gh api --method DELETE -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${request}" -f message="ci(web): retire Cloudflare production request ${REQUEST_ID}" -f sha="$sha" -f branch="$GITHUB_REF_NAME" >/dev/null
+
+      - name: Final green assertion
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          BUILD_OK: ${{ steps.outcome.outputs.build_ok }}
+          BROWSER_OK: ${{ steps.browser.outputs.browser_ok }}
+        run: |
+          test "$BUILD_OK" = true
+          test "$BROWSER_OK" = true

@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#f7f7f3">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="D’AUBE SONNTAG Store — original digital products, specialist services and operational systems with USD-first pricing, clear scope and transparent checkout paths.">
+  <meta name="description" content="D’AUBE SONNTAG Store — original digital products, specialist services and operational systems with native-currency pricing, clear scope and transparent checkout paths.">
   <link rel="canonical" href="https://daubesonntag.com/storefront/">
-  <link rel="stylesheet" href="/assets/storefront-v2.css?v=global-green-20260829">
-  <link rel="stylesheet" href="/assets/storefront-mobile-v3.css?v=global-green-20260829">
+  <link rel="stylesheet" href="/assets/storefront-v2.css?v=truthful-currency-20260829">
+  <link rel="stylesheet" href="/assets/storefront-mobile-v3.css?v=truthful-currency-20260829">
   <title>D’AUBE Store — Digital products, services &amp; systems</title>
 </head>
 <body>
@@ -25,12 +25,9 @@
       <a href="#selected-product">Services</a>
       <a href="#how-it-works">How it works</a>
       <a href="#order-status">Orders</a>
+      <a href="/pay/">USD products</a>
       <a href="/contact/">Support</a>
     </nav>
-    <div class="currencySwitch" role="group" aria-label="Display currency">
-      <button id="currency-usd" type="button" class="currencyButton isActive" aria-pressed="true">USD</button>
-      <button id="currency-vnd" type="button" class="currencyButton" aria-pressed="false">VND</button>
-    </div>
   </header>
 
   <section class="storeHero" aria-labelledby="store-title">
@@ -39,26 +36,26 @@
       <h1 id="store-title">Better work,<br><em>without the clutter.</em></h1>
       <p class="heroLead">Original digital tools, specialist services and operational systems for people building useful things. Clear scope, calm delivery and no inflated complexity.</p>
       <div class="heroActions">
-        <a class="primaryButton" href="#catalog">Explore the store</a>
-        <a class="secondaryButton" href="/pay/">USD workflow kits</a>
+        <a class="primaryButton" href="#catalog">Browse VND catalog</a>
+        <a class="secondaryButton" href="/pay/">Native USD workflow kits</a>
       </div>
     </div>
     <aside class="heroPanel" aria-label="Store principles">
       <p class="panelLabel">D’AUBE / STORE PRINCIPLES</p>
       <div class="principle"><span>01</span><div><strong>Original work</strong><p>Products and services created or documented by D’AUBE.</p></div></div>
-      <div class="principle"><span>02</span><div><strong>Clear before checkout</strong><p>Scope, price and delivery path stay visible before you commit.</p></div></div>
-      <div class="principle"><span>03</span><div><strong>USD-first display</strong><p>Global visitors see USD by default. Local VND settlement remains available where supported.</p></div></div>
+      <div class="principle"><span>02</span><div><strong>Clear before checkout</strong><p>Scope, native price and delivery path stay visible before you commit.</p></div></div>
+      <div class="principle"><span>03</span><div><strong>No silent FX</strong><p>This catalog shows its canonical VND amounts. Native USD offers live in the separate D’AUBE Pay USD catalog.</p></div></div>
     </aside>
   </section>
 
   <section class="trustRail" aria-label="Store assurances">
-    <span>USD-first pricing</span><span>One-time offers</span><span>Clear deliverables</span><span>Privacy-conscious checkout</span>
+    <span>Native-currency pricing</span><span>One-time offers</span><span>Clear deliverables</span><span>Privacy-conscious checkout</span>
   </section>
 
   <section id="catalog" class="storeSection catalogSection">
     <div class="sectionHead">
-      <div><p class="storeKicker">CURATED CATALOG</p><h2>Choose what moves the work forward.</h2></div>
-      <p>Browse by outcome rather than by technical implementation. Prices are displayed in USD by default; switch to VND whenever you need the local catalog amount.</p>
+      <div><p class="storeKicker">VND CATALOG</p><h2>Choose what moves the work forward.</h2></div>
+      <p>This catalog displays the exact canonical VND amount used by the local Direct VietQR rail. D’AUBE does not calculate a browser-side USD equivalent. For international products with native USD pricing, use the <a href="/pay/">USD Workflow Kit catalog</a>.</p>
     </div>
     <div id="catalog-grid" class="catalogGrid" aria-live="polite"><p class="loadingState">Loading the collection…</p></div>
   </section>
@@ -69,11 +66,11 @@
       <h2 id="product-name"></h2>
       <p id="product-subtitle" class="productSubtitle"></p>
       <p id="product-description" class="productDescription"></p>
-      <div class="productPriceRow"><strong id="product-price" class="productPrice"></strong><span id="product-currency-note" class="currencyNote">USD display price</span></div>
+      <div class="productPriceRow"><strong id="product-price" class="productPrice"></strong><span id="product-currency-note" class="currencyNote">Exact local VND catalog amount · no browser FX</span></div>
       <p id="product-meta" class="fine"></p>
     </div>
     <form id="order-form" class="orderForm">
-      <div class="formIntro"><span class="formStep">LOCAL CHECKOUT</span><h3>Continue with this offer</h3><p>For this catalog, the order form creates a local bank-transfer instruction. Your display price can stay in USD; the final VietQR instruction shows the exact VND settlement amount before you pay.</p></div>
+      <div class="formIntro"><span class="formStep">LOCAL CHECKOUT</span><h3>Continue with this offer</h3><p>The order form creates a canonical local bank-transfer instruction with the exact VND settlement amount and unique reference. International USD products use their own native USD price book instead of a converted display estimate.</p></div>
       <label>Full name<input id="customer-name" name="customerName" autocomplete="name" minlength="2" maxlength="120" required></label>
       <div class="twoCol">
         <label>Email<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
@@ -82,20 +79,20 @@
       <label>Preferred contact<select id="preferred-channel" name="preferredChannel"><option value="email">Email</option><option value="phone">Phone</option><option value="zalo">Zalo</option><option value="messenger">Messenger</option></select></label>
       <label class="consent"><input id="consent" type="checkbox" required><span>I agree that D’AUBE may process the minimum information required to manage this order under the <a href="/privacy/">Privacy Notice</a>.</span></label>
       <button id="order-submit" class="primaryButton formPrimary" type="submit">Continue to local bank payment</button>
-      <p class="fine">No bank password, PIN, OTP or CVV is collected by this form.</p>
+      <p class="fine">No bank password, PIN, OTP or CVV is collected by this form. Beneficiary identity is verified inside your banking app and is not published by this page.</p>
       <p id="order-error" class="errorState" role="alert" hidden></p>
     </form>
   </section>
 
   <section id="how-it-works" class="storeSection processSection">
     <div class="sectionHead compactHead">
-      <div><p class="storeKicker">CHECKOUT PATHS</p><h2>Global first. Local when useful.</h2></div>
-      <p>D’AUBE separates price presentation from settlement method so the storefront does not look like a domestic banking page.</p>
+      <div><p class="storeKicker">CHECKOUT PATHS</p><h2>Native currency first. Settlement truth always.</h2></div>
+      <p>D’AUBE separates market price books instead of inventing browser FX. The local catalog uses VND; international USD Workflow Kits use native USD prices.</p>
     </div>
     <div class="processGrid">
-      <article><span>01</span><h3>Browse in USD</h3><p>The storefront opens in USD for a cleaner international buying context. VND is one tap away.</p></article>
-      <article><span>02</span><h3>Choose the right path</h3><p>Use the USD Workflow Kit surface for exact USD products, or local checkout for catalog offers currently settled by bank transfer.</p></article>
-      <article><span>03</span><h3>Verify before payment</h3><p>Local checkout reveals the exact VND amount and transfer reference only after an order is created.</p></article>
+      <article><span>01</span><h3>Choose a native price book</h3><p>Use this VND catalog for local offers or open the USD Workflow Kit catalog for exact international USD prices.</p></article>
+      <article><span>02</span><h3>Create the right payment instruction</h3><p>Local checkout creates an order-bound VietQR instruction. International card/provider checkout stays separately admitted and fail-closed.</p></article>
+      <article><span>03</span><h3>Verify before payment</h3><p>For VietQR, verify the beneficiary inside your banking app, the exact VND amount and the unique transfer reference before confirming.</p></article>
     </div>
     <a class="textLink" href="/pay/">View exact-USD Workflow Kits →</a>
   </section>
@@ -121,10 +118,10 @@
 
   <footer class="storeFooter">
     <div class="footerBrand"><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div>
-    <nav aria-label="Footer navigation"><a href="#catalog">Store</a><a href="/pay/">USD products</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund/">Refunds</a><a href="/contact/">Contact</a></nav>
+    <nav aria-label="Footer navigation"><a href="#catalog">VND Store</a><a href="/pay/">USD products</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund/">Refunds</a><a href="/contact/">Contact</a></nav>
     <p>Original digital products · specialist services · operational systems</p>
   </footer>
 </main>
-<script src="/assets/storefront-v2.js?v=global-green-20260829" defer></script>
+<script src="/assets/storefront-v2.js?v=truthful-currency-20260829" defer></script>
 </body>
 </html>

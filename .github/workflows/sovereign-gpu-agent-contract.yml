@@ -30,8 +30,8 @@ jobs:
         run: |
           set -euo pipefail
           base='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1'
-          intake="$(curl --fail-with-body -fsS --max-time 20 "$base/daube-sovereign-gpu-direct-intake")"
-          state="$(curl --fail-with-body -fsS --max-time 20 "$base/daube-sovereign-gpu-state")"
+          intake="$(curl --fail-with-body -sS --max-time 20 "$base/daube-sovereign-gpu-direct-intake")"
+          state="$(curl --fail-with-body -sS --max-time 20 "$base/daube-sovereign-gpu-state")"
           python - "$intake" "$state" <<'PY'
           import json,sys
           intake=json.loads(sys.argv[1]); state=json.loads(sys.argv[2])

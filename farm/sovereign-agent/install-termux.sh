@@ -32,7 +32,24 @@ mkdir -p \
   "$PREFIX/var/cache/apt/archives/partial" \
   "$PREFIX/var/lib/apt/lists/partial" 2>/dev/null || true
 
-pkg install -y python openssl curl coreutils >/dev/null
+# In Termux the OpenSSL library and the CLI are split. `openssl-tool` is the
+# subpackage that provides the `openssl` executable used for Ed25519 signing.
+pkg install -y python openssl openssl-tool curl coreutils >/dev/null
+
+# Fail early with a precise error if the CLI or Ed25519 support is unavailable.
+if ! command -v openssl >/dev/null 2>&1; then
+  echo "ERROR: Termux openssl CLI is still unavailable after installing openssl-tool." >&2
+  echo "Try: pkg update && pkg install openssl openssl-tool" >&2
+  exit 4
+fi
+preflight_key="$(mktemp)"
+if ! openssl genpkey -algorithm ED25519 -out "$preflight_key" >/dev/null 2>&1; then
+  rm -f "$preflight_key"
+  echo "ERROR: Installed OpenSSL does not provide usable Ed25519 support." >&2
+  echo "Try: pkg update && pkg upgrade && pkg install openssl openssl-tool" >&2
+  exit 5
+fi
+rm -f "$preflight_key"
 
 # F-Droid builds usually obtain termux-job-scheduler through termux-api.
 # Google Play builds from 2026 can expose the scheduler directly in the main app.

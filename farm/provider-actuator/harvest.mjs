@@ -14,6 +14,7 @@ if (!Number.isInteger(requested) || requested < 250_000) fail('requested_work_in
 
 const plan = readJson(path.join(evidenceDir, 'plan.json'));
 const ecology = readJson(path.join(evidenceDir, 'ecology.json'));
+const evolution = readJson(path.join(evidenceDir, 'evolution.json'));
 const github = fs.readdirSync(evidenceDir)
   .filter((name) => /^github-\d+\.json$/.test(name))
   .sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0))
@@ -33,8 +34,7 @@ const ecologySystems = Array.isArray(ecology?.systems) ? ecology.systems : [];
 const ecologyAdmitted = Boolean(
   plan?.ecologyGate?.admitted === true &&
   ecology?.schema === 'daube.resource-farm-ecology-runtime.v1' &&
-  ecology?.status === 'GREEN' &&
-  Number(ecology?.score) >= 95 &&
+  ecology?.status === 'GREEN' && Number(ecology?.score) >= 95 &&
   ecology?.control?.actuatorAdmitted === true &&
   ecology?.guardrails?.paidSpendAuthorized === false &&
   ecology?.guardrails?.automaticPrivilegeExpansion === false &&
@@ -44,13 +44,30 @@ const ecologyAdmitted = Boolean(
 );
 if (!ecologyAdmitted) fail('ecology_admission_missing_or_blocked');
 
+const evolutionSystems = Array.isArray(evolution?.systems) ? evolution.systems : [];
+const evolutionAdmitted = Boolean(
+  plan?.evolutionGate?.admitted === true &&
+  evolution?.schema === 'daube.resource-farm-evolution-runtime.v1' &&
+  evolution?.status === 'GREEN' && Number(evolution?.score) >= 95 &&
+  evolution?.minimumGreenScore === 95 &&
+  evolution?.control?.actuatorAdmitted === true &&
+  evolution?.control?.evolutionGateRequiredForDispatch === true &&
+  evolution?.details?.constitution?.dispatchAllowed === true &&
+  evolution?.guardrails?.paidSpendAuthorized === false &&
+  evolution?.guardrails?.automaticPrivilegeExpansion === false &&
+  evolution?.guardrails?.newOAuthRequired === false &&
+  evolutionSystems.length === 10 &&
+  evolutionSystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95)
+);
+if (!evolutionAdmitted) fail('evolution_admission_missing_or_blocked');
+
 const total = all.reduce((sum, r) => sum + Number(r.workUnits || 0), 0);
 const families = [...new Set(all.map((r) => r.providerFamily))].sort();
-const admitted = ecologyAdmitted && families.length === 2 && total >= requested;
+const admitted = ecologyAdmitted && evolutionAdmitted && families.length === 2 && total >= requested;
 const feedbackSeen = Boolean(plan?.feedback?.previousReceiptSeen);
 
 const receipt = {
-  schema: 'daube.resource-farm-provider-actuator-receipt.v1',
+  schema: 'daube.resource-farm-provider-actuator-receipt.v2',
   status: admitted ? 'ADMITTED' : 'REJECTED',
   requestId: plan.requestId,
   requestedWorkUnits: requested,
@@ -67,17 +84,23 @@ const receipt = {
     capacityWorkUnits: plan.capacityWorkUnits,
   },
   ecologyAdmission: {
-    enforced: true,
-    admitted: ecologyAdmitted,
-    status: ecology.status,
-    score: Number(ecology.score),
-    minimumScore: 95,
+    enforced: true, admitted: ecologyAdmitted, status: ecology.status, score: Number(ecology.score), minimumScore: 95,
     systemCount: ecologySystems.length,
     allSystemsGreen: ecologySystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95),
     paidSpendAuthorized: ecology.guardrails.paidSpendAuthorized,
     automaticPrivilegeExpansion: ecology.guardrails.automaticPrivilegeExpansion,
     newOAuthRequired: ecology.guardrails.newOAuthRequired,
     observedAt: ecology.observedAt ?? null,
+  },
+  evolutionAdmission: {
+    enforced: true, admitted: evolutionAdmitted, status: evolution.status, score: Number(evolution.score), minimumScore: 95,
+    systemCount: evolutionSystems.length,
+    allSystemsGreen: evolutionSystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95),
+    constitutionDispatchAllowed: evolution.details.constitution.dispatchAllowed === true,
+    paidSpendAuthorized: evolution.guardrails.paidSpendAuthorized,
+    automaticPrivilegeExpansion: evolution.guardrails.automaticPrivilegeExpansion,
+    newOAuthRequired: evolution.guardrails.newOAuthRequired,
+    observedAt: evolution.observedAt ?? null,
   },
   feedback: plan.feedback ?? {},
   feedbackClosedLoopObserved: admitted && feedbackSeen,
@@ -86,7 +109,7 @@ const receipt = {
   providerCapacityProvisioningClosedLoopProven: false,
   paidSpendAuthorized: false,
   privateAssetsUsed: false,
-  truthBoundary: 'Execution dispatch is proven across admitted ephemeral providers and requires Ecology GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.',
+  truthBoundary: 'Execution dispatch is proven across admitted ephemeral providers and requires both Ecology GREEN >=95 and Evolution GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning, physical readiness and real revenue are not claimed.',
   observedAt: new Date().toISOString(),
 };
 

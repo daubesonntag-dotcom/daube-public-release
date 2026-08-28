@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Founder Customer Canary — D’AUBE SONNTAG</title>
+  <style>
+    :root{color-scheme:light;--ink:#102033;--muted:#64748b;--line:#d9e6f3;--sky:#eef8ff;--ok:#17643a;--bad:#9f2f2f;--warn:#8a5a00}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,var(--sky),#fff 56%);font-family:Inter,ui-sans-serif,system-ui;color:var(--ink);padding:24px}.shell{max-width:760px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;padding:12px 0 30px}.brand{font-weight:800;letter-spacing:.08em}.pill{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#ffffffcc;color:var(--muted);font-size:13px}.card{background:#ffffffed;border:1px solid var(--line);border-radius:28px;padding:30px;box-shadow:0 26px 80px #7faed020}.eyebrow{font-size:12px;letter-spacing:.15em;font-weight:800;color:#52709b}.hero{font:500 clamp(36px,8vw,60px)/.98 Georgia,serif;margin:12px 0 18px}.muted{color:var(--muted);line-height:1.65}.summary{margin:24px 0;padding:18px;border:1px solid var(--line);border-radius:18px;background:#f9fcff}.row{display:flex;justify-content:space-between;gap:20px;padding:8px 0}.btn{width:100%;border:0;border-radius:16px;padding:16px 18px;background:#0f1f33;color:white;font-weight:800;font-size:16px;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.status{margin-top:16px;padding:14px 16px;border-radius:14px;background:#f3f8fd;border:1px solid var(--line);line-height:1.55}.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.fine{font-size:12px;color:var(--muted);margin-top:22px;line-height:1.6}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="top"><div class="brand">D’AUBE SONNTAG</div><div class="pill">Founder technical canary</div></div>
+    <section class="card">
+      <div class="eyebrow">RELATED-PARTY · REAL BANK MOVEMENT</div>
+      <h1 class="hero">Làm khách thử một lần,<br>đóng vòng tiền thật.</h1>
+      <p class="muted">Flow này dùng chính Founder làm người trả tiền để chứng minh checkout → VietQR → settlement → reconciliation hoạt động thật. Nó <strong>không</strong> được tính là khách độc lập hay market demand.</p>
+      <div class="summary"><div class="row"><span>Sản phẩm canary</span><strong id="product">Đang tìm…</strong></div><div class="row"><span>Giới hạn</span><strong>≤ 50.000 ₫</strong></div><div class="row"><span>Phân loại</span><strong>founder_test</strong></div></div>
+      <button class="btn" id="go" disabled>Tạo đơn test Direct VietQR</button>
+      <div class="status" id="status">Đang kiểm tra runtime và Direct VietQR…</div>
+      <p class="fine">Không dùng giao dịch này để tự nhận “khách độc lập”. Nếu bạn chuyển tiền, nên dùng một tài khoản nguồn khác tài khoản nhận để tạo bằng chứng bank-network movement rõ ràng. Không nhập OTP/PIN/mật khẩu vào D’AUBE.</p>
+    </section>
+  </main>
+<script>
+const API='https://commerce.daubesonntag.com';const CAP=50000;const el={product:document.getElementById('product'),go:document.getElementById('go'),status:document.getElementById('status')};let chosen=null;
+const money=n=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(Number(n));
+async function json(url,init){const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json',...(init?.headers||{})},...init});let d=null;try{d=await r.json()}catch{}if(!r.ok)throw new Error(d?.error||`http_${r.status}`);return d}
+async function boot(){try{const h=await json(API+'/healthz');if(h?.directPayOperational!==true)throw new Error('direct_pay_not_operational');if(h?.revenueControlSchemaReady!==true||h?.revenueControlSchemaVersion!=='0014')throw new Error('revenue_control_0014_not_ready');const products=await json(API+'/v1/products');chosen=(Array.isArray(products)?products:[]).filter(p=>p?.price?.currency==='VND'&&Number.isSafeInteger(p.price.amountMinor)&&p.price.amountMinor>0&&p.price.amountMinor<=CAP).sort((a,b)=>a.price.amountMinor-b.price.amountMinor)[0];if(!chosen)throw new Error('no_vnd_product_under_50000');el.product.textContent=`${chosen.name} · ${money(chosen.price.amountMinor)}`;el.go.disabled=false;el.status.className='status ok';el.status.textContent='Runtime và Direct VietQR đã sẵn sàng để tạo đơn technical canary.'}catch(e){el.status.className='status bad';el.status.textContent='Chưa thể tạo đơn canary: '+(e?.message||'unknown_error')}}
+async function create(){if(!chosen)return;el.go.disabled=true;el.status.className='status';el.status.textContent='Đang tạo order idempotent…';try{const key=`founder-test-${crypto.randomUUID()}`;const c=await json(API+'/v1/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({productId:chosen.id,provider:'direct_vietqr',idempotencyKey:key})});if(c?.provider!=='direct_vietqr'||c?.status!=='REDIRECT_READY'||c?.settlementVerified!==false||c?.revenueCountable!==false)throw new Error('checkout_truth_boundary_invalid');sessionStorage.setItem('daube_founder_canary_order',c.orderId);const u=new URL(c.checkoutUrl);u.searchParams.set('canary','founder_test');location.href=u.toString()}catch(e){el.status.className='status bad';el.status.textContent='Không tạo được order: '+(e?.message||'unknown_error');el.go.disabled=false}}
+el.go.addEventListener('click',create);boot();
+</script>
+</body></html>

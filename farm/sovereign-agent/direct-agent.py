@@ -9,14 +9,22 @@ INTAKE_URL = os.environ.get("DAUBE_SOVEREIGN_INTAKE_URL", "https://wilqsqndjgckq
 MAX_HTTP_SECONDS = 5
 
 def run(*args: str, input_bytes: bytes | None = None) -> bytes: return subprocess.check_output(args, input=input_bytes, timeout=10)
-def require_runtime() -> None:
-    if platform.system().lower() != "linux": raise SystemExit("D'AUBE sovereign-local proof requires a Linux runtime.")
-    if shutil.which("openssl") is None: raise SystemExit("OpenSSL with Ed25519 support is required.")
-    HOME.mkdir(parents=True, exist_ok=True); os.chmod(HOME, 0o700)
 def runtime_kind() -> str:
     prefix = os.environ.get("PREFIX", "")
     if "com.termux" in prefix or os.environ.get("TERMUX_VERSION"): return "android-termux"
     return "linux-host"
+def require_runtime() -> None:
+    kind = runtime_kind()
+    system = platform.system().lower()
+    # Some current Termux/Python builds report platform.system() == "Android"
+    # even though Termux executes on the Android Linux kernel/userspace boundary.
+    # Admit that runtime explicitly; ordinary sovereign hosts still require Linux.
+    if kind == "android-termux":
+        if system not in {"android", "linux"}: raise SystemExit(f"D'AUBE Android sovereign edge requires Android/Linux Termux runtime (observed: {system or 'unknown'}).")
+    elif system != "linux":
+        raise SystemExit(f"D'AUBE sovereign-local proof requires a Linux runtime (observed: {system or 'unknown'}).")
+    if shutil.which("openssl") is None: raise SystemExit("OpenSSL with Ed25519 support is required.")
+    HOME.mkdir(parents=True, exist_ok=True); os.chmod(HOME, 0o700)
 def ensure_identity() -> tuple[str, str]:
     if not KEY.exists(): run("openssl", "genpkey", "-algorithm", "ED25519", "-out", str(KEY)); os.chmod(KEY, 0o600)
     run("openssl", "pkey", "-in", str(KEY), "-pubout", "-out", str(PUB)); public_pem = PUB.read_text(encoding="utf-8")

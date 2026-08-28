@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'farm/provider-actuator/request.json'
+  schedule:
+    - cron: '23 */6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -51,7 +53,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: provider-actuator-${{ steps.out.outputs.request_id }}-plan
+          name: provider-actuator-${{ steps.out.outputs.request_id }}-plan-${{ github.run_id }}
           path: /tmp/plan.json
           if-no-files-found: error
           retention-days: 7
@@ -77,7 +79,7 @@ jobs:
             '/tmp/github-${{ matrix.replica }}.json'
       - uses: actions/upload-artifact@v4
         with:
-          name: provider-actuator-${{ needs.plan.outputs.request_id }}-github-${{ matrix.replica }}
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-github-${{ matrix.replica }}-${{ github.run_id }}
           path: /tmp/github-${{ matrix.replica }}.json
           if-no-files-found: error
           retention-days: 7
@@ -99,7 +101,7 @@ jobs:
             '/tmp/supabase-bundle.json'
       - uses: actions/upload-artifact@v4
         with:
-          name: provider-actuator-${{ needs.plan.outputs.request_id }}-supabase
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-supabase-${{ github.run_id }}
           path: /tmp/supabase-bundle.json
           if-no-files-found: error
           retention-days: 7
@@ -114,7 +116,7 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v5
         with:
-          pattern: provider-actuator-${{ needs.plan.outputs.request_id }}-*
+          pattern: provider-actuator-${{ needs.plan.outputs.request_id }}-*-${{ github.run_id }}
           path: /tmp/evidence
           merge-multiple: true
       - name: Verify cross-provider harvest
@@ -128,7 +130,7 @@ jobs:
             '${{ needs.plan.outputs.requested_work_units }}'
       - uses: actions/upload-artifact@v4
         with:
-          name: provider-actuator-${{ needs.plan.outputs.request_id }}-harvest
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-harvest-${{ github.run_id }}
           path: /tmp/provider-actuator-receipt.json
           if-no-files-found: error
           retention-days: 7
@@ -140,10 +142,10 @@ jobs:
         run: |
           set -euo pipefail
           body_b64="$(base64 -w0 /tmp/provider-actuator-receipt.json)"
-          history="farm/provider-actuator/receipts/${REQUEST_ID}.json"
+          history="farm/provider-actuator/receipts/${REQUEST_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
           gh api --method PUT -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/contents/${history}" \
-            -f message="farm(actuator): record ${REQUEST_ID}" \
+            -f message="farm(actuator): record ${REQUEST_ID} run ${GITHUB_RUN_ID}" \
             -f content="$body_b64" \
             -f branch="$GITHUB_REF_NAME" >/dev/null
 
@@ -153,7 +155,7 @@ jobs:
             --jq '.sha' 2>/dev/null || true)"
           args=(--method PUT -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
-            -f message="farm(actuator): advance feedback to ${REQUEST_ID}" \
+            -f message="farm(actuator): refresh feedback from ${GITHUB_RUN_ID}" \
             -f content="$body_b64" \
             -f branch="$GITHUB_REF_NAME")
           if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi

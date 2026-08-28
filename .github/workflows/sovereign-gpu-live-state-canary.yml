@@ -1,0 +1,68 @@
+name: sovereign-gpu-live-state-canary
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sovereign-gpu-live-state-canary.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe live Supabase compute state
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1'
+          mkdir -p evidence
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            "$base/daube-compute-mesh/healthz" \
+            -o evidence/compute-mesh-health.json
+          curl --fail-with-body --silent --show-error --max-time 20 \
+            "$base/daube-sovereign-host-state" \
+            -o evidence/sovereign-host-state.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          mesh=json.loads(Path('evidence/compute-mesh-health.json').read_text())
+          host=json.loads(Path('evidence/sovereign-host-state.json').read_text())
+          receipt={
+            'schema':'daube.sovereign-gpu-live-state-canary.v1',
+            'compute_mesh':{
+              'ok':mesh.get('ok'), 'status':mesh.get('status'),
+              'storage_contract':mesh.get('storageContract'),
+              'storage_probe':mesh.get('storageProbe'),
+              'volunteer_execution':mesh.get('volunteerExecution'),
+              'paid_spend_authorized':mesh.get('paidSpendAuthorized'),
+              'deployment_id_present':bool(mesh.get('deploymentId')),
+              'region':mesh.get('region'),
+            },
+            'sovereign_host':{
+              'ok':host.get('ok'), 'live':host.get('live'), 'ready':host.get('ready'),
+              'status':host.get('status'), 'code':host.get('code'),
+              'host_id_present':bool(host.get('hostId')),
+              'provider':(host.get('proof') or {}).get('provider'),
+              'runtime_kind':(host.get('proof') or {}).get('runtimeKind'),
+              'binding_active':(host.get('binding') or {}).get('active'),
+              'checks':host.get('checks'),
+              'capacity':host.get('capacity'),
+              'paid_spend_authorized':host.get('paidSpendAuthorized'),
+            },
+            'authentication_used':False,
+            'paid_spend_authorized':False,
+          }
+          Path('evidence/sovereign-gpu-live-state-canary.json').write_text(json.dumps(receipt,indent=2,sort_keys=True))
+          print(json.dumps(receipt,sort_keys=True))
+          if mesh.get('ok') is not True or mesh.get('status') != 'LIVE':
+            raise SystemExit('compute mesh is not LIVE')
+          if mesh.get('paidSpendAuthorized') is not False:
+            raise SystemExit('hard-zero invariant failed')
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-gpu-live-state-canary
+          path: evidence/
+          retention-days: 7

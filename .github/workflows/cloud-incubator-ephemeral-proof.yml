@@ -1,0 +1,126 @@
+name: cloud-incubator-ephemeral-proof
+
+on:
+  push:
+    paths:
+      - .github/workflows/cloud-incubator-ephemeral-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-incubator-ephemeral-proof
+  cancel-in-progress: false
+
+jobs:
+  block-device:
+    name: block-device attach/read-write/detach
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Prove bounded block-device semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$(mktemp /tmp/daube-block.XXXXXX.img)"
+          mountpoint="$(mktemp -d /tmp/daube-block-mnt.XXXXXX)"
+          loop=""
+          mounted=0
+          cleanup() {
+            if [[ "$mounted" == 1 ]]; then sudo umount "$mountpoint" || true; fi
+            if [[ -n "$loop" ]]; then sudo losetup -d "$loop" 2>/dev/null || true; fi
+            rm -f "$image"
+            rmdir "$mountpoint" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          truncate -s 128M "$image"
+          loop="$(sudo losetup --find --show "$image")"
+          sudo mkfs.ext4 -q -F "$loop"
+          sudo mount "$loop" "$mountpoint"
+          mounted=1
+
+          payload='D-AUBE-BLOCK-CANARY-2026-08-29'
+          printf '%s\n' "$payload" | sudo tee "$mountpoint/canary.txt" >/dev/null
+          expected="$(printf '%s\n' "$payload" | sha256sum | awk '{print $1}')"
+          sudo sync
+          first="$(sudo sha256sum "$mountpoint/canary.txt" | awk '{print $1}')"
+          test "$first" = "$expected"
+
+          sudo umount "$mountpoint"
+          mounted=0
+          sudo mount "$loop" "$mountpoint"
+          mounted=1
+          second="$(sudo sha256sum "$mountpoint/canary.txt" | awk '{print $1}')"
+          test "$second" = "$expected"
+          sudo umount "$mountpoint"
+          mounted=0
+
+          sudo losetup -d "$loop"
+          detached="$loop"
+          loop=""
+          if sudo losetup "$detached" >/dev/null 2>&1; then
+            echo 'loop device remained attached' >&2
+            exit 1
+          fi
+
+          printf 'DAUBE_BLOCK_EPHEMERAL_PASS attach=true filesystem=ext4 write=true read=true checksum=true unmount=true remount=true detach=true bytes=134217728 sha256=%s paid_spend_authorized=false oauth_required=false\n' "$expected"
+
+  kubernetes:
+    name: kubernetes api/scheduler/pod-network
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Install checksum-verified kind
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='v0.32.0'
+          base="https://kind.sigs.k8s.io/dl/${version}"
+          curl --fail --silent --show-error --location -O "${base}/kind-linux-amd64"
+          curl --fail --silent --show-error --location -O "${base}/kind-linux-amd64.sha256sum"
+          sha256sum --check kind-linux-amd64.sha256sum
+          chmod +x kind-linux-amd64
+          sudo mv kind-linux-amd64 /usr/local/bin/kind
+          kind version
+
+      - name: Prove Kubernetes control and pod network
+        shell: bash
+        run: |
+          set -euo pipefail
+          cluster='daube-canary'
+          cleanup() { kind delete cluster --name "$cluster" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          kind create cluster \
+            --name "$cluster" \
+            --wait 120s \
+            --image 'kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5'
+
+          kubectl version
+          kubectl cluster-info
+          kubectl wait --for=condition=Ready node --all --timeout=90s
+
+          kubectl create deployment daube-net-canary --image=nginx:1.27.5-alpine
+          kubectl rollout status deployment/daube-net-canary --timeout=90s
+          kubectl expose deployment daube-net-canary --port=80 --target-port=80
+
+          kubectl run daube-network-probe \
+            --image=busybox:1.37.0 \
+            --restart=Never \
+            -- sh -c 'for i in $(seq 1 30); do wget -qO- http://daube-net-canary.default.svc.cluster.local/ >/tmp/body && grep -qi nginx /tmp/body && exit 0; sleep 2; done; exit 1'
+
+          phase=''
+          for _ in $(seq 1 45); do
+            phase="$(kubectl get pod daube-network-probe -o jsonpath='{.status.phase}' 2>/dev/null || true)"
+            [[ "$phase" == 'Succeeded' ]] && break
+            [[ "$phase" == 'Failed' ]] && { kubectl logs daube-network-probe || true; exit 1; }
+            sleep 2
+          done
+          test "$phase" = 'Succeeded'
+          node_name="$(kubectl get pod daube-network-probe -o jsonpath='{.spec.nodeName}')"
+          test -n "$node_name"
+          kubectl logs daube-network-probe || true
+
+          printf 'DAUBE_KUBERNETES_EPHEMERAL_PASS cluster_api=true scheduler=true pod_scheduled=true service_dns=true pod_network=true node=%s kind=v0.32.0 kubernetes_image_digest=sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5 paid_spend_authorized=false oauth_required=false\n' "$node_name"

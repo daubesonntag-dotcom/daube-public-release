@@ -10,6 +10,7 @@ on:
       - 'scripts/verify-canonical-dawn.mjs'
       - 'scripts/canonical-dawn-quality-score.mjs'
       - '.github/workflows/canonical-dawn-preflight.yml'
+      - '.github/workflows/payment-domain-recovery-pages.yml'
   workflow_dispatch:
 
 permissions:

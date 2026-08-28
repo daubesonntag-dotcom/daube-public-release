@@ -24,6 +24,18 @@ The entry point is intentionally narrow: one public URL, one concrete goal and o
 
 A fit-check request is **not** a payment or revenue event. D’AUBE recognizes cash only after externally settled payment evidence is matched.
 
+## Hire D’AUBE / bring a real problem
+
+If you have a repetitive workflow, discoverability/SEO problem, manual handoff, recurring digital task or small automation need, start with a **public-safe problem brief** rather than a sales call.
+
+- [Read Hire D’AUBE](hire/README.md)
+- Open **Issues → New issue → Hire D’AUBE / Request a fit review** to submit a problem.
+- Open **Issues → New issue → Refer a problem / Partner signal** for a permissioned introduction or public opportunity signal.
+
+D’AUBE may route a fit request toward a micro-audit, Digital Workflow Kit, Automation Sprint, Managed SEO Operator or another bounded offer. A micro-audit is diagnosis + prioritized next step, not free production implementation.
+
+Do not post passwords, OTPs, API keys, private keys, recovery codes, government-ID data, bank/card details, confidential contracts or private customer data in public issues. A request is a lead signal only—not a purchase, contract, guaranteed result or revenue event.
+
 ## Talent & public contribution
 
 D’AUBE now maintains a public, zero-application-fee **Talent Pool** so people can signal skills and portfolio evidence before recurring payroll or a funded Mission exists.

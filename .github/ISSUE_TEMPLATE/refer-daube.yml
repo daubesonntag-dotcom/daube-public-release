@@ -1,0 +1,55 @@
+name: "Refer a problem / Partner signal"
+description: "Share a public-safe referral or partnership signal with permission. No referral fee is implied."
+title: "[Referral / Partner] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for a permissioned introduction, public opportunity signal, or collaboration idea. Do not post another person's private email/phone, confidential data, passwords, IDs, bank information, or customer records without authorization.
+
+  - type: dropdown
+    id: signal_type
+    attributes:
+      label: Signal type
+      options:
+        - Potential buyer problem
+        - Collaboration / delivery partner
+        - Talent / specialist signal
+        - Public opportunity / community lead
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_or_fit
+    attributes:
+      label: Why might this be relevant to D’AUBE?
+      description: Describe the problem, fit, skill, or collaboration opportunity using public-safe information.
+    validations:
+      required: true
+
+  - type: input
+    id: public_reference
+    attributes:
+      label: Public reference (optional)
+      description: Website, public profile, public issue, or public business page only.
+
+  - type: dropdown
+    id: permission
+    attributes:
+      label: Permission / contact status
+      options:
+        - The person/business asked me to introduce them
+        - I have permission to make this introduction
+        - This is only a public opportunity signal; D’AUBE should research independently before contacting anyone
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I have not intentionally posted private contact data, secrets, credentials, IDs, bank/card data, or confidential customer information.
+          required: true
+        - label: I understand this submission does not create employment, agency, partnership, payment, referral commission, or guaranteed work.
+          required: true

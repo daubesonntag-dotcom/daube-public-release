@@ -1,7 +1,7 @@
 {
   "schema": "daube.cloudflare-workers-builds-bootstrap.v1",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "817e8f925f07a507014b5303b22f3b6698c684df",
+  "expectedSha": "504930c9534cc702c8ab7bfdff4210b14be98b52",
   "worker": "daube-commerce",
   "mutationApproved": true,
   "profile": "core",

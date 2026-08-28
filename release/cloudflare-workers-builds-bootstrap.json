@@ -1,0 +1,9 @@
+{
+  "schema": "daube.cloudflare-workers-builds-bootstrap.v1",
+  "repository": "daubesonntag-dotcom/daube-commerce",
+  "expectedSha": "817e8f925f07a507014b5303b22f3b6698c684df",
+  "worker": "daube-commerce",
+  "mutationApproved": true,
+  "profile": "core",
+  "purpose": "production admission: full verify -> D1 migrations through 0014 -> Worker deploy -> exact-SHA external readback"
+}

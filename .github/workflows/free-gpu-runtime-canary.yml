@@ -1,0 +1,77 @@
+name: free-gpu-runtime-canary
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/free-gpu-runtime-canary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zerogpu-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Gradio client only
+        run: python -m pip install --disable-pip-version-check 'gradio_client>=1.13,<2'
+
+      - name: Execute bounded anonymous ZeroGPU canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/daube_gpu_canary.py <<'PY'
+          import json, os, time
+          from gradio_client import Client
+
+          space = 'black-forest-labs/FLUX.1-schnell'
+          started = time.time()
+          client = Client(space, verbose=False)
+          result = client.predict(
+              "A tiny yellow square on a plain white background, minimal test image",
+              0,
+              False,
+              256,
+              256,
+              1,
+              api_name='/infer',
+          )
+          image = result[0] if isinstance(result, (tuple, list)) else result
+          image_path = getattr(image, 'path', None) or (image if isinstance(image, str) else None)
+          receipt = {
+              'schema': 'daube.public-free-gpu-canary.v1',
+              'status': 'GPU_EXECUTION_COMPLETED',
+              'provider': 'huggingface-zerogpu-community',
+              'space_id': space,
+              'workload': 'text-to-image-canary',
+              'dimensions': [256, 256],
+              'inference_steps': 1,
+              'elapsed_seconds': round(time.time() - started, 3),
+              'result_present': bool(image_path),
+              'paid_spend_authorized': False,
+              'authentication_used': False,
+              'private_assets_used': False,
+          }
+          os.makedirs('evidence', exist_ok=True)
+          with open('evidence/free-gpu-runtime-canary.json', 'w', encoding='utf-8') as f:
+              json.dump(receipt, f, indent=2, sort_keys=True)
+          print(json.dumps(receipt, sort_keys=True))
+          if not receipt['result_present']:
+              raise SystemExit('ZeroGPU returned no result')
+          PY
+          python /tmp/daube_gpu_canary.py
+
+      - name: Upload runtime receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-gpu-runtime-canary
+          path: evidence/free-gpu-runtime-canary.json
+          if-no-files-found: warn
+          retention-days: 7

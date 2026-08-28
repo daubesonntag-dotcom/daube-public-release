@@ -32,9 +32,13 @@ jobs:
           if (x.paymentInstructionLive !== true || x.settlementIngressConfigured !== true) throw new Error('payment_runtime_not_ready');
           if (!/^[0-9a-f]{40}$/.test(x.canonicalCommerceRevision || '')) throw new Error('canonical_commerce_revision_invalid');
           if (x.canonicalCommerceRevisionStatus !== 'CURRENT_MAIN_NO_CIRCLECI_FAILURE_STATUS') throw new Error('canonical_revision_status_invalid');
+          if (JSON.stringify(x.directInternationalBankCandidateCurrencies) !== JSON.stringify(['USD'])) throw new Error('direct_bank_candidate_currency_scope_invalid');
+          if (JSON.stringify(x.directInternationalBankUnadmittedCurrencies) !== JSON.stringify(['EUR'])) throw new Error('direct_bank_unadmitted_currency_scope_invalid');
           for (const key of ['independentCustomerRevenueProven','commercialRevenueVerified','complianceComplete','historyPurgeComplete','usdCardLive','eurRuntimeAdmitted']) {
             if (x[key] !== false) throw new Error(`${key}_must_remain_false_without_external_evidence`);
           }
           console.log(`PAYMENT_READINESS_PUBLIC_GATE=GREEN_100 revision=${x.canonicalCommerceRevision}`);
+          console.log('DIRECT_INTERNATIONAL_BANK_SCOPE=USD_ONLY');
+          console.log('EUR_DIRECT_BANK_SCOPE=UNADMITTED');
           console.log('EXTERNAL_CLAIMS_FAIL_CLOSED=true');
           NODE

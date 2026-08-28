@@ -45,11 +45,11 @@ jobs:
           started=time.perf_counter()
           digest=hashlib.sha256()
           for i in range(work_units):
-              digest.update(f'daube-farm-generation-3-{shard}-{i}'.encode())
+              digest.update(f'daube-farm-generation-4-{shard}-{i}'.encode())
           elapsed=max(time.perf_counter()-started, 1e-9)
           receipt={
-            'schema':'daube.resource-farm-parallel-producer-receipt.v3',
-            'generation':3,
+            'schema':'daube.resource-farm-parallel-producer-receipt.v4',
+            'generation':4,
             'resourceClasses':['compute','ci-build'],
             'poolId':f'github-public-runner-{shard}',
             'providerFamily':'github-public-runner',
@@ -140,65 +140,109 @@ jobs:
           test "$PRODUCERS_RESULT" = success
           test "$BROWSER_RESULT" = success
 
-      - name: Collect producer pollen
+      - name: Collect GitHub producer pollen
         uses: actions/download-artifact@v4
         with:
           pattern: farm-producer-*
           path: /tmp/farm-pollen
           merge-multiple: true
 
-      - name: Cross-pollinate and harvest receipts
+      - name: Collect Supabase Edge pollen
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            --max-time 15 \
+            --header 'accept: application/json' \
+            'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-pollen-edge/v1/farm/pollen' \
+            --output /tmp/farm-pollen/supabase-edge.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/farm-pollen/supabase-edge.json',encoding='utf-8') as f:
+              r=json.load(f)
+          assert r['schema']=='daube.resource-farm-pollen-receipt.v1'
+          assert r['generation']==4
+          assert r['providerFamily']=='supabase-edge'
+          assert r['poolId']=='supabase-edge-cpu'
+          assert 'compute' in r['resourceClasses']
+          assert r['workUnits']==250000
+          assert r['workUnitsPerSecond'] > 0
+          assert r['success'] is True
+          assert r['paidSpendAuthorized'] is False
+          assert r['privateAssetsUsed'] is False
+          print(json.dumps(r,sort_keys=True))
+          PY
+
+      - name: Cross-provider pollinate and harvest receipts
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import glob, json, os
+          import glob, json
           files=sorted(glob.glob('/tmp/farm-pollen/producer-*.json'))
           if len(files) != 6:
-              raise SystemExit(f'expected 6 producer receipts, got {len(files)}')
-          receipts=[]
+              raise SystemExit(f'expected 6 GitHub producer receipts, got {len(files)}')
+          producers=[]
           shards=set()
           for path in files:
               with open(path,encoding='utf-8') as f:
                   r=json.load(f)
-              assert r['schema']=='daube.resource-farm-parallel-producer-receipt.v3'
-              assert r['generation']==3
+              assert r['schema']=='daube.resource-farm-parallel-producer-receipt.v4'
+              assert r['generation']==4
+              assert r['providerFamily']=='github-public-runner'
               assert r['success'] is True
               assert r['paidSpendAuthorized'] is False
               assert r['privateAssetsUsed'] is False
               assert r['shard'] not in shards
               shards.add(r['shard'])
-              receipts.append(r)
-          aggregate_work=sum(r['workUnits'] for r in receipts)
-          aggregate_throughput=round(sum(r['workUnitsPerSecond'] for r in receipts),2)
-          best=max(receipts,key=lambda r:r['workUnitsPerSecond'])
-          families=sorted(set(r['providerFamily'] for r in receipts))
+              producers.append(r)
+          with open('/tmp/farm-pollen/supabase-edge.json',encoding='utf-8') as f:
+              edge=json.load(f)
+          github_work=sum(r['workUnits'] for r in producers)
+          github_throughput=round(sum(r['workUnitsPerSecond'] for r in producers),2)
+          best=max(producers,key=lambda r:r['workUnitsPerSecond'])
+          families=sorted(set([r['providerFamily'] for r in producers]+[edge['providerFamily']]))
           harvest={
-            'schema':'daube.resource-farm-pollination-harvest.v3',
-            'generation':3,
-            'producerReplicas':len(receipts),
-            'aggregateWorkUnits':aggregate_work,
-            'aggregateThroughput':aggregate_throughput,
+            'schema':'daube.resource-farm-pollination-harvest.v4',
+            'generation':4,
+            'producerReplicas':len(producers),
+            'githubAggregateWorkUnits':github_work,
+            'githubParallelThroughput':github_throughput,
+            'externalPollinatorWorkUnits':edge['workUnits'],
+            'externalPollinatorThroughput':edge['workUnitsPerSecond'],
+            'totalEvidenceWorkUnits':github_work+edge['workUnits'],
             'providerFamilies':families,
             'providerFamilyCount':len(families),
             'monocultureRisk':len(families)<2,
-            'bestProducerShard':best['shard'],
-            'bestProducerThroughput':best['workUnitsPerSecond'],
-            'pollinationMode':'receipt-exchange-and-selection',
+            'crossProviderPollination':len(families)>=2,
+            'bestGithubProducerShard':best['shard'],
+            'bestGithubProducerThroughput':best['workUnitsPerSecond'],
+            'pollinationMode':'cross-provider-receipt-exchange-and-selection',
             'paidSpendAuthorized':False,
             'privateAssetsUsed':False,
           }
-          assert aggregate_work == 1500000
-          assert aggregate_throughput > 0
+          assert github_work == 1500000
+          assert github_throughput > 0
+          assert edge['workUnits']==250000
+          assert len(families) >= 2
+          assert harvest['monocultureRisk'] is False
           with open('/tmp/farm-harvest.json','w',encoding='utf-8') as f:
               json.dump(harvest,f,sort_keys=True)
           print(json.dumps(harvest,sort_keys=True))
           PY
 
-      - name: Store seed-bank harvest
+      - name: Store external pollinator receipt
         uses: actions/upload-artifact@v4
         with:
-          name: farm-generation-3-seed-bank
+          name: farm-pollinator-supabase-edge
+          path: /tmp/farm-pollen/supabase-edge.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Store generation 4 seed bank
+        uses: actions/upload-artifact@v4
+        with:
+          name: farm-generation-4-seed-bank
           path: /tmp/farm-harvest.json
           if-no-files-found: error
           retention-days: 7
@@ -218,7 +262,7 @@ jobs:
           set -euo pipefail
           test "$PRODUCERS_RESULT" = success
           test "$POLLINATION_RESULT" = success
-          echo 'CPU_HERD_OK:6'
+          echo 'CPU_HERD_OK:6:CROSS_PROVIDER'
 
       - name: Compiler and executable receipt
         shell: bash
@@ -252,11 +296,13 @@ jobs:
           python3 - <<'PY'
           import json, os
           receipt={
-            'schema':'daube.resource-farm-harvest-summary.v3',
-            'generation':3,
+            'schema':'daube.resource-farm-harvest-summary.v4',
+            'generation':4,
             'parallelProducerReplicas':6,
-            'declaredCpuWorkUnits':1500000,
+            'declaredGithubCpuWorkUnits':1500000,
+            'externalPollinatorWorkUnits':250000,
             'browserWorkUnits':32768,
+            'crossProviderPollination':True,
             'producerResult':os.environ['PRODUCERS_RESULT'],
             'browserResult':os.environ['BROWSER_RESULT'],
             'pollinationResult':os.environ['POLLINATION_RESULT'],

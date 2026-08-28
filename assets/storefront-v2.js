@@ -8,6 +8,33 @@
   const text = (value) => String(value ?? '').trim();
   const money = (amount) => `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(amount || 0))} VND`;
 
+  const COLLECTIONS = [
+    {
+      id: 'infrastructure',
+      title: 'Infrastructure & Operations',
+      description: 'Architecture, orchestration and integration services for organizations that need complex systems to work together clearly.',
+      matches: (product) => ['farm-orchestration-audit-v1', 'farm-orchestration-build-v1', 'resource-ecosystem-integration-v1'].includes(product.slug),
+    },
+    {
+      id: 'business',
+      title: 'Business Tools & Growth',
+      description: 'Practical tools and specialist support for planning, reporting, pricing, shop operations and discoverability.',
+      matches: (product) => ['money-map-salary-budget', 'office-followup-report-pack', 'micro-shop-launch-system', 'shop-profit-pricing-calculator', 'managed-seo-diagnostic'].includes(product.slug),
+    },
+    {
+      id: 'gifting',
+      title: 'Gifting & Personal Services',
+      description: 'Guided creative support for messages, meaningful gifts, urgent occasions and shared gifting decisions.',
+      matches: (product) => product.slug.startsWith('gift-') || product.slug === 'group-gift-planner',
+    },
+    {
+      id: 'experimental',
+      title: 'Experimental Studio',
+      description: 'Deliberately unconventional service formats for difficult decisions, unfinished work, wasted capacity and problems that benefit from a different angle.',
+      matches: (product) => product.slug.startsWith('paradox-'),
+    },
+  ];
+
   async function api(path, options = {}) {
     const response = await fetch(`${API}${path}`, {
       credentials: 'omit',
@@ -64,6 +91,57 @@
     return labels[state] || 'Payment status available';
   }
 
+  function renderCollectionHeading(grid, collection) {
+    const heading = document.createElement('header');
+    heading.className = 'catalogGroupHeading';
+    heading.style.gridColumn = '1 / -1';
+    heading.style.padding = '34px 8px 18px';
+    heading.style.background = '#f5f2e9';
+    heading.style.borderTop = '1px solid rgba(37,39,34,.12)';
+
+    const kicker = document.createElement('p');
+    kicker.className = 'storeKicker';
+    kicker.textContent = collection.title;
+
+    const description = document.createElement('p');
+    description.textContent = collection.description;
+    description.style.maxWidth = '760px';
+    description.style.margin = '0';
+    description.style.lineHeight = '1.65';
+    description.style.color = '#5a6057';
+
+    heading.append(kicker, description);
+    grid.append(heading);
+  }
+
+  function renderProductCard(grid, product, collectionId) {
+    const card = document.createElement('article');
+    const featured = product.featured && collectionId !== 'experimental';
+    card.className = `catalogCard${featured ? ' isFeatured' : ''}`;
+
+    const badge = document.createElement('p');
+    badge.className = 'storeKicker';
+    badge.textContent = product.badge || offerType(product);
+
+    const title = document.createElement('h3');
+    title.textContent = product.name;
+
+    const copy = document.createElement('p');
+    copy.textContent = product.subtitle || product.description || 'A practical D’AUBE product or service.';
+
+    const bottom = document.createElement('div');
+    bottom.className = 'catalogBottom';
+    const price = document.createElement('strong');
+    price.textContent = money(product.price?.amountMinor);
+    const link = document.createElement('a');
+    link.href = productLink(product);
+    link.textContent = 'View details →';
+
+    bottom.append(price, link);
+    card.append(badge, title, copy, bottom);
+    grid.append(card);
+  }
+
   function renderCatalog() {
     const grid = $('catalog-grid');
     if (!grid) return;
@@ -73,32 +151,26 @@
     }
 
     grid.innerHTML = '';
-    catalog.forEach((product) => {
-      const card = document.createElement('article');
-      card.className = `catalogCard${product.featured ? ' isFeatured' : ''}`;
+    const rendered = new Set();
 
-      const badge = document.createElement('p');
-      badge.className = 'storeKicker';
-      badge.textContent = product.badge || offerType(product);
-
-      const title = document.createElement('h3');
-      title.textContent = product.name;
-
-      const copy = document.createElement('p');
-      copy.textContent = product.subtitle || product.description || 'A practical D’AUBE product or service.';
-
-      const bottom = document.createElement('div');
-      bottom.className = 'catalogBottom';
-      const price = document.createElement('strong');
-      price.textContent = money(product.price?.amountMinor);
-      const link = document.createElement('a');
-      link.href = productLink(product);
-      link.textContent = 'View details →';
-
-      bottom.append(price, link);
-      card.append(badge, title, copy, bottom);
-      grid.append(card);
+    COLLECTIONS.forEach((collection) => {
+      const products = catalog.filter((product) => collection.matches(product));
+      if (!products.length) return;
+      renderCollectionHeading(grid, collection);
+      products.forEach((product) => {
+        rendered.add(product.slug);
+        renderProductCard(grid, product, collection.id);
+      });
     });
+
+    const remaining = catalog.filter((product) => !rendered.has(product.slug));
+    if (remaining.length) {
+      renderCollectionHeading(grid, {
+        title: 'More from D’AUBE',
+        description: 'Additional approved offers that do not yet belong to a dedicated collection.',
+      });
+      remaining.forEach((product) => renderProductCard(grid, product, 'other'));
+    }
   }
 
   function chooseProduct(slug, { scroll = false } = {}) {

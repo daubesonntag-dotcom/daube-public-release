@@ -3,52 +3,77 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f5f2e9">
+  <meta name="theme-color" content="#f7f7f3">
   <meta name="color-scheme" content="light">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="D’AUBE SONNTAG Store — original digital products and specialist services for practical work, small business, creative projects and operational systems, with clear scope, transparent pricing and Direct VietQR checkout for VND.">
+  <meta name="description" content="D’AUBE SONNTAG Store — original digital products, specialist services and operational systems with USD-first pricing, clear scope and transparent checkout paths.">
   <link rel="canonical" href="https://daubesonntag.com/storefront/">
-  <link rel="stylesheet" href="/assets/storefront-v2.css">
-  <link rel="stylesheet" href="/assets/storefront-mobile-v3.css">
-  <title>D’AUBE Store — Products &amp; Services · Meaning, made visible.</title>
+  <link rel="stylesheet" href="/assets/storefront-v2.css?v=global-green-20260829">
+  <link rel="stylesheet" href="/assets/storefront-mobile-v3.css?v=global-green-20260829">
+  <title>D’AUBE Store — Digital products, services &amp; systems</title>
 </head>
 <body>
+<a class="skipLink" href="#catalog">Skip to store</a>
 <main class="storeShell" data-storefront-state="loading">
   <header class="storeHeader">
-    <a class="storeBrand" href="/"><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></a>
-    <nav><a href="/">Home</a><a href="#catalog">Products &amp; services</a><a href="#direct-pay">VND payment</a><a href="/pay/">Digital products · USD</a><a href="#order-status">Order status</a><a href="/contact/">Support</a></nav>
+    <a class="storeBrand" href="/" aria-label="D’AUBE SONNTAG home">
+      <span class="brandMark" aria-hidden="true">D</span>
+      <span class="brandCopy"><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span>
+    </a>
+    <nav class="storeNav" aria-label="Store navigation">
+      <a href="#catalog">Store</a>
+      <a href="#selected-product">Services</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#order-status">Orders</a>
+      <a href="/contact/">Support</a>
+    </nav>
+    <div class="currencySwitch" role="group" aria-label="Display currency">
+      <button id="currency-usd" type="button" class="currencyButton isActive" aria-pressed="true">USD</button>
+      <button id="currency-vnd" type="button" class="currencyButton" aria-pressed="false">VND</button>
+    </div>
   </header>
 
   <section class="storeHero" aria-labelledby="store-title">
-    <p class="storeKicker">D’AUBE SONNTAG / STORE</p>
-    <h1 id="store-title">Useful systems,<br><em>made to work.</em></h1>
-    <p>D’AUBE creates original digital products and specialist services for individuals, small businesses and independent teams. From everyday planning tools to workflow design and operational infrastructure, each offer is presented with a clear scope, a transparent price and a defined delivery path.</p>
-    <div class="storeTruth"><span>Original D’AUBE work</span><span>Clear scope</span><span>One-time pricing</span><span>Direct VietQR · VND</span></div>
-    <p class="fine"><strong>Paying in VND?</strong> Eligible offers can be ordered here with Direct VietQR. For selected international digital products priced in USD, visit <a href="/pay/">D’AUBE Pay</a>.</p>
+    <div class="heroCopy">
+      <p class="storeKicker">INDEPENDENT SYSTEMS STUDIO</p>
+      <h1 id="store-title">Better work,<br><em>without the clutter.</em></h1>
+      <p class="heroLead">Original digital tools, specialist services and operational systems for people building useful things. Clear scope, calm delivery and no inflated complexity.</p>
+      <div class="heroActions">
+        <a class="primaryButton" href="#catalog">Explore the store</a>
+        <a class="secondaryButton" href="/pay/">USD workflow kits</a>
+      </div>
+    </div>
+    <aside class="heroPanel" aria-label="Store principles">
+      <p class="panelLabel">D’AUBE / STORE PRINCIPLES</p>
+      <div class="principle"><span>01</span><div><strong>Original work</strong><p>Products and services created or documented by D’AUBE.</p></div></div>
+      <div class="principle"><span>02</span><div><strong>Clear before checkout</strong><p>Scope, price and delivery path stay visible before you commit.</p></div></div>
+      <div class="principle"><span>03</span><div><strong>USD-first display</strong><p>Global visitors see USD by default. Local VND settlement remains available where supported.</p></div></div>
+    </aside>
   </section>
 
-  <section id="direct-pay" class="directPayExplainer">
-    <p class="storeKicker">D’AUBE DIRECT PAY · VIETQR / NAPAS</p>
-    <div><h2>A direct, simple<br>VND checkout.</h2><p>Create an order and receive a VietQR prefilled with the exact amount and transfer reference. Complete the payment inside your own banking app, then D’AUBE confirms the order after the bank transaction is matched successfully. D’AUBE never asks for your PIN, OTP, CVV, banking password or login credentials.</p></div>
+  <section class="trustRail" aria-label="Store assurances">
+    <span>USD-first pricing</span><span>One-time offers</span><span>Clear deliverables</span><span>Privacy-conscious checkout</span>
   </section>
 
-  <section id="catalog" class="storeSection">
-    <div class="sectionHead"><p class="storeKicker">PRODUCTS &amp; SERVICES</p><h2>Choose the outcome you need.</h2><p>Browse practical digital products, guided services and operational builds. Each offer explains what it is for before you place an order.</p></div>
-    <div id="catalog-grid" class="catalogGrid" aria-live="polite"><p class="loadingState">Loading available offers…</p></div>
+  <section id="catalog" class="storeSection catalogSection">
+    <div class="sectionHead">
+      <div><p class="storeKicker">CURATED CATALOG</p><h2>Choose what moves the work forward.</h2></div>
+      <p>Browse by outcome rather than by technical implementation. Prices are displayed in USD by default; switch to VND whenever you need the local catalog amount.</p>
+    </div>
+    <div id="catalog-grid" class="catalogGrid" aria-live="polite"><p class="loadingState">Loading the collection…</p></div>
   </section>
 
   <section id="selected-product" class="storeSection selectedProduct" hidden>
     <div class="productCopy">
       <p id="product-badge" class="storeKicker"></p>
       <h2 id="product-name"></h2>
-      <p id="product-subtitle"></p>
-      <p id="product-description" class="muted"></p>
-      <strong id="product-price" class="productPrice"></strong>
+      <p id="product-subtitle" class="productSubtitle"></p>
+      <p id="product-description" class="productDescription"></p>
+      <div class="productPriceRow"><strong id="product-price" class="productPrice"></strong><span id="product-currency-note" class="currencyNote">USD display price</span></div>
       <p id="product-meta" class="fine"></p>
     </div>
     <form id="order-form" class="orderForm">
-      <h3>Order this offer</h3>
-      <p class="fine">Use a contact method you can access. For services, D’AUBE will use it to confirm scope, delivery and next steps.</p>
+      <div class="formIntro"><span class="formStep">LOCAL CHECKOUT</span><h3>Continue with this offer</h3><p>For this catalog, the order form creates a local bank-transfer instruction. Your display price can stay in USD; the final VietQR instruction shows the exact VND settlement amount before you pay.</p></div>
       <label>Full name<input id="customer-name" name="customerName" autocomplete="name" minlength="2" maxlength="120" required></label>
       <div class="twoCol">
         <label>Email<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
@@ -56,23 +81,36 @@
       </div>
       <label>Preferred contact<select id="preferred-channel" name="preferredChannel"><option value="email">Email</option><option value="phone">Phone</option><option value="zalo">Zalo</option><option value="messenger">Messenger</option></select></label>
       <label class="consent"><input id="consent" type="checkbox" required><span>I agree that D’AUBE may process the minimum information required to manage this order under the <a href="/privacy/">Privacy Notice</a>.</span></label>
-      <button id="order-submit" class="primaryButton" type="submit">Create order &amp; get VietQR</button>
-      <p class="fine">Payment is completed in your banking app. D’AUBE does not collect your bank login, PIN, OTP, CVV or banking password.</p>
+      <button id="order-submit" class="primaryButton formPrimary" type="submit">Continue to local bank payment</button>
+      <p class="fine">No bank password, PIN, OTP or CVV is collected by this form.</p>
       <p id="order-error" class="errorState" role="alert" hidden></p>
     </form>
   </section>
 
+  <section id="how-it-works" class="storeSection processSection">
+    <div class="sectionHead compactHead">
+      <div><p class="storeKicker">CHECKOUT PATHS</p><h2>Global first. Local when useful.</h2></div>
+      <p>D’AUBE separates price presentation from settlement method so the storefront does not look like a domestic banking page.</p>
+    </div>
+    <div class="processGrid">
+      <article><span>01</span><h3>Browse in USD</h3><p>The storefront opens in USD for a cleaner international buying context. VND is one tap away.</p></article>
+      <article><span>02</span><h3>Choose the right path</h3><p>Use the USD Workflow Kit surface for exact USD products, or local checkout for catalog offers currently settled by bank transfer.</p></article>
+      <article><span>03</span><h3>Verify before payment</h3><p>Local checkout reveals the exact VND amount and transfer reference only after an order is created.</p></article>
+    </div>
+    <a class="textLink" href="/pay/">View exact-USD Workflow Kits →</a>
+  </section>
+
   <section id="payment-panel" class="paymentPanel" hidden aria-labelledby="payment-title">
-    <p class="storeKicker">PAYMENT INSTRUCTIONS</p>
+    <div class="paymentPanelHead"><p class="storeKicker">LOCAL PAYMENT INSTRUCTION</p><span class="securePill">VERIFICATION REQUIRED</span></div>
     <h2 id="payment-title"></h2>
     <p id="payment-summary"></p>
     <div id="payment-qr" class="paymentQr" hidden></div>
     <dl id="payment-details"></dl>
-    <p class="fine light">A generated QR is a payment instruction, not confirmation that funds have arrived. Your order status updates after the matching bank transaction is verified.</p>
+    <p class="fine light">A generated QR is a payment instruction, not proof that funds have arrived. Order status changes only after the matching bank transaction is verified.</p>
   </section>
 
   <section id="order-status" class="storeSection statusSection">
-    <div><p class="storeKicker">ORDER STATUS</p><h2>Track your order.</h2><p>Enter the order code and the same email or phone number used when ordering. If you have just transferred payment, allow time for bank verification before the status updates.</p></div>
+    <div><p class="storeKicker">ORDER STATUS</p><h2>Track without chasing.</h2><p>Use the order code and the same email or phone number supplied at checkout. Bank transfers can take a short time to verify.</p></div>
     <form id="status-form" class="statusForm">
       <label>Order code<input id="status-code" autocomplete="off" placeholder="DS-…" required></label>
       <label>Email or phone<input id="status-contact" autocomplete="email" required></label>
@@ -81,8 +119,12 @@
     </form>
   </section>
 
-  <footer class="storeFooter"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><nav><a href="#catalog">Store</a><a href="/pay/">Digital products · USD</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund/">Refunds</a><a href="/contact/">Contact</a></nav></footer>
+  <footer class="storeFooter">
+    <div class="footerBrand"><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div>
+    <nav aria-label="Footer navigation"><a href="#catalog">Store</a><a href="/pay/">USD products</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/refund/">Refunds</a><a href="/contact/">Contact</a></nav>
+    <p>Original digital products · specialist services · operational systems</p>
+  </footer>
 </main>
-<script src="/assets/storefront-v2.js?v=editorial-taxonomy-20260829" defer></script>
+<script src="/assets/storefront-v2.js?v=global-green-20260829" defer></script>
 </body>
 </html>

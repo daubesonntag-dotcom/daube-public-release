@@ -37,34 +37,23 @@ jobs:
           sudo ip link add daube-b-root type veth peer name daube-b-ns
           sudo ip link set daube-a-ns netns daube-tenant-a
           sudo ip link set daube-b-ns netns daube-tenant-b
-
           sudo ip addr add 10.220.1.1/24 dev daube-a-root
           sudo ip addr add 10.220.2.1/24 dev daube-b-root
           sudo ip link set daube-a-root up
           sudo ip link set daube-b-root up
-
           sudo ip netns exec daube-tenant-a ip link set lo up
           sudo ip netns exec daube-tenant-a ip addr add 10.220.1.2/24 dev daube-a-ns
           sudo ip netns exec daube-tenant-a ip link set daube-a-ns up
           sudo ip netns exec daube-tenant-a ip route add default via 10.220.1.1
-
           sudo ip netns exec daube-tenant-b ip link set lo up
           sudo ip netns exec daube-tenant-b ip addr add 10.220.2.2/24 dev daube-b-ns
           sudo ip netns exec daube-tenant-b ip link set daube-b-ns up
           sudo ip netns exec daube-tenant-b ip route add default via 10.220.2.1
-
           sudo sysctl -w net.ipv4.ip_forward=0 >/dev/null
           sudo ip netns exec daube-tenant-a ping -c 1 -W 2 10.220.1.1 >/dev/null
           sudo ip netns exec daube-tenant-b ping -c 1 -W 2 10.220.2.1 >/dev/null
-          if sudo ip netns exec daube-tenant-a ping -c 1 -W 1 10.220.2.2 >/dev/null 2>&1; then
-            echo 'tenant isolation failed: A reached B' >&2
-            exit 1
-          fi
-          if sudo ip netns exec daube-tenant-b ping -c 1 -W 1 10.220.1.2 >/dev/null 2>&1; then
-            echo 'tenant isolation failed: B reached A' >&2
-            exit 1
-          fi
-
+          if sudo ip netns exec daube-tenant-a ping -c 1 -W 1 10.220.2.2 >/dev/null 2>&1; then exit 1; fi
+          if sudo ip netns exec daube-tenant-b ping -c 1 -W 1 10.220.1.2 >/dev/null 2>&1; then exit 1; fi
           printf 'DAUBE_PRIVATE_NETWORK_EPHEMERAL_PASS tenant_a_private_route=true tenant_b_private_route=true cross_tenant_a_to_b_blocked=true cross_tenant_b_to_a_blocked=true ip_forward=false oauth_required=false paid_spend_authorized=false\n'
 
   iam-rbac:
@@ -92,7 +81,6 @@ jobs:
           cleanup() { kind delete cluster --name "$cluster" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           kind create cluster --name "$cluster" --wait 120s --image 'kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5'
-
           kubectl create namespace tenant-a
           kubectl create namespace tenant-b
           kubectl create serviceaccount operator -n tenant-a
@@ -101,10 +89,10 @@ jobs:
 
           subject='system:serviceaccount:tenant-a:operator'
           allow_a="$(kubectl auth can-i get configmaps -n tenant-a --as="$subject")"
-          deny_b="$(kubectl auth can-i get configmaps -n tenant-b --as="$subject")"
-          deny_secret="$(kubectl auth can-i get secrets -n tenant-a --as="$subject")"
+          deny_b="$(kubectl auth can-i get configmaps -n tenant-b --as="$subject" || true)"
+          deny_secret="$(kubectl auth can-i get secrets -n tenant-a --as="$subject" || true)"
+          printf 'IAM_OBSERVED allow_a=%s deny_b=%s deny_secret=%s\n' "$allow_a" "$deny_b" "$deny_secret"
           test "$allow_a" = 'yes'
           test "$deny_b" = 'no'
           test "$deny_secret" = 'no'
-
           printf 'DAUBE_PRIVATE_IAM_EPHEMERAL_PASS tenant_a_configmaps_allow=true tenant_b_configmaps_deny=true tenant_a_secrets_deny=true rbac=true kind=v0.32.0 kubernetes=v1.36.1 oauth_required=false paid_spend_authorized=false\n'

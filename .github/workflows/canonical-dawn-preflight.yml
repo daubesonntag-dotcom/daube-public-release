@@ -1,0 +1,58 @@
+name: D'AUBE Canonical Dawn Preflight
+
+on:
+  push:
+    branches:
+      - feat/canonical-dawn-pages-v1-20260829
+    paths:
+      - 'recovery/index.html'
+      - 'scripts/build-canonical-dawn-pages.mjs'
+      - 'scripts/verify-canonical-dawn.mjs'
+      - 'scripts/canonical-dawn-quality-score.mjs'
+      - '.github/workflows/canonical-dawn-preflight.yml'
+      - '.github/workflows/payment-domain-recovery-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-dawn-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Project verified Dawn source into canonical root
+        run: node scripts/build-canonical-dawn-pages.mjs
+      - name: Start local canonical preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4181 --bind 127.0.0.1 >/tmp/canonical-http.log 2>&1 &
+          echo $! >/tmp/canonical-http.pid
+          for _ in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:4181/ >/dev/null && exit 0
+            sleep .2
+          done
+          exit 1
+      - name: Verify canonical desktop mobile accessibility and routes
+        run: node scripts/verify-canonical-dawn.mjs
+      - name: Enforce canonical quality score >= 95
+        run: node scripts/canonical-dawn-quality-score.mjs
+      - name: Upload canonical Dawn evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: canonical-dawn-preflight-evidence
+          path: artifacts/canonical-dawn/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop preview
+        if: always()
+        run: kill "$(cat /tmp/canonical-http.pid)" 2>/dev/null || true

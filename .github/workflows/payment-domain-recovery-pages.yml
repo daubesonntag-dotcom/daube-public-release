@@ -62,13 +62,19 @@ jobs:
           grep -Fq 'US$39' pay/index.html
           grep -Fq 'US$95' pay/index.html
           grep -Fq '/pay/' index.html
-          grep -Fq 'USD-first display' storefront/index.html
+          grep -Fq 'No silent FX' storefront/index.html
+          grep -Fq 'VND CATALOG' storefront/index.html
+          grep -Fq 'Native USD workflow kits' storefront/index.html
           grep -Fq 'Continue to local bank payment' storefront/index.html
           grep -Fq 'bank transaction is verified' storefront/index.html
-          grep -Fq 'currency-usd' storefront/index.html
-          grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
+          grep -Fq 'Beneficiary identity is verified inside your banking app and is not published by this page' storefront/index.html
+          ! grep -Fq 'currency-usd' storefront/index.html
+          ! grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
+          ! grep -Fq 'moneyUsdEquivalent' assets/storefront-v2.js
+          ! grep -Fq 'receipt.payment.beneficiaryName' assets/storefront-v2.js
           grep -Fq 'direct_vietqr_bank_transfer' assets/storefront-v2.js
           grep -Fq 'qrSvgDataUrl' assets/storefront-v2.js
+          grep -Fq 'Beneficiary verification' assets/storefront-v2.js
           grep -Fq -- '--green-strong' assets/storefront-v2.css
           grep -Fq 'paymentQrFrame' assets/storefront-v2.css
           grep -Fq 'Paddle' pay/index.html
@@ -86,14 +92,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify canonical apex, storefront bridge and Paddle review routes
+      - name: Verify canonical apex, storefront bridge and native-price review routes
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 18); do
             root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
             storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
-            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=global-green-20260829' || true)"
+            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=truthful-currency-20260829' || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
             pricing_code="$(curl --silent --show-error --location --output /tmp/pricing.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pricing/ || true)"
             terms_code="$(curl --silent --show-error --location --output /tmp/terms.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/terms/ || true)"
@@ -103,13 +109,19 @@ jobs:
             if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$storejs_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
               && grep -Fq 'Meaning,' /tmp/root.html \
               && grep -Fq '/storefront/' /tmp/root.html \
-              && grep -Fq 'USD-first display' /tmp/storefront.html \
+              && grep -Fq 'No silent FX' /tmp/storefront.html \
+              && grep -Fq 'VND CATALOG' /tmp/storefront.html \
+              && grep -Fq 'Native USD workflow kits' /tmp/storefront.html \
               && grep -Fq 'Continue to local bank payment' /tmp/storefront.html \
               && grep -Fq 'bank transaction is verified' /tmp/storefront.html \
-              && grep -Fq 'currency-usd' /tmp/storefront.html \
-              && grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
+              && grep -Fq 'Beneficiary identity is verified inside your banking app and is not published by this page' /tmp/storefront.html \
+              && ! grep -Fq 'currency-usd' /tmp/storefront.html \
+              && ! grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
+              && ! grep -Fq 'moneyUsdEquivalent' /tmp/storefront.js \
+              && ! grep -Fq 'receipt.payment.beneficiaryName' /tmp/storefront.js \
               && grep -Fq 'direct_vietqr_bank_transfer' /tmp/storefront.js \
               && grep -Fq 'qrSvgDataUrl' /tmp/storefront.js \
+              && grep -Fq 'Beneficiary verification' /tmp/storefront.js \
               && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
               && grep -Fq 'US$15' /tmp/pay.html \
               && grep -Fq 'US$39' /tmp/pay.html \
@@ -120,11 +132,12 @@ jobs:
               {
                 echo '## D’AUBE payment surface verified'
                 echo '- canonical apex: 200'
-                echo '- /storefront/: 200 · USD-first global presentation PASS'
-                echo '- storefront JS: 200 · currency switch + local QR renderer PASS'
-                echo '- /pay/: 200 · exact USD Workflow Kit surface PASS'
+                echo '- /storefront/: 200 · native VND catalog + no-silent-FX boundary PASS'
+                echo '- storefront JS: 200 · no hard-coded browser FX + local QR renderer PASS'
+                echo '- public beneficiary identity: not serialized/published; banking-app verification copy PASS'
+                echo '- /pay/: 200 · exact native USD Workflow Kit surface PASS'
                 echo '- /pricing/, /terms/, /privacy/, /refund/, /contact/: 200'
-                echo '- local VND settlement remains explicit only at checkout: PASS'
+                echo '- settlement/revenue truth remains external and fail-closed'
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi

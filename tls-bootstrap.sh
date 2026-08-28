@@ -137,6 +137,19 @@ server {
   }
 NGINX
 
+if systemctl is-active --quiet daube-provider-attestation.service 2>/dev/null; then
+  cat >> "$TLS_SITE" <<'NGINX'
+  location = /v1/provider-attestation {
+    limit_req zone=daube_tls_worker burst=6 nodelay;
+    proxy_pass http://127.0.0.1:8792/v1/provider-attestation;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+    access_log off;
+  }
+NGINX
+fi
+
 if [[ -n "$STATIC_ROOT" ]]; then
   cat >> "$TLS_SITE" <<NGINX
   location ~ ^/(\\.git|\\.github|scripts|tests?|governance|gradle|supabase)(/|\$) {

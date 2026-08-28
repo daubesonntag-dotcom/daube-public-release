@@ -1,0 +1,35 @@
+{
+  "schema": "daube.resource-farm-provider-actuator-receipt.v1",
+  "status": "ADMITTED",
+  "requestId": "provider-actuator-gen-a3-20260829",
+  "requestedWorkUnits": 2000000,
+  "totalEvidenceWorkUnits": 2000000,
+  "providerFamilies": [
+    "github-public-runner",
+    "supabase-edge"
+  ],
+  "providerFamilyCount": 2,
+  "actualReplicas": {
+    "github-public-runner": 6,
+    "supabase-edge": 2
+  },
+  "plan": {
+    "githubReplicas": 6,
+    "supabaseReplicas": 2,
+    "capacityWorkUnits": 2000000
+  },
+  "feedback": {
+    "previousReceiptSeen": false,
+    "previousHealthy": false,
+    "previousRequestId": null,
+    "previousTotalEvidenceWorkUnits": null
+  },
+  "feedbackClosedLoopObserved": false,
+  "providerExecutionDispatchClosedLoopProven": false,
+  "crossProviderExecutionActuationProven": true,
+  "providerCapacityProvisioningClosedLoopProven": false,
+  "paidSpendAuthorized": false,
+  "privateAssetsUsed": false,
+  "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
+  "observedAt": "2026-08-28T19:05:45.009Z"
+}

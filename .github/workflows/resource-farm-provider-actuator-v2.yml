@@ -1,0 +1,165 @@
+name: Resource Farm Provider Actuator V2
+
+on:
+  push:
+    paths:
+      - 'farm/provider-actuator/request.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resource-farm-provider-actuator-v2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    outputs:
+      request_id: ${{ steps.out.outputs.request_id }}
+      github_matrix: ${{ steps.out.outputs.github_matrix }}
+      github_replicas: ${{ steps.out.outputs.github_replicas }}
+      supabase_replicas: ${{ steps.out.outputs.supabase_replicas }}
+      requested_work_units: ${{ steps.out.outputs.requested_work_units }}
+      previous_receipt_seen: ${{ steps.out.outputs.previous_receipt_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build bounded provider plan
+        run: |
+          set -euo pipefail
+          node farm/provider-actuator/plan.mjs \
+            farm/provider-actuator/request.json \
+            farm/provider-actuator/latest-receipt.json \
+            /tmp/plan.json
+          jq -e '.capacityMet == true and .policy.zeroSpendOnly == true and .providerFamilyCount == 2' /tmp/plan.json >/dev/null
+
+      - name: Export dynamic matrix
+        id: out
+        run: |
+          set -euo pipefail
+          echo "request_id=$(jq -r '.requestId' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "github_replicas=$(jq -r '.githubReplicas' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "supabase_replicas=$(jq -r '.supabaseReplicas' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "requested_work_units=$(jq -r '.requestedWorkUnits' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "previous_receipt_seen=$(jq -r '.feedback.previousReceiptSeen' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "github_matrix=$(jq -c '{replica:[range(1;(.githubReplicas + 1))]}' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ steps.out.outputs.request_id }}-plan
+          path: /tmp/plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  github-provider:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.plan.outputs.github_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Execute deterministic GitHub provider work
+        run: |
+          set -euo pipefail
+          node farm/provider-actuator/github-worker.mjs \
+            '${{ matrix.replica }}' \
+            '${{ needs.plan.outputs.request_id }}' \
+            '/tmp/github-${{ matrix.replica }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-github-${{ matrix.replica }}
+          path: /tmp/github-${{ matrix.replica }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+  supabase-provider:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Execute bounded Supabase Edge provider work
+        run: |
+          set -euo pipefail
+          node farm/provider-actuator/supabase-dispatch.mjs \
+            '${{ needs.plan.outputs.supabase_replicas }}' \
+            '10' \
+            '/tmp/supabase-bundle.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-supabase
+          path: /tmp/supabase-bundle.json
+          if-no-files-found: error
+          retention-days: 7
+
+  harvest:
+    needs: [plan, github-provider, supabase-provider]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: provider-actuator-${{ needs.plan.outputs.request_id }}-*
+          path: /tmp/evidence
+          merge-multiple: true
+      - name: Verify cross-provider harvest
+        run: |
+          set -euo pipefail
+          node farm/provider-actuator/harvest.mjs \
+            /tmp/evidence \
+            /tmp/provider-actuator-receipt.json \
+            '${{ needs.plan.outputs.github_replicas }}' \
+            '${{ needs.plan.outputs.supabase_replicas }}' \
+            '${{ needs.plan.outputs.requested_work_units }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-harvest
+          path: /tmp/provider-actuator-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish audited feedback receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ needs.plan.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          body_b64="$(base64 -w0 /tmp/provider-actuator-receipt.json)"
+          history="farm/provider-actuator/receipts/${REQUEST_ID}.json"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
+            -f message="farm(actuator): record ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null
+
+          latest='farm/provider-actuator/latest-receipt.json'
+          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
+            -f message="farm(actuator): advance feedback to ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
+          gh api "${args[@]}" >/dev/null
+
+      - name: Report actuator truth boundary
+        run: |
+          jq '{status,requestId,providerFamilies,actualReplicas,totalEvidenceWorkUnits,feedbackClosedLoopObserved,providerExecutionDispatchClosedLoopProven,providerCapacityProvisioningClosedLoopProven,truthBoundary}' \
+            /tmp/provider-actuator-receipt.json >> "$GITHUB_STEP_SUMMARY"

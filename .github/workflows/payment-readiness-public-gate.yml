@@ -1,0 +1,38 @@
+name: Payment Readiness Public Gate
+
+on:
+  pull_request:
+    paths:
+      - 'release/payment/payment-system-readiness-v1.json'
+      - '.github/workflows/payment-readiness-public-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'release/payment/payment-system-readiness-v1.json'
+      - '.github/workflows/payment-readiness-public-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-payment-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify sanitized readiness truth
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const x = JSON.parse(fs.readFileSync('release/payment/payment-system-readiness-v1.json','utf8'));
+          if (x.systemReadiness !== 100 || x.maxScore !== 100 || x.color !== 'GREEN') throw new Error('readiness_not_green_100');
+          if (x.systemBlocked !== false) throw new Error('system_blocked');
+          if (x.paymentInstructionLive !== true || x.settlementIngressConfigured !== true) throw new Error('payment_runtime_not_ready');
+          for (const key of ['independentCustomerRevenueProven','commercialRevenueVerified','complianceComplete','historyPurgeComplete','usdCardLive','eurRuntimeAdmitted']) {
+            if (x[key] !== false) throw new Error(`${key}_must_remain_false_without_external_evidence`);
+          }
+          console.log('PAYMENT_READINESS_PUBLIC_GATE=GREEN_100');
+          console.log('EXTERNAL_CLAIMS_FAIL_CLOSED=true');
+          NODE

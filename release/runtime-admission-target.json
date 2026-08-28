@@ -10,11 +10,18 @@
   "observedRuntimeProvider": "supabase-edge",
   "requiredProvider": null,
   "runtimeBinding": {
-    "receiptId": "86ed6483-7297-4c69-9b77-40d531dce7f5",
+    "receiptId": "7b458634-ec24-4b2f-9b8e-dfa3a8ce5933",
     "function": "daube-commerce-runtime",
-    "functionVersion": 1,
-    "functionDigest": "2d8d36852a297df1843f6e36163e234154458f926aa80b85194c115489c4fdda",
-    "migration": "provider_neutral_commerce_runtime_v1"
+    "functionVersion": 2,
+    "functionDigest": "1c4a09712520138bee35143c80474de21afb33029584065f25088d942ff79d7e",
+    "migration": "provider_neutral_commerce_runtime_v1",
+    "recoveryDrill": {
+      "method": "same-source-redeploy",
+      "canonicalSourceReadbackMatched": true,
+      "previousFunctionVersion": 1,
+      "currentFunctionVersion": 2,
+      "externalReadbackRequiredAfterRecovery": true
+    }
   },
   "primaryDomesticRail": "direct_vietqr",
   "requiredRuntimeEvidence": [

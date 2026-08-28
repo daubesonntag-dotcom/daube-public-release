@@ -1,13 +1,16 @@
 {
   "schema": "daube.public-resource-farm-market.v1",
-  "status": "PRELAUNCH_VALIDATION",
+  "status": "SERVICE_CHECKOUT_LIVE_DIGITAL_KITS_GATED",
   "commerceAuthority": "daubesonntag-dotcom/daube-commerce",
   "canonicalMappingCommit": "1e350b5dd6bf18d3aa39f42a5ea56bcabd53f292",
-  "checkoutLive": false,
+  "storefrontAdmissionCommit": "d7eeedbbd9e6795f0b76addbb87de408e563df66",
+  "checkoutLive": true,
+  "checkoutScope": "VND_SERVICE_OFFERS_ONLY",
+  "publicStorefrontPath": "/storefront/",
   "revenueClaimed": false,
   "currencyStatus": {
-    "USD": "CATALOG_AVAILABLE_PAYMENT_ROUTE_MUST_BE_ADMITTED_AT_ORDER_TIME",
-    "VND": "CATALOG_AVAILABLE_PAYMENT_ROUTE_MUST_BE_ADMITTED_AT_ORDER_TIME",
+    "USD": "CATALOG_AVAILABLE_PADDLE_PROVIDER_REVIEW_REQUIRED",
+    "VND": "SERVICE_CHECKOUT_LIVE_DIRECT_VIETQR_SETTLEMENT_REQUIRED",
     "EUR": "PRICE_BOOK_EXISTS_FARM_FULFILLMENT_ROUTE_NOT_YET_ADMITTED"
   },
   "offers": [
@@ -16,6 +19,7 @@
       "name": "D’AUBE Resource Farm Orchestration Audit",
       "price": { "USD": 149, "VND": 2900000 },
       "model": "BYO_ORCHESTRATION",
+      "checkoutStatus": "LIVE_VND_DIRECT_VIETQR",
       "summary": "Inventory authorized infrastructure, map resource lanes, provider terms/cost/quota gates, and deliver a prioritized orchestration plan with evidence.",
       "doesNotSell": ["GitHub Actions runner slots", "raw third-party compute capacity", "credentials"]
     },
@@ -24,6 +28,7 @@
       "name": "D’AUBE Resource Farm Orchestration Build",
       "price": { "USD": 299, "VND": 5900000 },
       "model": "BYO_ORCHESTRATION",
+      "checkoutStatus": "LIVE_VND_DIRECT_VIETQR",
       "summary": "Implement a bounded multi-lane workflow with cost/privacy/quota gates, trace receipts, tests and graceful fallback.",
       "doesNotSell": ["generic third-party capacity", "unauthorized paid compute"]
     },
@@ -32,6 +37,7 @@
       "name": "D’AUBE Integrated Resource Ecosystem",
       "price": { "USD": 649, "VND": 12900000 },
       "model": "PRODUCTIZED_INTEGRATION_SERVICE",
+      "checkoutStatus": "LIVE_VND_DIRECT_VIETQR",
       "summary": "Design a bounded farm-to-processing-to-distribution digital workflow with digital twins, provenance, lifecycle control and Commerce handoff.",
       "doesNotClaim": ["physical certification", "food-safety certification", "animal-welfare certification", "payment intermediary status"]
     },
@@ -40,6 +46,7 @@
       "name": "D’AUBE Traceability Blueprint Kit",
       "price": { "USD": 15, "VND": 290000 },
       "model": "DIGITAL_LICENSE",
+      "checkoutStatus": "RELEASE_ARTIFACT_AND_LICENSE_GATED",
       "summary": "Trace-event vocabulary, lot/work-unit digital-twin template, custody/transformation/transaction manifests and provenance checklist.",
       "standardsBoundary": "EPCIS-inspired; no GS1/EPCIS certification or conformance claim."
     },
@@ -48,6 +55,7 @@
       "name": "D’AUBE Seed Bank & Agronomy Ops Kit",
       "price": { "USD": 39, "VND": 790000 },
       "model": "DIGITAL_LICENSE",
+      "checkoutStatus": "RELEASE_ARTIFACT_AND_LICENSE_GATED",
       "summary": "Seed lineage, soil/feed/quota/rotation templates, quarantine/compost/regeneration playbooks and commercial-provider admission checklist."
     },
     {
@@ -55,12 +63,23 @@
       "name": "D’AUBE Resource Ecosystem Team Playbook",
       "price": { "USD": 95, "VND": 1900000 },
       "model": "DIGITAL_TEAM_LICENSE",
+      "checkoutStatus": "RELEASE_ARTIFACT_AND_LICENSE_GATED",
       "summary": "Team governance, exception-management, evidence/provenance review and provider/commercial truth-boundary templates."
     }
   ],
+  "runtimeTruth": {
+    "commerceHealth": "READY",
+    "systemBlocked": false,
+    "directPayOperational": true,
+    "directPayInstructionLive": true,
+    "directSettlementIngressConfigured": true,
+    "remainingExternalEvidenceClass": "AUTHORITY_HANDOFF_NOT_SYSTEM_BLOCKER",
+    "independentCustomerRevenueProven": false
+  },
   "orderTruth": {
     "catalogListing": "NOT_REVENUE",
     "checkoutCreated": "NOT_REVENUE",
+    "paymentInstruction": "NOT_SETTLEMENT",
     "farmFulfillment": "NOT_PAYMENT_EVIDENCE",
     "externallyFundedReconciledCommerceSettlement": "SETTLED_EXTERNAL_CASH"
   }

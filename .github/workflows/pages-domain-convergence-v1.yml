@@ -1,4 +1,4 @@
-name: Pages Domain Convergence V1
+name: Launch Critical Public Readback V1
 
 on:
   push:
@@ -6,255 +6,161 @@ on:
     paths:
       - ".github/workflows/pages-domain-convergence-v1.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "17 * * * *"
 
 permissions:
   contents: read
-  pages: write
 
 concurrency:
-  group: pages-domain-convergence
+  group: launch-critical-public-readback-v1
   cancel-in-progress: true
 
 jobs:
-  converge:
+  readback:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 4
     steps:
-      - name: Inspect Pages state and DNS health
-        id: inspect
+      - name: Verify canonical public apex
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
-          headers=(
-            --header 'Accept: application/vnd.github+json'
-            --header "Authorization: Bearer ${GH_TOKEN}"
-            --header 'X-GitHub-Api-Version: 2022-11-28'
-          )
+          curl --fail --silent --show-error --location \
+            --connect-timeout 10 --max-time 20 \
+            --dump-header /tmp/apex.headers \
+            https://daubesonntag.com/ \
+            --output /tmp/apex.html
 
-          pages_status="$(curl --silent --show-error --output /tmp/pages.json --write-out '%{http_code}' "${headers[@]}" "${api}")"
-          health_status="$(curl --silent --show-error --output /tmp/pages-health.json --write-out '%{http_code}' "${headers[@]}" "${api}/health")"
+          test -s /tmp/apex.html
+          grep -Fq 'D’AUBE SONNTAG' /tmp/apex.html
+          grep -Fq 'RẠNG TRONG' /tmp/apex.html
+          grep -Eq '/assets/[^"'"'"'[:space:]]+' /tmp/apex.html
+
+          apex_hash="$(sha256sum /tmp/apex.html | awk '{print $1}')"
+          asset_count="$(grep -Eo '/assets/[^"'"'"'[:space:]]+' /tmp/apex.html | sort -u | wc -l | tr -d ' ')"
+          {
+            echo '## Canonical public apex'
+            echo '- HTTPS fetch: PASS'
+            echo '- D’AUBE SONNTAG marker: PASS'
+            echo '- RẠNG TRONG marker: PASS'
+            echo "- Vite /assets references: ${asset_count}"
+            echo "- Response SHA-256: ${apex_hash}"
+            echo '- No DNS, Pages, Cloudflare, secret or billing mutation was attempted.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify canonical commerce and First Dawn
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 20 \
+            --header 'Accept: application/json' \
+            --header 'Origin: https://daubesonntag.com' \
+            --header 'Cache-Control: no-cache' \
+            https://commerce.daubesonntag.com/healthz \
+            --output /tmp/health.json
+          curl --fail --silent --show-error \
+            --connect-timeout 10 --max-time 20 \
+            --header 'Accept: application/json' \
+            --header 'Origin: https://daubesonntag.com' \
+            --header 'Cache-Control: no-cache' \
+            https://commerce.daubesonntag.com/v1/turns \
+            --output /tmp/turns.json
 
           python3 - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
 
-          def load(path):
-              try:
-                  return json.loads(Path(path).read_text(encoding='utf-8'))
-              except Exception:
-                  return {}
+          health = json.loads(Path('/tmp/health.json').read_text(encoding='utf-8'))
+          listing = json.loads(Path('/tmp/turns.json').read_text(encoding='utf-8'))
 
-          pages = load('/tmp/pages.json')
-          health = load('/tmp/pages-health.json')
-          safe = {
-              'cname': pages.get('cname'),
-              'protected_domain_state': pages.get('protected_domain_state'),
-              'pending_domain_unverified_at': pages.get('pending_domain_unverified_at'),
-              'https_enforced': pages.get('https_enforced'),
-              'https_certificate': pages.get('https_certificate'),
-              'dns_health': health,
+          def require(ok, code):
+              if not ok:
+                  raise SystemExit(code)
+
+          require(health.get('schema') == 'daube.commerce.cloudflare-health.v2', 'health_schema_invalid')
+          require(health.get('status') == 'READY', 'commerce_not_ready')
+          require(health.get('d1ReadVerified') is True, 'd1_read_unverified')
+          require(health.get('publicReadReady') is True, 'public_read_unready')
+          require(health.get('commerceFlowConfigured') is True, 'commerce_flow_unconfigured')
+          require(health.get('paddleBindingsConfigured') is True, 'paddle_bindings_unconfigured')
+          require(health.get('paddleCheckoutConfigured') is True, 'paddle_checkout_unconfigured')
+          require(health.get('paddleWebhookConfigured') is True, 'paddle_webhook_unconfigured')
+          require(health.get('providerReadbackConfigured') is True, 'provider_readback_unconfigured')
+          source = health.get('sourceRevision')
+          require(isinstance(source, str) and len(source) == 40 and all(c in '0123456789abcdefABCDEF' for c in source), 'commerce_revision_invalid')
+
+          require(listing.get('schema') == 'daube.experience-turn-list.v1', 'turn_list_schema_invalid')
+          turns = listing.get('turns')
+          require(isinstance(turns, list), 'turn_list_invalid')
+          turn = next((item for item in turns if isinstance(item, dict) and item.get('turnId') == 'first-dawn-decision-veto-v1'), None)
+          require(isinstance(turn, dict), 'first_dawn_missing')
+          require(turn.get('schema') == 'daube.experience-turn.v1', 'first_dawn_schema_invalid')
+          require(turn.get('title') == 'FIRST DAWN · DECISION VETO', 'first_dawn_title_mismatch')
+          require(turn.get('availability') == 'AVAILABLE' and turn.get('claimable') is True, 'first_dawn_unavailable')
+          require(turn.get('capacity') == 36, 'first_dawn_capacity_mismatch')
+          remaining = turn.get('capacityRemaining')
+          require(isinstance(remaining, int) and 0 < remaining <= 36, 'first_dawn_capacity_remaining_invalid')
+          product = turn.get('product') or {}
+          require(product.get('id') == 'paradox-decision-veto', 'first_dawn_product_mismatch')
+          require(product.get('sku') == 'DS-PARADOX-VETO-01', 'first_dawn_sku_mismatch')
+          price = product.get('price') or {}
+          require(price.get('amountMinor') == 49000 and price.get('currency') == 'VND', 'first_dawn_price_mismatch')
+
+          receipt = {
+              'schema': 'daube.launch-critical.public-readback.v1',
+              'commerceSourceRevision': source.lower(),
+              'commerceReady': True,
+              'd1ReadVerified': True,
+              'publicReadReady': True,
+              'paddleBindingsConfigured': True,
+              'paddleCheckoutConfigured': True,
+              'paddleWebhookConfigured': True,
+              'providerReadbackConfigured': True,
+              'firstDawn': {
+                  'turnId': turn.get('turnId'),
+                  'productId': product.get('id'),
+                  'sku': product.get('sku'),
+                  'amountMinor': price.get('amountMinor'),
+                  'currency': price.get('currency'),
+                  'capacity': turn.get('capacity'),
+                  'capacityRemaining': remaining,
+                  'verifiedPaidClaimCount': turn.get('verifiedPaidClaimCount'),
+                  'activeUnpaidHoldCount': turn.get('activeUnpaidHoldCount'),
+              },
+              'settlementVerifiedByThisReceipt': False,
+              'realPaymentCanaryStillRequired': True,
+              'secretMaterialSerialized': False,
           }
-          Path('/tmp/pages-domain-safe.json').write_text(json.dumps(safe, indent=2) + '\n', encoding='utf-8')
-          cert = pages.get('https_certificate') or {}
-          with open('/tmp/pages.env', 'w', encoding='utf-8') as f:
-              f.write('CNAME=' + str(pages.get('cname') or '') + '\n')
-              f.write('DOMAIN_STATE=' + str(pages.get('protected_domain_state') or 'unknown') + '\n')
-              f.write('HTTPS_ENFORCED=' + ('true' if pages.get('https_enforced') is True else 'false') + '\n')
-              f.write('CERT_STATE=' + str(cert.get('state') or 'unknown') + '\n')
+          Path('/tmp/launch-critical-public-readback.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(receipt, sort_keys=True))
           PY
-          source /tmp/pages.env
 
-          echo "pages_http=${pages_status}" >> "$GITHUB_OUTPUT"
-          echo "health_http=${health_status}" >> "$GITHUB_OUTPUT"
-          echo "cname=${CNAME}" >> "$GITHUB_OUTPUT"
-          echo "domain_state=${DOMAIN_STATE}" >> "$GITHUB_OUTPUT"
-          echo "https_enforced=${HTTPS_ENFORCED}" >> "$GITHUB_OUTPUT"
-          echo "cert_state=${CERT_STATE}" >> "$GITHUB_OUTPUT"
-
-          {
-            echo '## GitHub Pages domain state'
-            echo "- Pages API: HTTP ${pages_status}"
-            echo "- DNS health API: HTTP ${health_status}"
-            echo "- CNAME: ${CNAME:-none}"
-            echo "- Protected domain state: ${DOMAIN_STATE}"
-            echo "- HTTPS certificate state: ${CERT_STATE}"
-            echo "- HTTPS enforced: ${HTTPS_ENFORCED}"
-            echo '- No DNS, registrar, billing or secret mutation was performed by this inspection.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Record pending certificate without mutation
-        if: steps.inspect.outputs.pages_http == '200' && steps.inspect.outputs.cert_state != 'approved'
-        shell: bash
-        run: |
+          commerce_sha="$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['sourceRevision'])")"
+          remaining="$(python3 -c "import json; x=json.load(open('/tmp/turns.json')); t=next(v for v in x['turns'] if v['turnId']=='first-dawn-decision-veto-v1'); print(t['capacityRemaining'])")"
           {
             echo
-            echo '## HTTPS convergence'
-            echo 'WAITING_FOR_GITHUB_CERTIFICATE'
-            echo 'No DNS, custom-domain, Pages publication, certificate, provider, secret or billing mutation was attempted.'
+            echo '## Commerce + First Dawn readback'
+            echo '- commerce health: READY'
+            echo "- commerce exact source revision: ${commerce_sha}"
+            echo '- D1/public read: VERIFIED'
+            echo '- Paddle bindings/checkout/webhook/provider readback: CONFIGURED'
+            echo '- First Dawn: AVAILABLE / CLAIMABLE'
+            echo '- SKU: DS-PARADOX-VETO-01'
+            echo '- Price: 49,000 VND'
+            echo '- Capacity ceiling: 36'
+            echo "- Capacity remaining: ${remaining}"
+            echo '- Real settlement verified by this workflow: NO'
+            echo '- Real payment canary still required: YES'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Enforce HTTPS only after GitHub certificate approval
-        id: enforce
-        if: steps.inspect.outputs.pages_http == '200' && steps.inspect.outputs.cert_state == 'approved' && steps.inspect.outputs.https_enforced != 'true'
+      - name: Classify launch-critical public evidence
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
-          status="$(curl --silent --show-error --output /tmp/pages-put.json --write-out '%{http_code}' --request PUT --header 'Accept: application/vnd.github+json' --header "Authorization: Bearer ${GH_TOKEN}" --header 'X-GitHub-Api-Version: 2022-11-28' --header 'Content-Type: application/json' --data '{"https_enforced":true}' "${api}")"
-          echo "http=${status}" >> "$GITHUB_OUTPUT"
-          if [[ "$status" != "204" ]]; then
-            echo "HTTPS enforcement request was rejected (HTTP ${status}); failing closed." >> "$GITHUB_STEP_SUMMARY"
-            cat /tmp/pages-put.json || true
-            exit 1
-          fi
-          echo 'GitHub Pages HTTPS enforcement request succeeded.' >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Re-fetch Pages state after possible enforcement
-        id: confirm
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages"
-          status="$(curl --silent --show-error --output /tmp/pages-confirm.json --write-out '%{http_code}' --header 'Accept: application/vnd.github+json' --header "Authorization: Bearer ${GH_TOKEN}" --header 'X-GitHub-Api-Version: 2022-11-28' "${api}")"
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          try:
-              pages = json.loads(Path('/tmp/pages-confirm.json').read_text(encoding='utf-8'))
-          except Exception:
-              pages = {}
-          cert = pages.get('https_certificate') or {}
-          with open('/tmp/pages-confirm.env', 'w', encoding='utf-8') as f:
-              f.write('CNAME=' + str(pages.get('cname') or '') + '\n')
-              f.write('DOMAIN_STATE=' + str(pages.get('protected_domain_state') or 'unknown') + '\n')
-              f.write('HTTPS_ENFORCED=' + ('true' if pages.get('https_enforced') is True else 'false') + '\n')
-              f.write('CERT_STATE=' + str(cert.get('state') or 'unknown') + '\n')
-          PY
-          source /tmp/pages-confirm.env
-
-          echo "pages_http=${status}" >> "$GITHUB_OUTPUT"
-          echo "cname=${CNAME}" >> "$GITHUB_OUTPUT"
-          echo "domain_state=${DOMAIN_STATE}" >> "$GITHUB_OUTPUT"
-          echo "https_enforced=${HTTPS_ENFORCED}" >> "$GITHUB_OUTPUT"
-          echo "cert_state=${CERT_STATE}" >> "$GITHUB_OUTPUT"
-
-          {
-            echo
-            echo '## Confirmed Pages state'
-            echo "- Pages API: HTTP ${status}"
-            echo "- CNAME: ${CNAME:-none}"
-            echo "- Protected domain state: ${DOMAIN_STATE}"
-            echo "- HTTPS certificate state: ${CERT_STATE}"
-            echo "- HTTPS enforced: ${HTTPS_ENFORCED}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Verify public HTTPS hostname
-        id: public
-        if: always() && steps.confirm.outputs.https_enforced == 'true'
-        shell: bash
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          code="$(curl --fail --silent --show-error --location --connect-timeout 10 --max-time 20 --write-out '%{http_code}' https://daubesonntag.com/ --output /tmp/public.html)"
-          test -s /tmp/public.html
-          echo "http=${code}" >> "$GITHUB_OUTPUT"
-          echo 'tls_verified=true' >> "$GITHUB_OUTPUT"
-          echo 'public_https=true' >> "$GITHUB_OUTPUT"
-          {
-            echo
-            echo '## Public HTTPS verification'
-            echo "- HTTPS status: ${code}"
-            echo '- TLS verification: VERIFIED'
-            echo '- Non-empty homepage body: VERIFIED'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Verify HTTP redirects to HTTPS
-        id: redirect
-        if: always() && steps.confirm.outputs.https_enforced == 'true'
-        shell: bash
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          curl --silent --show-error --head --connect-timeout 10 --max-time 20 http://daubesonntag.com/ --output /tmp/http-headers.txt
-          status="$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/http-headers.txt)"
-          location="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' /tmp/http-headers.txt)"
-          echo "status=${status:-unknown}" >> "$GITHUB_OUTPUT"
-          echo "location=${location}" >> "$GITHUB_OUTPUT"
-
-          if [[ "${status:-}" =~ ^30[178]$ || "${status:-}" == "302" || "${status:-}" == "303" ]]; then
-            if [[ "$location" == https://daubesonntag.com* ]]; then
-              echo 'redirect_verified=true' >> "$GITHUB_OUTPUT"
-              {
-                echo
-                echo '## HTTP redirect verification'
-                echo "- HTTP status: ${status}"
-                echo "- Location: ${location}"
-                echo '- HTTP → HTTPS redirect: VERIFIED'
-              } >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-          fi
-
-          {
-            echo
-            echo '## HTTP redirect verification'
-            echo "- HTTP status: ${status:-unknown}"
-            echo "- Location: ${location:-none}"
-            echo '- HTTP → HTTPS redirect: NOT_VERIFIED'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-
-      - name: Publish truthful convergence result
-        if: always()
-        shell: bash
-        env:
-          PAGES_HTTP: ${{ steps.confirm.outputs.pages_http }}
-          HEALTH_HTTP: ${{ steps.inspect.outputs.health_http }}
-          DOMAIN_STATE: ${{ steps.confirm.outputs.domain_state }}
-          CERT_STATE: ${{ steps.confirm.outputs.cert_state }}
-          HTTPS_ENFORCED: ${{ steps.confirm.outputs.https_enforced }}
-          ENFORCE_HTTP: ${{ steps.enforce.outputs.http }}
-          PUBLIC_HTTPS: ${{ steps.public.outputs.public_https }}
-          PUBLIC_STATUS: ${{ steps.public.outputs.http }}
-          TLS_VERIFIED: ${{ steps.public.outputs.tls_verified }}
-          REDIRECT_VERIFIED: ${{ steps.redirect.outputs.redirect_verified }}
-          REDIRECT_STATUS: ${{ steps.redirect.outputs.status }}
-          CONFIRMED_CNAME: ${{ steps.confirm.outputs.cname }}
         run: |
           set -euo pipefail
           {
             echo
-            echo '## Convergence classification'
-            echo "- Pages enabled: $([[ \"$PAGES_HTTP\" == \"200\" ]] && echo yes || echo no)"
-            echo "- Custom domain: ${CONFIRMED_CNAME:-none}"
-            echo "- DNS health API: HTTP ${HEALTH_HTTP:-unknown}"
-            echo "- Certificate state: ${CERT_STATE:-unknown}"
-            echo "- HTTPS enforced: ${HTTPS_ENFORCED:-false}"
-            echo "- Public HTTPS status: ${PUBLIC_STATUS:-not-tested}"
-            echo "- TLS verification: ${TLS_VERIFIED:-false}"
-            echo "- HTTP redirect status: ${REDIRECT_STATUS:-not-tested}"
-            echo "- HTTP → HTTPS redirect verified: ${REDIRECT_VERIFIED:-false}"
-            echo '- Workflow schedule installed: yes (hourly at minute 17 UTC)'
-            if [[ "${PUBLIC_HTTPS:-false}" == "true" && "${TLS_VERIFIED:-false}" == "true" && "${HTTPS_ENFORCED:-false}" == "true" ]]; then
-              echo
-              echo 'DONE'
-            elif [[ "${CERT_STATE:-unknown}" != "approved" ]]; then
-              echo
-              echo 'WAITING_FOR_GITHUB_CERTIFICATE'
-            else
-              echo
-              echo 'HTTPS_NOT_YET_VERIFIED'
-            fi
+            echo '## Result'
+            echo 'PUBLIC_RUNTIME_AND_COMMERCE_PREFLIGHT_VERIFIED'
+            echo
+            echo 'This closes public/read-only runtime evidence only. It does not self-certify the web source SHA, settlement, revenue, refund, or Founder/provider-reserved authority.'
           } >> "$GITHUB_STEP_SUMMARY"

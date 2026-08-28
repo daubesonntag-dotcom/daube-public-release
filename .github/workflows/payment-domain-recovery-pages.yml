@@ -43,7 +43,7 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify payment and Direct VietQR artifacts before publication
+      - name: Verify payment and storefront artifacts before publication
         shell: bash
         run: |
           set -euo pipefail
@@ -62,12 +62,14 @@ jobs:
           grep -Fq 'US$39' pay/index.html
           grep -Fq 'US$95' pay/index.html
           grep -Fq '/pay/' index.html
-          grep -Fq 'D’AUBE DIRECT PAY · VIETQR / NAPAS' storefront/index.html
-          grep -Fq 'Useful systems,' storefront/index.html
-          grep -Fq 'Create order &amp; get VietQR' storefront/index.html
+          grep -Fq 'USD-first display' storefront/index.html
+          grep -Fq 'Continue to local bank payment' storefront/index.html
           grep -Fq 'bank verification' storefront/index.html
+          grep -Fq 'currency-usd' storefront/index.html
+          grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
           grep -Fq 'direct_vietqr_bank_transfer' assets/storefront-v2.js
           grep -Fq 'qrSvgDataUrl' assets/storefront-v2.js
+          grep -Fq -- '--green-strong' assets/storefront-v2.css
           grep -Fq 'paymentQrFrame' assets/storefront-v2.css
           grep -Fq 'Paddle' pay/index.html
           ! grep -Eiq '(pdl_live_apikey_|pdl_sdbx_apikey_|service_role|webhook_secret|clientToken[^A-Za-z])' pay/index.html storefront/index.html assets/storefront-v2.js
@@ -91,7 +93,7 @@ jobs:
           for attempt in $(seq 1 18); do
             root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
             storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
-            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/assets/storefront-v2.js || true)"
+            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/assets/storefront-v2.js?v=global-green-20260829 || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
             pricing_code="$(curl --silent --show-error --location --output /tmp/pricing.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pricing/ || true)"
             terms_code="$(curl --silent --show-error --location --output /tmp/terms.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/terms/ || true)"
@@ -101,10 +103,11 @@ jobs:
             if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$storejs_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
               && grep -Fq 'Meaning,' /tmp/root.html \
               && grep -Fq '/storefront/' /tmp/root.html \
-              && grep -Fq 'D’AUBE DIRECT PAY · VIETQR / NAPAS' /tmp/storefront.html \
-              && grep -Fq 'Useful systems,' /tmp/storefront.html \
-              && grep -Fq 'Create order &amp; get VietQR' /tmp/storefront.html \
+              && grep -Fq 'USD-first display' /tmp/storefront.html \
+              && grep -Fq 'Continue to local bank payment' /tmp/storefront.html \
               && grep -Fq 'bank verification' /tmp/storefront.html \
+              && grep -Fq 'currency-usd' /tmp/storefront.html \
+              && grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
               && grep -Fq 'direct_vietqr_bank_transfer' /tmp/storefront.js \
               && grep -Fq 'qrSvgDataUrl' /tmp/storefront.js \
               && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
@@ -117,12 +120,11 @@ jobs:
               {
                 echo '## D’AUBE payment surface verified'
                 echo '- canonical apex: 200'
-                echo '- /storefront/: 200 · professional storefront copy PASS'
-                echo '- storefront JS: 200 · QR renderer PASS'
-                echo '- /pay/: 200 · optional card/international review surface PASS'
+                echo '- /storefront/: 200 · USD-first global presentation PASS'
+                echo '- storefront JS: 200 · currency switch + local QR renderer PASS'
+                echo '- /pay/: 200 · exact USD Workflow Kit surface PASS'
                 echo '- /pricing/, /terms/, /privacy/, /refund/, /contact/: 200'
-                echo '- exact Workflow Kit USD pricing visible: PASS'
-                echo '- Direct VietQR VND customer surface: PASS'
+                echo '- local VND settlement remains explicit only at checkout: PASS'
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi

@@ -108,13 +108,40 @@ jobs:
           grep -q 'FARM_BROWSER_OK:' /tmp/farm-browser-receipt.html
           echo "browser_binary=$CHROME"
 
-  harvest-summary:
+  prove-public-runner:
     if: always()
     needs: [parallel-producers, browser-canary]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Assert herd health and declared production
+      - name: CPU compute receipt
+        shell: bash
+        env:
+          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
+        run: |
+          set -euo pipefail
+          test "$PRODUCERS_RESULT" = success
+          echo 'CPU_HERD_OK:4'
+
+      - name: Compiler and executable receipt
+        shell: bash
+        env:
+          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
+        run: |
+          set -euo pipefail
+          test "$PRODUCERS_RESULT" = success
+          echo 'COMPILER_HERD_OK:4'
+
+      - name: Headless browser receipt
+        shell: bash
+        env:
+          BROWSER_RESULT: ${{ needs.browser-canary.result }}
+        run: |
+          set -euo pipefail
+          test "$BROWSER_RESULT" = success
+          echo 'BROWSER_HERD_OK:1'
+
+      - name: Harvest summary
         shell: bash
         env:
           PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}

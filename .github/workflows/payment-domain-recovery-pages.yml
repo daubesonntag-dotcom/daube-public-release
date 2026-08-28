@@ -64,7 +64,7 @@ jobs:
           grep -Fq '/pay/' index.html
           grep -Fq 'USD-first display' storefront/index.html
           grep -Fq 'Continue to local bank payment' storefront/index.html
-          grep -Fq 'bank verification' storefront/index.html
+          grep -Fq 'bank transaction is verified' storefront/index.html
           grep -Fq 'currency-usd' storefront/index.html
           grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
           grep -Fq 'direct_vietqr_bank_transfer' assets/storefront-v2.js
@@ -93,7 +93,7 @@ jobs:
           for attempt in $(seq 1 18); do
             root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
             storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
-            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/assets/storefront-v2.js?v=global-green-20260829 || true)"
+            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=global-green-20260829' || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
             pricing_code="$(curl --silent --show-error --location --output /tmp/pricing.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pricing/ || true)"
             terms_code="$(curl --silent --show-error --location --output /tmp/terms.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/terms/ || true)"
@@ -105,7 +105,7 @@ jobs:
               && grep -Fq '/storefront/' /tmp/root.html \
               && grep -Fq 'USD-first display' /tmp/storefront.html \
               && grep -Fq 'Continue to local bank payment' /tmp/storefront.html \
-              && grep -Fq 'bank verification' /tmp/storefront.html \
+              && grep -Fq 'bank transaction is verified' /tmp/storefront.html \
               && grep -Fq 'currency-usd' /tmp/storefront.html \
               && grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
               && grep -Fq 'direct_vietqr_bank_transfer' /tmp/storefront.js \

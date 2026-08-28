@@ -18,6 +18,19 @@
     "supabaseReplicas": 1,
     "capacityWorkUnits": 1000000
   },
+  "ecologyAdmission": {
+    "enforced": true,
+    "admitted": true,
+    "status": "GREEN",
+    "score": 100,
+    "minimumScore": 95,
+    "systemCount": 10,
+    "allSystemsGreen": true,
+    "paidSpendAuthorized": false,
+    "automaticPrivilegeExpansion": false,
+    "newOAuthRequired": false,
+    "observedAt": "2026-08-28T19:55:13.525Z"
+  },
   "feedback": {
     "previousReceiptSeen": true,
     "previousHealthy": true,
@@ -30,6 +43,6 @@
   "providerCapacityProvisioningClosedLoopProven": false,
   "paidSpendAuthorized": false,
   "privateAssetsUsed": false,
-  "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
-  "observedAt": "2026-08-28T19:52:59.428Z"
+  "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers and requires Ecology GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
+  "observedAt": "2026-08-28T19:55:38.128Z"
 }

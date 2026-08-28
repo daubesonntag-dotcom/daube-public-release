@@ -1,0 +1,30 @@
+{
+  "schema": "daube.founder-technical-transfer-evidence.v1",
+  "verifiedDate": "2026-08-28",
+  "orderPublicCode": "DS-5AD61772",
+  "productSlug": "paradox-decision-veto",
+  "amountVnd": 49000,
+  "paymentReference": "DS5AD61772",
+  "payerClass": "founder_test",
+  "relatedParty": true,
+  "founderOriginated": true,
+  "runtimeReceiptId": "f19d9603-329c-4c2e-899b-a516aff44a98",
+  "sourceArtifactSha256": "a23ef41f5acde78671d54961172ea8eb79e22c3cb48b69f8628bca703353b472",
+  "occurredAt": "2026-08-28T19:52:00+07:00",
+  "checks": {
+    "receiptDisplayedSuccess": true,
+    "orderAmountMatched": true,
+    "paymentReferenceMatched": true,
+    "runtimeReceiptPersisted": true
+  },
+  "truth": {
+    "verificationScope": "artifact_and_order_match_only",
+    "bankAuthoritativeApiVerified": false,
+    "canonicalCustomerSettlementPromoted": false,
+    "customerRevenueCountable": false,
+    "independentCustomerDemandProven": false,
+    "rawAccountDataStored": false,
+    "receiptImageStored": false
+  },
+  "terminalState": "TECHNICAL_SETTLEMENT_PROOF"
+}

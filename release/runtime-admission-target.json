@@ -1,13 +1,21 @@
 {
-  "schema": "daube.runtime-admission-target.v2",
-  "frozenAt": "2026-08-28T18:12:19+07:00",
+  "schema": "daube.runtime-admission-target.v3",
+  "frozenAt": "2026-08-28T20:10:00+07:00",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
-  "sourceTreeSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
-  "sourceTreeUnchangedFromPreviousCandidate": true,
-  "admissionMarker": "prod-admit",
+  "expectedSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
+  "sourceTreeSha": "fb558d4c04bb4e2e76b0c615c703387b319fb4eb",
+  "admissionMarker": "supabase-provider-neutral-runtime-v1",
   "runtimeGate": "provider_neutral_runtime_admission",
+  "runtimeOrigin": "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-commerce-runtime",
+  "observedRuntimeProvider": "supabase-edge",
   "requiredProvider": null,
+  "runtimeBinding": {
+    "receiptId": "86ed6483-7297-4c69-9b77-40d531dce7f5",
+    "function": "daube-commerce-runtime",
+    "functionVersion": 1,
+    "functionDigest": "2d8d36852a297df1843f6e36163e234154458f926aa80b85194c115489c4fdda",
+    "migration": "provider_neutral_commerce_runtime_v1"
+  },
   "primaryDomesticRail": "direct_vietqr",
   "requiredRuntimeEvidence": [
     "exact_sha",
@@ -19,6 +27,7 @@
   ],
   "flowSemantics": {
     "internalBottleneckConcept": false,
+    "globalFlowStalled": false,
     "laneIsolationRequired": true,
     "executorFailureAction": "REPLAN",
     "externalAuthorityAction": "AUTHORITY_HANDOFF_AND_CONTINUE_UNRELATED_LANES",

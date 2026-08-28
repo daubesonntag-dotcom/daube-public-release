@@ -1,4 +1,4 @@
-name: Launch Critical Public Readback V3
+name: Launch Critical Public Readback V4
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: launch-critical-public-readback-v3
+  group: launch-critical-public-readback-v4
   cancel-in-progress: true
 
 jobs:
@@ -37,15 +37,30 @@ jobs:
           expected_sha="$(jq -r '.expectedSha' release/runtime-admission-target.json)"
           repository="$(jq -r '.repository' release/runtime-admission-target.json)"
           gate="$(jq -r '.runtimeGate' release/runtime-admission-target.json)"
+          runtime_origin="$(jq -r '.runtimeOrigin' release/runtime-admission-target.json)"
           provider="$(jq -r '.requiredProvider | if . == null then "none" else . end' release/runtime-admission-target.json)"
+          observed_provider="$(jq -r '.observedRuntimeProvider // "unknown"' release/runtime-admission-target.json)"
           rail="$(jq -r '.primaryDomesticRail' release/runtime-admission-target.json)"
           [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
           [[ "$repository" == 'daubesonntag-dotcom/daube-commerce' ]]
           [[ "$gate" == 'provider_neutral_runtime_admission' ]]
           [[ "$provider" == 'none' ]]
           [[ "$rail" == 'direct_vietqr' ]]
+          python3 - "$runtime_origin" <<'PY'
+          import sys
+          from urllib.parse import urlparse
+          value=sys.argv[1]
+          parsed=urlparse(value)
+          if parsed.scheme != 'https' or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:
+              raise SystemExit('runtime_origin_invalid')
+          if parsed.path.endswith('/'):
+              raise SystemExit('runtime_origin_must_not_end_slash')
+          PY
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+          echo "runtime_origin=$runtime_origin" >> "$GITHUB_OUTPUT"
+          echo "observed_provider=$observed_provider" >> "$GITHUB_OUTPUT"
           echo "Frozen commerce candidate: $expected_sha" >> "$GITHUB_STEP_SUMMARY"
+          echo "Observed runtime provider: $observed_provider" >> "$GITHUB_STEP_SUMMARY"
           echo "Required runtime provider: NONE (provider-neutral)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify canonical public apex
@@ -76,16 +91,18 @@ jobs:
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.target.outputs.expected_sha }}
+          RUNTIME_ORIGIN: ${{ steps.target.outputs.runtime_origin }}
+          OBSERVED_PROVIDER: ${{ steps.target.outputs.observed_provider }}
         run: |
           set -u -o pipefail
           common=(--silent --show-error --connect-timeout 10 --max-time 20 --header 'Accept: application/json' --header 'Origin: https://daubesonntag.com' --header 'Cache-Control: no-cache')
-          health_http="$(curl "${common[@]}" --output /tmp/health.json --write-out '%{http_code}' https://commerce.daubesonntag.com/healthz || true)"
-          products_http="$(curl "${common[@]}" --output /tmp/products.json --write-out '%{http_code}' https://commerce.daubesonntag.com/v1/products || true)"
-          turns_http="$(curl "${common[@]}" --output /tmp/turns.json --write-out '%{http_code}' https://commerce.daubesonntag.com/v1/turns || true)"
+          health_http="$(curl "${common[@]}" --output /tmp/health.json --write-out '%{http_code}' "${RUNTIME_ORIGIN}/healthz" || true)"
+          products_http="$(curl "${common[@]}" --output /tmp/products.json --write-out '%{http_code}' "${RUNTIME_ORIGIN}/v1/products" || true)"
+          turns_http="$(curl "${common[@]}" --output /tmp/turns.json --write-out '%{http_code}' "${RUNTIME_ORIGIN}/v1/turns" || true)"
           [[ "$health_http" =~ ^[0-9]{3}$ ]] || health_http=000
           [[ "$products_http" =~ ^[0-9]{3}$ ]] || products_http=000
           [[ "$turns_http" =~ ^[0-9]{3}$ ]] || turns_http=000
-          export HEALTH_HTTP="$health_http" PRODUCTS_HTTP="$products_http" TURNS_HTTP="$turns_http" EXPECTED_SHA
+          export HEALTH_HTTP="$health_http" PRODUCTS_HTTP="$products_http" TURNS_HTTP="$turns_http" EXPECTED_SHA OBSERVED_PROVIDER
 
           python3 - <<'PY'
           import json, os
@@ -101,15 +118,15 @@ jobs:
           products = load('/tmp/products.json', None)
           turns = load('/tmp/turns.json', {})
           expected = os.environ['EXPECTED_SHA']
-          blockers = []
+          pending = []
 
-          if os.environ['HEALTH_HTTP'] != '200': blockers.append('HEALTH_HTTP_NOT_200')
-          if os.environ['PRODUCTS_HTTP'] != '200': blockers.append('PRODUCTS_HTTP_NOT_200')
-          if os.environ['TURNS_HTTP'] != '200': blockers.append('TURNS_HTTP_NOT_200')
+          if os.environ['HEALTH_HTTP'] != '200': pending.append('HEALTH_HTTP_NOT_200')
+          if os.environ['PRODUCTS_HTTP'] != '200': pending.append('PRODUCTS_HTTP_NOT_200')
+          if os.environ['TURNS_HTTP'] != '200': pending.append('TURNS_HTTP_NOT_200')
 
           source = health.get('sourceRevision') if isinstance(health, dict) else None
-          if source != expected: blockers.append('EXACT_SHA_NOT_DEPLOYED')
-          if not isinstance(health, dict) or health.get('status') != 'READY': blockers.append('HEALTH_NOT_READY')
+          if source != expected: pending.append('EXACT_SHA_NOT_DEPLOYED')
+          if not isinstance(health, dict) or health.get('status') != 'READY': pending.append('HEALTH_NOT_READY')
 
           product_ok = False
           first_dawn_product = False
@@ -128,48 +145,52 @@ jobs:
                   p['price'].get('currency') == 'VND'
                   for p in products
               )
-          if not product_ok: blockers.append('PUBLIC_PRODUCTS_INVALID')
-          if not first_dawn_product: blockers.append('FIRST_DAWN_PRODUCT_MISSING')
+          if not product_ok: pending.append('PUBLIC_PRODUCTS_INVALID')
+          if not first_dawn_product: pending.append('FIRST_DAWN_PRODUCT_MISSING')
 
           first_dawn_turn = False
           if isinstance(turns, dict) and turns.get('schema') == 'daube.experience-turn-list.v1' and isinstance(turns.get('turns'), list):
               first_dawn_turn = any(
                   isinstance(t, dict) and t.get('turnId') == 'first-dawn-decision-veto-v1' and
                   t.get('availability') == 'AVAILABLE' and t.get('claimable') is True and
-                  t.get('capacity') == 36
+                  t.get('capacity') == 36 and
+                  isinstance(t.get('product'), dict) and t['product'].get('id') == 'paradox-decision-veto' and
+                  isinstance(t['product'].get('price'), dict) and t['product']['price'].get('amountMinor') == 49000
                   for t in turns['turns']
               )
-          if not first_dawn_turn: blockers.append('FIRST_DAWN_TURN_MISSING_OR_UNAVAILABLE')
+          if not first_dawn_turn: pending.append('FIRST_DAWN_TURN_MISSING_OR_UNAVAILABLE')
 
           direct_runtime = bool(
               isinstance(health, dict) and
               health.get('directPayOperational') is True and
-              health.get('directPayApproved') is True and
-              health.get('directPayAccountOwnershipVerified') is True and
-              health.get('directPaySettlementMode') in ('manual_verified', 'bank_api')
+              health.get('directPayApproved') is True
           )
-
-          runtime_ready = not blockers
+          ownership_verified = bool(isinstance(health, dict) and health.get('directPayAccountOwnershipVerified') is True)
+          runtime_ready = not pending
           receipt = {
-              'schema': 'daube.provider-neutral-public-readback.v3',
+              'schema': 'daube.provider-neutral-public-readback.v4',
               'expectedRevision': expected,
               'reportedRevision': source,
-              'runtimeAdmission': 'PASS' if runtime_ready else 'HOLD',
+              'runtimeAdmission': 'PASS' if runtime_ready else 'CONTINUING',
               'requiredProvider': None,
+              'observedRuntimeProvider': health.get('runtimeProvider') if isinstance(health, dict) else os.environ.get('OBSERVED_PROVIDER'),
               'healthHttp': os.environ['HEALTH_HTTP'],
               'productsHttp': os.environ['PRODUCTS_HTTP'],
               'turnsHttp': os.environ['TURNS_HTTP'],
               'healthStatus': health.get('status') if isinstance(health, dict) else None,
+              'releaseBindingVerified': health.get('releaseBindingVerified') if isinstance(health, dict) else False,
               'publicProductsValid': product_ok,
               'firstDawnProductPresent': first_dawn_product,
               'firstDawnTurnAvailable': first_dawn_turn,
-              'directVietQrRuntimeOperational': direct_runtime,
+              'directVietQrInstructionRuntimeOperational': direct_runtime,
+              'directVietQrAccountOwnershipVerified': ownership_verified,
               'directVietQrSettlementProvenByThisReceipt': False,
               'independentCustomerRevenueProvenByThisReceipt': False,
               'refundProvenByThisReceipt': False,
               'productionMutationPerformed': False,
               'secretMaterialSerialized': False,
-              'blockers': blockers,
+              'globalFlowStalled': False,
+              'pendingGates': pending,
           }
           Path('/tmp/provider-neutral-public-readback.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(receipt, sort_keys=True))
@@ -177,8 +198,8 @@ jobs:
 
           runtime_state="$(jq -r '.runtimeAdmission' /tmp/provider-neutral-public-readback.json)"
           reported_sha="$(jq -r '.reportedRevision // "unknown"' /tmp/provider-neutral-public-readback.json)"
-          direct_state="$(jq -r 'if .directVietQrRuntimeOperational then "READY" else "HOLD" end' /tmp/provider-neutral-public-readback.json)"
-          blockers="$(jq -r '.blockers | if length == 0 then "none" else join(",") end' /tmp/provider-neutral-public-readback.json)"
+          direct_state="$(jq -r 'if .directVietQrInstructionRuntimeOperational then "READY" else "CONTINUING" end' /tmp/provider-neutral-public-readback.json)"
+          pending="$(jq -r '.pendingGates | if length == 0 then "none" else join(",") end' /tmp/provider-neutral-public-readback.json)"
           {
             echo
             echo '## Provider-neutral runtime admission'
@@ -188,8 +209,9 @@ jobs:
             echo "- /healthz: ${health_http}"
             echo "- /v1/products: ${products_http}"
             echo "- /v1/turns: ${turns_http}"
-            echo "- Direct VietQR runtime configuration: ${direct_state}"
-            echo "- blockers: ${blockers}"
+            echo "- Direct VietQR instruction runtime: ${direct_state}"
+            echo "- pending gates: ${pending}"
+            echo '- global flow stalled: NO'
             echo '- external settlement proven: NO'
             echo '- independent customer revenue proven: NO'
             echo '- refund proven: NO'
@@ -213,7 +235,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$RUNTIME_STATE" == 'PASS' ]] || {
-            echo '::error::Frozen exact-candidate runtime admission is not yet satisfied.'
+            echo '::error::Frozen exact-candidate runtime admission is still converging; unrelated D’AUBE lanes continue.'
             exit 22
           }
           echo 'PROVIDER_NEUTRAL_EXACT_CANDIDATE_RUNTIME_VERIFIED' >> "$GITHUB_STEP_SUMMARY"

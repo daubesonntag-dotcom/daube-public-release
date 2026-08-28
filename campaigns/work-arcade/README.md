@@ -72,6 +72,16 @@ Useful feedback includes:
 4. Which World would you want to build in?
 5. Would you rather receive compute credit, marketplace credit, access, a title, a cash share under a separate agreement, or something else?
 
+### Would you actually pay?
+
+Open an **Early Renter Signal** issue. It is not an order or payment commitment; it records which service interests you, what value you would require and what price range feels reasonable.
+
+https://github.com/daubesonntag-dotcom/daube-public-release/issues/new?template=work-arcade-early-renter.md&title=Work+Arcade+early+renter+signal
+
+General public discussion: https://github.com/daubesonntag-dotcom/daube-public-release/issues/104
+
+Distribution plan and community-specific angles: [DISTRIBUTION.md](DISTRIBUTION.md)
+
 Try it first, then challenge the premise.
 
 **Live beta:** https://d-aube-work-arcade-xs0pd2.v2.appdeploy.ai/?utm_source=github&utm_medium=owned-repository&utm_campaign=work-arcade-public-beta-20260828&utm_content=public-release-campaign

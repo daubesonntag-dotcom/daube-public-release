@@ -137,6 +137,8 @@ server {
   }
 NGINX
 
+# Oracle A1 attestation remains loopback-only unless its hardened service is
+# actually active. GCP and other providers therefore do not inherit this route.
 if systemctl is-active --quiet daube-provider-attestation.service 2>/dev/null; then
   cat >> "$TLS_SITE" <<'NGINX'
   location = /v1/provider-attestation {

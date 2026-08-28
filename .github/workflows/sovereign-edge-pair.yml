@@ -15,13 +15,18 @@ on:
         description: "64-character Ed25519 public-key SHA-256 printed by the physical device"
         required: true
         type: string
+  push:
+    branches:
+      - main
+    paths:
+      - 'farm/sovereign-agent/pairing-request.json'
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: sovereign-edge-pair-${{ inputs.public_key_sha256 }}
+  group: sovereign-edge-pair-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -29,13 +34,30 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - name: Validate fingerprint input
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve pairing decision
+        id: decision
         shell: bash
         env:
-          FINGERPRINT: ${{ inputs.public_key_sha256 }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_FINGERPRINT: ${{ inputs.public_key_sha256 }}
         run: |
           set -euo pipefail
-          [[ "$FINGERPRINT" =~ ^[a-f0-9]{64}$ ]]
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            action="$INPUT_ACTION"
+            fingerprint="$INPUT_FINGERPRINT"
+          else
+            action="$(jq -r '.action // empty' farm/sovereign-agent/pairing-request.json)"
+            fingerprint="$(jq -r '.publicKeySha256 // empty' farm/sovereign-agent/pairing-request.json)"
+          fi
+          [[ "$action" == "approve" || "$action" == "revoke" ]]
+          [[ "$fingerprint" =~ ^[a-f0-9]{64}$ ]]
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
 
       - name: Obtain repository-scoped GitHub OIDC token
         id: oidc
@@ -53,8 +75,8 @@ jobs:
         shell: bash
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-          ACTION: ${{ inputs.action }}
-          FINGERPRINT: ${{ inputs.public_key_sha256 }}
+          ACTION: ${{ steps.decision.outputs.action }}
+          FINGERPRINT: ${{ steps.decision.outputs.fingerprint }}
         run: |
           set -euo pipefail
           payload="$(jq -nc --arg action "$ACTION" --arg fingerprint "$FINGERPRINT" '{action:$action,publicKeySha256:$fingerprint}')"
@@ -65,10 +87,10 @@ jobs:
             -H 'Content-Type: application/json' \
             --data "$payload" \
             'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-sovereign-host-pairing')"
-          cat /tmp/response.json | jq '{status,code,hostId,runtimeKind,publicKeySha256,pairingRequestId,bindingId,nextGate}'
+          cat /tmp/response.json | jq '{status,code,hostId,runtimeKind,publicKeySha256,pairingRequestId,bindingId,runtimeProofId,runtimeProofPromoted,nextGate}'
           [[ "$code" == "201" ]]
           if [[ "$ACTION" == "approve" ]]; then
-            jq -e '.status == "APPROVED"' /tmp/response.json >/dev/null
+            jq -e '.status == "APPROVED" and .runtimeProofPromoted == true' /tmp/response.json >/dev/null
           else
             jq -e '.status == "REVOKED"' /tmp/response.json >/dev/null
           fi

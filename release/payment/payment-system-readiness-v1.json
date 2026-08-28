@@ -14,6 +14,8 @@
   "eurRuntimeAdmitted": false,
   "truthBoundary": "System readiness is technical readiness only. External customer, provider, bank, government and GitHub Support evidence gates its own claims and cannot be fabricated by score or CI.",
   "canonicalAuthority": "daubesonntag-dotcom/daube-commerce",
+  "canonicalCommerceRevision": "78341d1114875ecb205d4bf6edfcf1655375c01d",
+  "canonicalCommerceRevisionStatus": "CURRENT_MAIN_NO_CIRCLECI_FAILURE_STATUS",
   "currentDomesticRail": "Direct VietQR / merchant-direct VND bank transfer",
   "internationalFallbackClasses": [
     "licensed-card-or-merchant-of-record-provider",

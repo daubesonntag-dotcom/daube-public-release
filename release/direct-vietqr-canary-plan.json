@@ -1,0 +1,51 @@
+{
+  "schema": "daube.direct-vietqr-canary-plan.v1",
+  "candidateSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "origin": "https://commerce.daubesonntag.com",
+  "provider": "direct_vietqr",
+  "network": "VietQR/NAPAS",
+  "currency": "VND",
+  "preferredProduct": {
+    "id": "paradox-decision-veto",
+    "sku": "DS-PARADOX-VETO-01",
+    "expectedAmountMinor": 49000
+  },
+  "founderTechnicalCanary": {
+    "payerClass": "founder_test",
+    "maxAmountMinor": 50000,
+    "provesIndependentCustomerDemand": false,
+    "provesRevenueOnlyAfterAuthoritativeSettlementAndReconciliation": true
+  },
+  "preparePreconditions": [
+    "EXACT_CANDIDATE_DEPLOYED",
+    "HEALTH_READY_OR_ADMITTED",
+    "REVENUE_CONTROL_SCHEMA_0014_READY",
+    "DIRECT_PAY_OPERATIONAL",
+    "DIRECT_SETTLEMENT_INGRESS_CONFIGURED"
+  ],
+  "prepareAction": "POST_CANONICAL_CHECKOUT_DIRECT_VIETQR",
+  "settlementEvidenceRequired": [
+    "ORDER_ID",
+    "PROVIDER_REFERENCE",
+    "PUBLIC_REFERENCE",
+    "BANK_TRANSACTION_REFERENCE",
+    "AMOUNT_VND",
+    "TRANSFER_PURPOSE",
+    "EVIDENCE_DIGEST",
+    "RECEIVED_AT",
+    "VERIFIED_AT",
+    "EXTERNALLY_FUNDED_TRUE",
+    "ACCOUNT_OWNERSHIP_VERIFIED_TRUE"
+  ],
+  "secretPlaneRequired": [
+    "DAUBE_DIRECT_ACCOUNT_NUMBER",
+    "DAUBE_DIRECT_ACCOUNT_NAME",
+    "DAUBE_DIRECT_SETTLEMENT_INGEST_TOKEN"
+  ],
+  "secretMaterialStoredHere": false,
+  "paymentAuthorizedByThisPlan": false,
+  "moneyMovementPerformedByThisPlan": false,
+  "currentState": "WAITING_FOR_EXACT_CANDIDATE_RUNTIME",
+  "nextAutomaticStep": "PREPARE_CHECKOUT_ONLY_AFTER_RUNTIME_GATE_PASS",
+  "founderReservedStep": "REAL_PAYMENT_OR_REFUND_MONEY_MOVEMENT"
+}

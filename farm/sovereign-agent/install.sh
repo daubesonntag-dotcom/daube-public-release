@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SOURCE_URL="${DAUBE_SOVEREIGN_AGENT_URL:-https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/farm/sovereign-agent/direct-agent.py}"
+SOURCE_URL="${DAUBE_SOVEREIGN_AGENT_URL:-https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/c5874c771deb51713ef8d167138a8e40978f096f/farm/sovereign-agent/direct-agent.py}"
 INSTALL_DIR="/usr/local/lib/daube-sovereign-agent"
 STATE_DIR="/var/lib/daube-sovereign-host"
 SERVICE_USER="daube-sovereign"

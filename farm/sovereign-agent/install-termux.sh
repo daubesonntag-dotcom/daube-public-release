@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # D'AUBE Sovereign Edge — Android/Termux one-tap installer.
-# The default agent is pinned to an immutable, patched revision.
-AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-f2590cd8e4ba935a56e391062d7138cad703a228}"
+# The agent is pinned to an immutable revision that supports Android runtime
+# detection plus Ed25519 through either the openssl CLI or libcrypto via ctypes.
+AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-823bebf5484d283d0b3692428cc9de5c181f5469}"
 SOURCE_URL="${DAUBE_SOVEREIGN_AGENT_URL:-https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${AGENT_REVISION}/farm/sovereign-agent/direct-agent.py}"
 PAIRING_URL="https://github.com/daubesonntag-dotcom/daube-public-release/actions/workflows/sovereign-edge-pair.yml"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
@@ -23,36 +24,51 @@ printf '\nD’AUBE Sovereign Edge — Android setup\n'
 printf '%s\n' '-------------------------------------'
 printf 'Agent revision: %s\n\n' "$AGENT_REVISION"
 
-# Some Termux builds can start with the apt cache directories absent. Create
-# only directories inside Termux's own app sandbox; this avoids pkgcache.bin
-# errors without requesting storage/root permissions.
+# Some Termux builds can start with apt cache directories absent.
 APP_ROOT="${PREFIX%/files/usr}"
 mkdir -p \
   "$APP_ROOT/cache/apt" \
   "$PREFIX/var/cache/apt/archives/partial" \
   "$PREFIX/var/lib/apt/lists/partial" 2>/dev/null || true
 
-# In Termux the OpenSSL library and the CLI are split. `openssl-tool` is the
-# subpackage that provides the `openssl` executable used for Ed25519 signing.
-pkg install -y python openssl openssl-tool curl coreutils >/dev/null
+# The openssl package provides libcrypto. Some Termux distributions expose the
+# openssl CLI separately as openssl-tool, so install that only as a best-effort
+# optimization; the sovereign agent no longer requires the CLI.
+pkg install -y python openssl curl coreutils >/dev/null
+pkg install -y openssl-tool >/dev/null 2>&1 || true
 
-# Fail early with a precise error if the CLI or Ed25519 support is unavailable.
+# Verify that at least one Ed25519 crypto backend is available. This succeeds on
+# Termux builds where the CLI is missing as long as libcrypto is loadable.
 if ! command -v openssl >/dev/null 2>&1; then
-  echo "ERROR: Termux openssl CLI is still unavailable after installing openssl-tool." >&2
-  echo "Try: pkg update && pkg install openssl openssl-tool" >&2
-  exit 4
+  if ! python - <<'PY'
+import ctypes, ctypes.util, os, sys
+prefix=os.environ.get('PREFIX','')
+candidates=[]
+if prefix:
+    candidates.extend([f'{prefix}/lib/libcrypto.so', f'{prefix}/lib/libcrypto.so.3'])
+found=ctypes.util.find_library('crypto')
+if found:
+    candidates.append(found)
+candidates.extend(['libcrypto.so.3','libcrypto.so'])
+for candidate in candidates:
+    try:
+        lib=ctypes.CDLL(candidate)
+        fn=getattr(lib, 'EVP_PKEY_new_raw_private_key', None)
+        if fn is not None:
+            sys.exit(0)
+    except OSError:
+        pass
+sys.exit(1)
+PY
+  then
+    echo "ERROR: Neither the openssl CLI nor usable libcrypto is available." >&2
+    echo "Try: pkg update && pkg install openssl" >&2
+    exit 4
+  fi
 fi
-preflight_key="$(mktemp)"
-if ! openssl genpkey -algorithm ED25519 -out "$preflight_key" >/dev/null 2>&1; then
-  rm -f "$preflight_key"
-  echo "ERROR: Installed OpenSSL does not provide usable Ed25519 support." >&2
-  echo "Try: pkg update && pkg upgrade && pkg install openssl openssl-tool" >&2
-  exit 5
-fi
-rm -f "$preflight_key"
 
 # F-Droid builds usually obtain termux-job-scheduler through termux-api.
-# Google Play builds from 2026 can expose the scheduler directly in the main app.
+# Google Play builds can expose scheduler support directly in the main app.
 if ! command -v termux-job-scheduler >/dev/null 2>&1; then
   pkg install -y termux-api >/dev/null 2>&1 || true
 fi
@@ -81,7 +97,6 @@ STATE_DIR="$STATE_DIR"
 PUB="\$STATE_DIR/host-ed25519.pub.pem"
 LATEST="\$STATE_DIR/latest-direct-proof.json"
 PAIRING_URL="$PAIRING_URL"
-
 printf 'D’AUBE Sovereign Edge status\n'
 printf '%s\n' '----------------------------'
 if [[ -f "\$PUB" ]]; then
@@ -108,7 +123,6 @@ printf 'Pairing workflow: %s\n' "\$PAIRING_URL"
 EOF
 chmod 0755 "$STATUS_BIN"
 
-# Ensure the user can call the installed commands in future Termux sessions.
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
   printf '\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$HOME/.bashrc"
 fi
@@ -126,8 +140,6 @@ fi
 
 scheduler="UNAVAILABLE"
 if command -v termux-job-scheduler >/dev/null 2>&1; then
-  # Android N+ enforces a 15-minute minimum. 30 minutes is deliberately
-  # conservative for battery while remaining well inside the proof freshness gate.
   set +e
   termux-job-scheduler \
     --script "$PROOF_BIN" \
@@ -162,22 +174,21 @@ printf 'GitHub PAT/runner token: none\n'
 printf 'Scheduler: %s\n' "$scheduler"
 printf 'publicKeySha256: %s\n' "$fingerprint"
 printf '\nUseful commands:\n'
-printf '  daube-sovereign-status   # show fingerprint and last local proof\n'
-printf '  daube-sovereign-proof    # send/refresh signed proof now\n'
+printf '  daube-sovereign-status\n'
+printf '  daube-sovereign-proof\n'
 
 if [[ "$rc" -eq 3 ]]; then
   printf '\nPAIRING_REQUIRED\n'
   printf '1. Open: %s\n' "$PAIRING_URL"
   printf '2. Run workflow → action=approve\n'
   printf '3. Paste public_key_sha256=%s\n' "$fingerprint"
-  printf '4. After approval, return here and run: daube-sovereign-proof\n'
+  printf '4. After approval, run: daube-sovereign-proof\n'
 else
-  printf '\nInitial proof is VERIFIED. Resource Farm may admit sovereign-local while the evidence remains fresh.\n'
+  printf '\nInitial proof is VERIFIED. Resource Farm may admit sovereign-local while evidence remains fresh.\n'
 fi
 
 if [[ "$scheduler" == "UNAVAILABLE" ]]; then
-  printf '\nNOTE: automatic refresh was not scheduled because termux-job-scheduler is unavailable.\n'
-  printf 'The node still works manually with daube-sovereign-proof. On F-Droid Termux, install the matching Termux:API app/package; current Google Play Termux builds include job-scheduler support in the main app.\n'
+  printf '\nNOTE: automatic refresh is unavailable; manual proof still works with daube-sovereign-proof.\n'
 elif [[ "$scheduler" == "AVAILABLE_BUT_SCHEDULE_FAILED" ]]; then
-  printf '\nNOTE: termux-job-scheduler exists but Android rejected scheduling. Manual proof still works. Check Termux background/battery restrictions, then rerun this installer or daube-sovereign-proof.\n'
+  printf '\nNOTE: Android rejected background scheduling. Manual proof still works; check Termux battery/background restrictions.\n'
 fi

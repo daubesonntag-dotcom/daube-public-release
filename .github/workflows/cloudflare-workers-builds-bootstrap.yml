@@ -1,0 +1,212 @@
+name: Cloudflare Workers Builds bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloudflare-workers-builds-bootstrap.yml'
+      - 'release/cloudflare-workers-builds-bootstrap.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  DAUBE_WORKER_NAME: daube-commerce
+  DAUBE_GITHUB_ACCOUNT_ID: '297018471'
+  DAUBE_GITHUB_ACCOUNT_NAME: daubesonntag-dotcom
+  DAUBE_GITHUB_REPO_ID: '1340464082'
+  DAUBE_GITHUB_REPO_NAME: daube-commerce
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate exact production request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f release/cloudflare-workers-builds-bootstrap.json
+          SHA="$(jq -r '.expectedSha' release/cloudflare-workers-builds-bootstrap.json)"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::bootstrap_expected_sha_invalid'; exit 40; }
+          [[ "$(jq -r '.repository' release/cloudflare-workers-builds-bootstrap.json)" == 'daubesonntag-dotcom/daube-commerce' ]] || { echo '::error::bootstrap_repository_invalid'; exit 41; }
+          [[ "$(jq -r '.mutationApproved' release/cloudflare-workers-builds-bootstrap.json)" == 'true' ]] || { echo '::error::bootstrap_mutation_not_approved'; exit 42; }
+          echo "expected_sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Cloudflare API credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || { echo '::error::cloudflare_api_token_missing'; exit 43; }
+          code="$(curl -sS -o /tmp/cf-token.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.cloudflare.com/client/v4/user/tokens/verify || true)"
+          [[ "$code" == '200' ]] || { echo "::error::cloudflare_api_token_verify_http_${code}"; exit 44; }
+          jq -e '.success == true and .result.status == "active"' /tmp/cf-token.json >/dev/null || { echo '::error::cloudflare_api_token_inactive'; exit 45; }
+
+      - name: Discover account and canonical Worker tag
+        id: cf
+        shell: bash
+        run: |
+          set -euo pipefail
+          api() {
+            curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "$1"
+          }
+          api 'https://api.cloudflare.com/client/v4/accounts?per_page=50' > /tmp/cf-accounts.json || { echo '::error::cloudflare_account_discovery_failed'; exit 46; }
+          ACCOUNT_ID=''
+          WORKER_TAG=''
+          while IFS= read -r candidate; do
+            [[ -n "$candidate" ]] || continue
+            if api "https://api.cloudflare.com/client/v4/accounts/${candidate}/workers/scripts" > /tmp/cf-scripts.json 2>/dev/null; then
+              tag="$(jq -r --arg name "$DAUBE_WORKER_NAME" '.result[]? | select(.id == $name) | .tag // empty' /tmp/cf-scripts.json | head -n1)"
+              if [[ -n "$tag" ]]; then
+                ACCOUNT_ID="$candidate"
+                WORKER_TAG="$tag"
+                break
+              fi
+            fi
+          done < <(jq -r '.result[]?.id' /tmp/cf-accounts.json)
+          [[ -n "$ACCOUNT_ID" && -n "$WORKER_TAG" ]] || { echo '::error::canonical_daube_commerce_worker_not_found'; exit 47; }
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "worker_tag=$WORKER_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Connect private GitHub repository
+        id: repo
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc \
+            --arg provider_account_id "$DAUBE_GITHUB_ACCOUNT_ID" \
+            --arg provider_account_name "$DAUBE_GITHUB_ACCOUNT_NAME" \
+            --arg repo_id "$DAUBE_GITHUB_REPO_ID" \
+            --arg repo_name "$DAUBE_GITHUB_REPO_NAME" \
+            '{provider_type:"github",provider_account_id:$provider_account_id,provider_account_name:$provider_account_name,repo_id:$repo_id,repo_name:$repo_name}')"
+          code="$(curl -sS -o /tmp/cf-repo-connection.json -w '%{http_code}' \
+            -X PUT \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/repos/connections" || true)"
+          if [[ "$code" != '200' && "$code" != '201' ]]; then
+            msg="$(jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-repo-connection.json 2>/dev/null || true)"
+            [[ -n "$msg" ]] && echo "::error::cloudflare_repo_connection_failed: ${msg}" || echo "::error::cloudflare_repo_connection_http_${code}"
+            exit 48
+          fi
+          REPO_UUID="$(jq -r '.result.repo_connection_uuid // empty' /tmp/cf-repo-connection.json)"
+          [[ -n "$REPO_UUID" ]] || { echo '::error::cloudflare_repo_connection_uuid_missing'; exit 49; }
+          echo "repo_uuid=$REPO_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve build token and production trigger
+        id: trigger
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          WORKER_TAG: ${{ steps.cf.outputs.worker_tag }}
+          REPO_UUID: ${{ steps.repo.outputs.repo_uuid }}
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/tokens" > /tmp/cf-build-tokens.json || { echo '::error::cloudflare_build_token_list_failed'; exit 50; }
+          BUILD_TOKEN_UUID="$(jq -r '.result[0].build_token_uuid // empty' /tmp/cf-build-tokens.json)"
+          [[ -n "$BUILD_TOKEN_UUID" ]] || { echo '::error::cloudflare_build_token_missing'; exit 51; }
+
+          curl -fsS \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/workers/${WORKER_TAG}/triggers" > /tmp/cf-triggers.json || { echo '::error::cloudflare_trigger_list_failed'; exit 52; }
+          TRIGGER_UUID="$(jq -r '.result[]? | select((.branch_includes // []) | index("main")) | .trigger_uuid // empty' /tmp/cf-triggers.json | head -n1)"
+
+          payload="$(jq -nc \
+            --arg external_script_id "$WORKER_TAG" \
+            --arg repo_connection_uuid "$REPO_UUID" \
+            --arg build_token_uuid "$BUILD_TOKEN_UUID" \
+            '{external_script_id:$external_script_id,repo_connection_uuid:$repo_connection_uuid,build_token_uuid:$build_token_uuid,trigger_name:"D’AUBE production admission",build_command:"bash scripts/cloudflare/workers-builds-recovery.sh",deploy_command:"echo D_AUBE_ADMISSION_DEPLOY_HANDLED_BY_BUILD",root_directory:"/",branch_includes:["main"],branch_excludes:[],path_includes:["*"],path_excludes:[]}')"
+
+          if [[ -n "$TRIGGER_UUID" ]]; then
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X PATCH \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+              --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}" || true)"
+          else
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+              --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers" || true)"
+            TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          fi
+          [[ "$code" == '200' || "$code" == '201' ]] || { echo "::error::cloudflare_trigger_write_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-trigger-write.json || true; exit 53; }
+          [[ -n "$TRIGGER_UUID" ]] || TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          [[ -n "$TRIGGER_UUID" ]] || { echo '::error::cloudflare_trigger_uuid_missing'; exit 54; }
+          echo "trigger_uuid=$TRIGGER_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Set fail-closed production build variables
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          TRIGGER_UUID: ${{ steps.trigger.outputs.trigger_uuid }}
+        run: |
+          set -euo pipefail
+          payload='{"NODE_ENV":{"value":"production","is_secret":false},"DAUBE_WORKERS_BUILDS_PROFILE":{"value":"core","is_secret":false},"DAUBE_WORKERS_BUILDS_MUTATION_APPROVED":{"value":"true","is_secret":false}}'
+          code="$(curl -sS -o /tmp/cf-trigger-env.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/environment_variables" || true)"
+          [[ "$code" == '200' ]] || { echo "::error::cloudflare_trigger_env_http_${code}"; exit 55; }
+
+      - name: Trigger exact-main production admission build
+        id: build
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          TRIGGER_UUID: ${{ steps.trigger.outputs.trigger_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg branch main --arg commit_hash "$EXPECTED_SHA" '{branch:$branch,commit_hash:$commit_hash}')"
+          code="$(curl -sS -o /tmp/cf-build.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/builds" || true)"
+          [[ "$code" == '200' || "$code" == '201' || "$code" == '202' ]] || { echo "::error::cloudflare_build_trigger_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-build.json || true; exit 56; }
+          BUILD_UUID="$(jq -r '.result.build_uuid // .result.uuid // empty' /tmp/cf-build.json)"
+          [[ -n "$BUILD_UUID" ]] || { echo '::error::cloudflare_build_uuid_missing'; exit 57; }
+          echo "build_uuid=$BUILD_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for admission outcome
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          BUILD_UUID: ${{ steps.build.outputs.build_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          outcome=''
+          for attempt in $(seq 1 72); do
+            curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+              "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/builds/${BUILD_UUID}" > /tmp/cf-build-status.json || true
+            outcome="$(jq -r '.result.build_outcome // empty' /tmp/cf-build-status.json 2>/dev/null || true)"
+            case "$outcome" in
+              success) break ;;
+              fail|cancelled|terminated)
+                echo "::error::cloudflare_workers_builds_${outcome}"
+                curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+                  "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" > /tmp/cf-build-logs.json || true
+                jq -r '.result.lines[]?.message // .result[]?.message // empty' /tmp/cf-build-logs.json 2>/dev/null | tail -n 80 || true
+                exit 58
+                ;;
+            esac
+            sleep 5
+          done
+          [[ "$outcome" == 'success' ]] || { echo '::error::cloudflare_workers_builds_timeout'; exit 59; }
+          code="$(curl -sS -o /tmp/commerce-health.json -w '%{http_code}' -H 'Accept: application/json' -H 'Cache-Control: no-cache' https://commerce.daubesonntag.com/healthz || true)"
+          [[ "$code" == '200' ]] || { echo "::error::commerce_health_http_${code}"; exit 60; }
+          jq -e --arg sha "$EXPECTED_SHA" '.sourceRevision == $sha and .revenueControlSchemaVersion == "0014" and .revenueControlSchemaReady == true and .d1ReadVerified == true' /tmp/commerce-health.json >/dev/null || { echo '::error::commerce_exact_sha_or_0014_readback_failed'; exit 61; }
+          echo 'CLOUDFLARE_WORKERS_BUILDS_ADMISSION_GREEN'

@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+install -d -m 0755 /opt/daube-host /var/lib/daube
+
+if ! command -v openssl >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -y
+  apt-get install -y --no-install-recommends openssl
+fi
+
+printf '%s' '${provider_attestation_b64}' | base64 -d > /opt/daube-host/provider-attestation.py
+chmod 0755 /opt/daube-host/provider-attestation.py
+printf '%s' '${provider_proof_publish_b64}' | base64 -d > /usr/local/sbin/daube-provider-proof-publish
+chmod 0755 /usr/local/sbin/daube-provider-proof-publish
+
+cat > /etc/daube-provider-proof.env <<'ENV'
+DAUBE_ORACLE_A1_INTAKE_URL=https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-oracle-a1-intake
+DAUBE_TLS_HOST_FILE=/var/lib/daube/tls-hostname
+DAUBE_PROVIDER_PROOF_STATE_FILE=/var/lib/daube/oracle-a1-proof.json
+ENV
+chmod 0644 /etc/daube-provider-proof.env
+
+if [[ ! -s /var/lib/daube/provider-attestation.key || ! -s /var/lib/daube/provider-attestation.pub ]]; then
+  rm -f /var/lib/daube/provider-attestation.key /var/lib/daube/provider-attestation.pub
+  openssl genpkey -algorithm ED25519 -out /var/lib/daube/provider-attestation.key
+  openssl pkey -in /var/lib/daube/provider-attestation.key -pubout -out /var/lib/daube/provider-attestation.pub
+fi
+chown root:daube /var/lib/daube/provider-attestation.key /var/lib/daube/provider-attestation.pub
+chmod 0640 /var/lib/daube/provider-attestation.key
+chmod 0644 /var/lib/daube/provider-attestation.pub
+
+cat > /etc/systemd/system/daube-provider-attestation.service <<'UNIT'
+[Unit]
+Description=D'AUBE Oracle A1 signed runtime attestation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=daube
+Group=daube
+ExecStart=/usr/bin/python3 /opt/daube-host/provider-attestation.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+MemoryMax=128M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat > /etc/systemd/system/daube-provider-proof-publish.service <<'UNIT'
+[Unit]
+Description=D'AUBE Oracle A1 autonomous proof publisher
+After=network-online.target nginx.service daube-provider-attestation.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/daube-provider-proof-publish
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+UNIT
+
+cat > /etc/systemd/system/daube-provider-proof-publish.timer <<'UNIT'
+[Unit]
+Description=Refresh D'AUBE Oracle A1 runtime proof
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=6h
+RandomizedDelaySec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now daube-provider-attestation.service
+
+# Re-render the HTTPS origin after attestation starts so the loopback-only
+# attestation service becomes reachable through the existing public-CA endpoint.
+systemctl start daube-provider-tls.service || true
+systemctl enable --now daube-provider-proof-publish.timer
+systemctl start daube-provider-proof-publish.service || true

@@ -1,15 +1,41 @@
 {
-  "schema": "daube.direct-vietqr-canary-plan.v1",
-  "candidateSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
-  "sourceTreeEquivalentTo": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
-  "origin": "https://commerce.daubesonntag.com",
+  "schema": "daube.direct-vietqr-canary-plan.v2",
+  "commerceCandidateSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
+  "commerceSourceTreeEquivalentTo": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "runtime": {
+    "provider": "supabase-edge",
+    "projectRef": "wilqsqndjgckqxbjptxm",
+    "function": "daube-founder-smoke-checkout",
+    "functionVersion": 3,
+    "functionDigest": "f2a63c7411ce2f3a6c8a56fd86f5eacf345d43ad3031890a96039a6229c88da6",
+    "verifyJwt": false,
+    "externalReadbackStatus": 200,
+    "externalReadbackContentType": "image/svg+xml; charset=utf-8",
+    "exactAmountVisible": true,
+    "qrRendered": true
+  },
   "provider": "direct_vietqr",
   "network": "VietQR/NAPAS",
   "currency": "VND",
   "preferredProduct": {
     "id": "paradox-decision-veto",
-    "sku": "DS-PARADOX-VETO-01",
     "expectedAmountMinor": 49000
+  },
+  "preparedOrder": {
+    "publicCode": "DS-5AD61772",
+    "paymentReference": "DS5AD61772",
+    "amountMinor": 49000,
+    "status": "awaiting_payment",
+    "paymentState": "pending",
+    "source": "founder-smoke-edge-v3"
+  },
+  "autofill": {
+    "amount": true,
+    "paymentReference": true,
+    "beneficiary": true,
+    "vietQrPayload": true,
+    "manualAmountEntryRequired": false,
+    "manualReferenceEntryRequired": false
   },
   "founderTechnicalCanary": {
     "payerClass": "founder_test",
@@ -17,36 +43,13 @@
     "provesIndependentCustomerDemand": false,
     "provesRevenueOnlyAfterAuthoritativeSettlementAndReconciliation": true
   },
-  "preparePreconditions": [
-    "EXACT_CANDIDATE_DEPLOYED",
-    "HEALTH_READY_OR_ADMITTED",
-    "REVENUE_CONTROL_SCHEMA_0014_READY",
-    "DIRECT_PAY_OPERATIONAL",
-    "DIRECT_SETTLEMENT_INGRESS_CONFIGURED"
-  ],
-  "prepareAction": "POST_CANONICAL_CHECKOUT_DIRECT_VIETQR",
-  "settlementEvidenceRequired": [
-    "ORDER_ID",
-    "PROVIDER_REFERENCE",
-    "PUBLIC_REFERENCE",
-    "BANK_TRANSACTION_REFERENCE",
-    "AMOUNT_VND",
-    "TRANSFER_PURPOSE",
-    "EVIDENCE_DIGEST",
-    "RECEIVED_AT",
-    "VERIFIED_AT",
-    "EXTERNALLY_FUNDED_TRUE",
-    "ACCOUNT_OWNERSHIP_VERIFIED_TRUE"
-  ],
-  "secretPlaneRequired": [
-    "DAUBE_DIRECT_ACCOUNT_NUMBER",
-    "DAUBE_DIRECT_ACCOUNT_NAME",
-    "DAUBE_DIRECT_SETTLEMENT_INGEST_TOKEN"
-  ],
   "secretMaterialStoredHere": false,
   "paymentAuthorizedByThisPlan": false,
   "moneyMovementPerformedByThisPlan": false,
-  "currentState": "ADMISSION_REQUESTED_WAITING_RUNTIME_EVIDENCE",
-  "nextAutomaticStep": "PREPARE_CHECKOUT_ONLY_AFTER_RUNTIME_GATE_PASS",
+  "legacyCircleCiBlockingForThisCanary": false,
+  "legacyCircleCiState": "EXECUTOR_INCIDENT_NON_CANONICAL_FOR_FOUNDER_CANARY",
+  "currentState": "READY_FOR_FOUNDER_PAYMENT",
+  "founderAction": "TRANSFER_ONLY",
+  "nextAutomaticStep": "WAIT_FOR_AUTHORITATIVE_SETTLEMENT_EVIDENCE",
   "founderReservedStep": "REAL_PAYMENT_OR_REFUND_MONEY_MOVEMENT"
 }

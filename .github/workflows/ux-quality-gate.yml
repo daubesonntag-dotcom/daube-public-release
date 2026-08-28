@@ -15,6 +15,7 @@ on:
       - ".daube/releases/**"
       - "release-authority.v1.json"
       - "scripts/ux-quality-audit.mjs"
+      - "scripts/storefront-quality-score.mjs"
       - "scripts/release-channel-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
@@ -35,6 +36,7 @@ on:
       - ".daube/releases/**"
       - "release-authority.v1.json"
       - "scripts/ux-quality-audit.mjs"
+      - "scripts/storefront-quality-score.mjs"
       - "scripts/release-channel-browser-evidence.mjs"
       - "config/ux-quality-budget.json"
       - "tests/founder-visual-lock-homepage.test.mjs"
@@ -64,6 +66,8 @@ jobs:
         run: node --test tests/free-first-homepage-convergence.test.mjs
       - name: Audit UX, accessibility, email safety and asset budgets
         run: node scripts/ux-quality-audit.mjs --report artifacts/ux-quality-report.json
+      - name: Enforce storefront quality score >= 95
+        run: node scripts/storefront-quality-score.mjs
       - name: Render desktop, mobile and reduced-motion release-channel evidence in Chromium
         run: node scripts/release-channel-browser-evidence.mjs
       - name: Upload audit and release-channel browser evidence
@@ -73,5 +77,6 @@ jobs:
           name: ux-quality-report
           path: |
             artifacts/ux-quality-report.json
+            artifacts/storefront-quality-score.json
             .daube/evidence/release-channel-browser/
           retention-days: 7

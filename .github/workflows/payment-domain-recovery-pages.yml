@@ -7,6 +7,7 @@ on:
       - 'index.html'
       - 'pay/**'
       - 'storefront/**'
+      - 'automation-sprint/**'
       - 'pricing/**'
       - 'terms/**'
       - 'privacy/**'
@@ -15,6 +16,7 @@ on:
       - 'assets/storefront-v2.js'
       - 'assets/storefront-v2.css'
       - 'assets/storefront-mobile-v3.css'
+      - 'assets/automation-sprint-v1.js'
       - 'assets/mobile-first-flagship-v3.css'
       - 'assets/mobile-first-flagship-v3.js'
       - '.github/workflows/payment-domain-recovery-pages.yml'
@@ -43,36 +45,55 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify payment and storefront artifacts before publication
+      - name: Verify payment, storefront and qualification artifacts before publication
         shell: bash
         run: |
           set -euo pipefail
           test -s index.html
           test -s pay/index.html
           test -s storefront/index.html
+          test -s automation-sprint/index.html
           test -s assets/storefront-v2.js
           test -s assets/storefront-v2.css
+          test -s assets/automation-sprint-v1.js
           test -s pricing/index.html
           test -s terms/index.html
           test -s privacy/index.html
           test -s refund/index.html
           test -s contact/index.html
+
           grep -Fq 'Workflow Kit — Single' pay/index.html
           grep -Fq 'US$15' pay/index.html
           grep -Fq 'US$39' pay/index.html
           grep -Fq 'US$95' pay/index.html
+          grep -Fq 'EUR validation price: €14' pay/index.html
+          grep -Fq 'D’AUBE Pay remains provider-neutral' pay/index.html
+
           grep -Fq '/pay/' index.html
-          grep -Fq 'USD-first display' storefront/index.html
+          grep -Fq 'No silent FX' storefront/index.html
+          grep -Fq 'VND CATALOG' storefront/index.html
+          grep -Fq 'Native USD workflow kits' storefront/index.html
           grep -Fq 'Continue to local bank payment' storefront/index.html
           grep -Fq 'bank transaction is verified' storefront/index.html
-          grep -Fq 'currency-usd' storefront/index.html
-          grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
+          grep -Fq 'Beneficiary identity is verified inside your banking app and is not published by this page' storefront/index.html
+          ! grep -Fq 'currency-usd' storefront/index.html
+          ! grep -Fq 'USD_REFERENCE_VND' assets/storefront-v2.js
+          ! grep -Fq 'moneyUsdEquivalent' assets/storefront-v2.js
+          ! grep -Fq 'receipt.payment.beneficiaryName' assets/storefront-v2.js
           grep -Fq 'direct_vietqr_bank_transfer' assets/storefront-v2.js
           grep -Fq 'qrSvgDataUrl' assets/storefront-v2.js
+          grep -Fq 'Beneficiary verification' assets/storefront-v2.js
           grep -Fq -- '--green-strong' assets/storefront-v2.css
           grep -Fq 'paymentQrFrame' assets/storefront-v2.css
-          grep -Fq 'Paddle' pay/index.html
-          ! grep -Eiq '(pdl_live_apikey_|pdl_sdbx_apikey_|service_role|webhook_secret|clientToken[^A-Za-z])' pay/index.html storefront/index.html assets/storefront-v2.js
+
+          grep -Fq 'DAUBE-AUTOMATION-SPRINT-V1' assets/automation-sprint-v1.js
+          grep -Fq 'daube-money-first-lead' assets/automation-sprint-v1.js
+          grep -Fq 'No payment is created by this form' automation-sprint/index.html
+          grep -Fq 'from US$149' automation-sprint/index.html
+          grep -Fq 'from €139' automation-sprint/index.html
+          grep -Fq 'from 2,900,000 VND' automation-sprint/index.html
+
+          ! grep -Eiq '(pdl_live_apikey_|pdl_sdbx_apikey_|service_role|webhook_secret|clientToken[^A-Za-z])' pay/index.html storefront/index.html automation-sprint/index.html assets/storefront-v2.js assets/automation-sprint-v1.js
 
       - name: Configure GitHub Pages recovery publisher
         uses: actions/configure-pages@v6
@@ -86,49 +107,61 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify canonical apex, storefront bridge and Paddle review routes
+      - name: Verify canonical apex, native-currency storefront and qualification routes
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 18); do
             root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
             storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
-            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=global-green-20260829' || true)"
+            storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=truthful-currency-20260829' || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
+            automation_code="$(curl --silent --show-error --location --output /tmp/automation.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/automation-sprint/ || true)"
+            automation_js_code="$(curl --silent --show-error --location --output /tmp/automation.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/assets/automation-sprint-v1.js || true)"
             pricing_code="$(curl --silent --show-error --location --output /tmp/pricing.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pricing/ || true)"
             terms_code="$(curl --silent --show-error --location --output /tmp/terms.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/terms/ || true)"
             privacy_code="$(curl --silent --show-error --location --output /tmp/privacy.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/privacy/ || true)"
             refund_code="$(curl --silent --show-error --location --output /tmp/refund.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/refund/ || true)"
             contact_code="$(curl --silent --show-error --location --output /tmp/contact.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/contact/ || true)"
-            if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$storejs_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
+
+            if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$storejs_code" == 200 && "$pay_code" == 200 && "$automation_code" == 200 && "$automation_js_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
               && grep -Fq 'Meaning,' /tmp/root.html \
               && grep -Fq '/storefront/' /tmp/root.html \
-              && grep -Fq 'USD-first display' /tmp/storefront.html \
+              && grep -Fq 'No silent FX' /tmp/storefront.html \
+              && grep -Fq 'VND CATALOG' /tmp/storefront.html \
               && grep -Fq 'Continue to local bank payment' /tmp/storefront.html \
               && grep -Fq 'bank transaction is verified' /tmp/storefront.html \
-              && grep -Fq 'currency-usd' /tmp/storefront.html \
-              && grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
+              && grep -Fq 'Beneficiary identity is verified inside your banking app and is not published by this page' /tmp/storefront.html \
+              && ! grep -Fq 'USD_REFERENCE_VND' /tmp/storefront.js \
+              && ! grep -Fq 'moneyUsdEquivalent' /tmp/storefront.js \
+              && ! grep -Fq 'receipt.payment.beneficiaryName' /tmp/storefront.js \
               && grep -Fq 'direct_vietqr_bank_transfer' /tmp/storefront.js \
               && grep -Fq 'qrSvgDataUrl' /tmp/storefront.js \
               && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
               && grep -Fq 'US$15' /tmp/pay.html \
               && grep -Fq 'US$39' /tmp/pay.html \
               && grep -Fq 'US$95' /tmp/pay.html \
+              && grep -Fq 'EUR validation price: €14' /tmp/pay.html \
+              && grep -Fq 'No payment is created by this form' /tmp/automation.html \
+              && grep -Fq 'from US$149' /tmp/automation.html \
+              && grep -Fq 'daube-money-first-lead' /tmp/automation.js \
               && grep -Fq 'Terms' /tmp/pay.html \
               && grep -Fq 'Privacy' /tmp/pay.html \
               && grep -Fq 'Refund' /tmp/pay.html; then
               {
-                echo '## D’AUBE payment surface verified'
+                echo '## D’AUBE commercial surface verified'
                 echo '- canonical apex: 200'
-                echo '- /storefront/: 200 · USD-first global presentation PASS'
-                echo '- storefront JS: 200 · currency switch + local QR renderer PASS'
-                echo '- /pay/: 200 · exact USD Workflow Kit surface PASS'
+                echo '- /storefront/: 200 · exact native VND / no silent FX PASS'
+                echo '- storefront JS: 200 · Direct VietQR + beneficiary-safe public projection PASS'
+                echo '- /pay/: 200 · exact native USD Workflow Kit surface + EUR informational gate PASS'
+                echo '- /automation-sprint/: 200 · qualification-only public intake surface PASS'
+                echo '- Automation Sprint JS: 200 · live lead endpoint wiring PASS'
                 echo '- /pricing/, /terms/, /privacy/, /refund/, /contact/: 200'
-                echo '- local VND settlement remains explicit only at checkout: PASS'
+                echo '- checkout/lead surfaces do not claim settlement or revenue: PASS'
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 3
           done
-          echo '::error::Canonical D’AUBE payment surface did not converge after Pages deployment.'
+          echo '::error::Canonical D’AUBE commercial surface did not converge after Pages deployment.'
           exit 1

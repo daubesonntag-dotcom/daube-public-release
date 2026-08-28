@@ -86,7 +86,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify canonical apex, USD-first storefront and review routes
+      - name: Verify canonical apex, storefront bridge and Paddle review routes
         shell: bash
         run: |
           set -euo pipefail

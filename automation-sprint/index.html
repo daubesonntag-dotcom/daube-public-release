@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="D’AUBE Automation Sprint — describe one repetitive workflow, understand scope and native market price hypotheses, and submit a qualification request without creating a payment.">
+  <link rel="canonical" href="https://daubesonntag.com/automation-sprint/">
+  <link rel="stylesheet" href="../assets/legal-v1.css">
+  <title>D’AUBE Automation Sprint — Workflow qualification</title>
+  <style>
+    .grid{display:grid;gap:18px}.card{border:1px solid rgba(37,39,34,.14);border-radius:22px;padding:22px;background:#fff}.price{font:500 1.8rem/1.1 Georgia,serif}.qualify{display:grid;gap:14px}.qualify label{display:grid;gap:7px;font-weight:650}.qualify input,.qualify textarea,.qualify select{width:100%;box-sizing:border-box;border:1px solid rgba(37,39,34,.2);border-radius:12px;padding:12px 14px;background:#fff;color:#252722;font:inherit}.qualify textarea{min-height:110px;resize:vertical}.two{display:grid;gap:14px}.submit{min-height:46px;border:0;border-radius:999px;background:#111;color:#fff;padding:0 20px;font:700 1rem/1 sans-serif;cursor:pointer}.submit:disabled{opacity:.55;cursor:wait}.state{padding:14px 16px;border-radius:14px;background:#f5f7f8;border:1px solid rgba(37,39,34,.12)}.fine{font-size:.9rem;color:#62665f;line-height:1.6}@media(min-width:800px){.grid.three{grid-template-columns:repeat(3,1fr)}.two{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<div class="legal-shell">
+  <header class="legal-header">
+    <a class="legal-brand" href="../">D’AUBE SONNTAG</a>
+    <nav class="legal-nav" aria-label="Primary navigation"><a href="./" aria-current="page">Automation Sprint</a><a href="../pay/">USD Kits</a><a href="../storefront/">VND Store</a><a href="../terms/">Terms</a><a href="../privacy/">Privacy</a><a href="../contact/">Contact</a></nav>
+  </header>
+
+  <main class="legal-main">
+    <section class="hero">
+      <div><div class="eyebrow">MONEY FIRST · AUTOMATION SPRINT</div><h1>One repetitive workflow.<br>One bounded automation sprint.</h1><p>Describe a workflow bottleneck and D’AUBE will qualify the scope before any commercial commitment. This form creates a request only — it does not create a payment, bind a final price, or grant D’AUBE access to your systems.</p></div>
+      <aside class="hero-card"><strong>Qualification status</strong><p>The intake service is live. Your request receives a D’AUBE lead code and enters the canonical request ledger. Payment begins only after a separately admitted commercial scope and payment path exist.</p></aside>
+    </section>
+
+    <section class="legal-section"><h2>What fits</h2><div class="grid three"><article class="card"><strong>Lead & form routing</strong><p>Bounded routing, notifications and structured handoffs.</p></article><article class="card"><strong>Reporting workflows</strong><p>Repeatable data collection, transformation and delivery.</p></article><article class="card"><strong>Back-office automation</strong><p>Repetitive digital steps with clear inputs, outputs and verification.</p></article></div></section>
+
+    <section class="legal-section"><h2>What does not fit</h2><ul><li>Unbounded custom software with no defined acceptance criteria.</li><li>Regulated professional decisions or unsafe autonomous authority.</li><li>Credential sharing in forms, source code, chat or issue comments.</li><li>Work whose authorization, data rights or ownership are unclear.</li><li>Guaranteed revenue, traffic or business outcomes.</li></ul></section>
+
+    <section class="legal-section"><h2>Native market price hypotheses</h2><p>These are independent validation price books, not FX conversions and not final quotes. Final amount, currency, scope and tax treatment bind only through canonical Commerce after qualification.</p><div class="grid three"><article class="card"><span class="tag">International · USD</span><p class="price">from US$149</p><p class="fine">Primary international validation price book.</p></article><article class="card"><span class="tag">EUR market · EUR</span><p class="price">from €139</p><p class="fine">Informational until EUR runtime is admitted.</p></article><article class="card"><span class="tag">Vietnam · VND</span><p class="price">from 2,900,000 VND</p><p class="fine">Domestic validation price book; no browser FX.</p></article></div></section>
+
+    <section class="legal-section" id="qualify"><h2>Describe your workflow</h2><p>Only provide information needed to understand the workflow. Do not submit passwords, API keys, private keys, OTPs, PINs, CVVs, banking passwords or unrestricted credentials.</p>
+      <form id="automation-lead-form" class="qualify">
+        <div class="two"><label>Your name<input id="lead-name" autocomplete="name" minlength="2" maxlength="120" required></label><label>Customer type<input id="lead-type" maxlength="160" placeholder="Solo operator, creator, small team…"></label></div>
+        <div class="two"><label>Email<input id="lead-email" type="email" autocomplete="email" placeholder="you@example.com"></label><label>Phone<input id="lead-phone" inputmode="tel" autocomplete="tel" placeholder="Optional if email is provided"></label></div>
+        <label>Workflow problem<textarea id="lead-problem" minlength="12" maxlength="1200" required placeholder="What repeats, where does it break, and what currently takes too much time?"></textarea></label>
+        <label>Desired outcome<textarea id="lead-outcome" minlength="5" maxlength="800" required placeholder="What should be reliably true after the sprint?"></textarea></label>
+        <div class="two"><label>Current tools<input id="lead-tools" maxlength="800" placeholder="Sheets, Notion, email, CRM, API…"></label><label>Frequency or volume<input id="lead-frequency" maxlength="400" placeholder="Daily, 200 records/week…"></label></div>
+        <div class="two"><label>Data sensitivity<select id="lead-sensitivity"><option value="unknown">Not sure</option><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High — discuss boundaries first</option></select></label><label>Billing market<select id="lead-market"><option value="INTERNATIONAL">International / USD</option><option value="EUR_MARKET">EUR market / EUR validation</option><option value="VIETNAM">Vietnam / VND</option><option value="UNKNOWN">Not sure</option></select></label></div>
+        <div class="two"><label>Target timing<input id="lead-timing" maxlength="240" placeholder="This month, before launch…"></label><label>Budget band<input id="lead-budget" maxlength="160" placeholder="Optional range or not sure"></label></div>
+        <label>Preferred contact<select id="lead-channel"><option value="email">Email</option><option value="phone">Phone</option><option value="zalo">Zalo</option><option value="messenger">Messenger</option></select></label>
+        <label><span><input id="lead-consent" type="checkbox" required> I agree that D’AUBE may process the minimum information required to qualify this request under the <a href="../privacy/">Privacy Policy</a>.</span></label>
+        <button id="lead-submit" class="submit" type="submit">Submit qualification request</button>
+        <div id="lead-state" class="state" role="status" aria-live="polite">No payment is created by this form.</div>
+      </form>
+    </section>
+
+    <section class="legal-section"><h2>After you submit</h2><ol><li>D’AUBE records the request under a lead code.</li><li>The workflow is checked for scope, authorization, data sensitivity and delivery fit.</li><li>If a commercial sprint is suitable, D’AUBE proposes a bounded scope and native-currency quote.</li><li>Payment is handled separately through an admitted D’AUBE Pay rail. A lead code is never treated as payment or revenue.</li></ol></section>
+
+    <section class="legal-section"><h2>FAQ</h2><p><strong>Do I need to share credentials?</strong> No. Qualification must work without secrets. If later implementation needs provider access, it uses an approved least-privilege handoff.</p><p><strong>Is the displayed price final?</strong> No. These are validation price books. The final commercial amount is bound server-side only after scope is accepted.</p><p><strong>Does submitting commit me to buy?</strong> No. It is a qualification request only.</p></section>
+  </main>
+  <footer class="legal-footer"><div><strong>D’AUBE SONNTAG</strong><br><span class="fine">Meaning, made visible.</span></div><nav aria-label="Footer navigation"><a href="../automation-sprint/">Automation Sprint</a><a href="../pay/">USD Kits</a><a href="../storefront/">VND Store</a><a href="../terms/">Terms</a><a href="../privacy/">Privacy</a><a href="../refund/">Refunds</a><a href="../contact/">Contact</a></nav></footer>
+</div>
+<script src="../assets/automation-sprint-v1.js" defer></script>
+</body>
+</html>

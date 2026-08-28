@@ -25,15 +25,12 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error --location \
             --connect-timeout 10 --max-time 20 \
-            --dump-header /tmp/apex.headers \
             https://daubesonntag.com/ \
             --output /tmp/apex.html
-
           test -s /tmp/apex.html
           grep -Fq 'D’AUBE SONNTAG' /tmp/apex.html
           grep -Fq 'RẠNG TRONG' /tmp/apex.html
           grep -Eq '/assets/[^"'"'"'[:space:]]+' /tmp/apex.html
-
           apex_hash="$(sha256sum /tmp/apex.html | awk '{print $1}')"
           asset_count="$(grep -Eo '/assets/[^"'"'"'[:space:]]+' /tmp/apex.html | sort -u | wc -l | tr -d ' ')"
           {
@@ -46,27 +43,71 @@ jobs:
             echo '- No DNS, Pages, Cloudflare, secret or billing mutation was attempted.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify canonical commerce and First Dawn
+      - name: Fingerprint canonical commerce runtime
+        id: commerce
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error \
-            --connect-timeout 10 --max-time 20 \
-            --header 'Accept: application/json' \
-            --header 'Origin: https://daubesonntag.com' \
-            --header 'Cache-Control: no-cache' \
-            https://commerce.daubesonntag.com/healthz \
-            --output /tmp/health.json
-          curl --fail --silent --show-error \
-            --connect-timeout 10 --max-time 20 \
-            --header 'Accept: application/json' \
-            --header 'Origin: https://daubesonntag.com' \
-            --header 'Cache-Control: no-cache' \
-            https://commerce.daubesonntag.com/v1/turns \
-            --output /tmp/turns.json
+          common=(--silent --show-error --connect-timeout 10 --max-time 20 --header 'Accept: application/json' --header 'Origin: https://daubesonntag.com' --header 'Cache-Control: no-cache')
+          health_http="$(curl "${common[@]}" --output /tmp/health.json --write-out '%{http_code}' https://commerce.daubesonntag.com/healthz)"
+          turns_http="$(curl "${common[@]}" --output /tmp/turns.json --write-out '%{http_code}' https://commerce.daubesonntag.com/v1/turns)"
 
+          echo "health_http=${health_http}" >> "$GITHUB_OUTPUT"
+          echo "turns_http=${turns_http}" >> "$GITHUB_OUTPUT"
+
+          python3 - "$health_http" "$turns_http" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          health_http, turns_http = sys.argv[1], sys.argv[2]
+
+          def load(path):
+              try:
+                  return json.loads(Path(path).read_text(encoding='utf-8'))
+              except Exception:
+                  return {}
+
+          health = load('/tmp/health.json')
+          listing = load('/tmp/turns.json')
+          safe = {
+              'healthHttp': health_http,
+              'turnsHttp': turns_http,
+              'healthSchema': health.get('schema'),
+              'healthStatus': health.get('status'),
+              'sourceRevision': health.get('sourceRevision'),
+              'd1ReadVerified': health.get('d1ReadVerified'),
+              'publicReadReady': health.get('publicReadReady'),
+              'commerceFlowConfigured': health.get('commerceFlowConfigured'),
+              'paddleBindingsConfigured': health.get('paddleBindingsConfigured'),
+              'paddleCheckoutConfigured': health.get('paddleCheckoutConfigured'),
+              'paddleWebhookConfigured': health.get('paddleWebhookConfigured'),
+              'providerReadbackConfigured': health.get('providerReadbackConfigured'),
+              'turnListSchema': listing.get('schema'),
+          }
+          print(json.dumps(safe, sort_keys=True))
+          Path('/tmp/commerce-runtime-safe.json').write_text(json.dumps(safe, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          commerce_sha="$(python3 -c "import json; x=json.load(open('/tmp/commerce-runtime-safe.json')); print(x.get('sourceRevision') or 'unknown')")"
+          health_state="$(python3 -c "import json; x=json.load(open('/tmp/commerce-runtime-safe.json')); print(x.get('healthStatus') or 'unknown')")"
+          {
+            echo
+            echo '## Commerce runtime fingerprint'
+            echo "- /healthz HTTP: ${health_http}"
+            echo "- /v1/turns HTTP: ${turns_http}"
+            echo "- health status: ${health_state}"
+            echo "- externally reported source revision: ${commerce_sha}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [[ "$health_http" == "200" ]] || { echo 'BLOCKER=COMMERCE_HEALTH_ENDPOINT_UNAVAILABLE' >> "$GITHUB_STEP_SUMMARY"; exit 21; }
+          [[ "$turns_http" == "200" ]] || { echo 'BLOCKER=COMMERCE_TURNS_ROUTE_NOT_DEPLOYED_OR_UNAVAILABLE' >> "$GITHUB_STEP_SUMMARY"; exit 22; }
+
+      - name: Verify commerce readiness and First Dawn
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import hashlib
           import json
           from pathlib import Path
 
@@ -79,8 +120,7 @@ jobs:
 
           require(health.get('schema') == 'daube.commerce.cloudflare-health.v2', 'health_schema_invalid')
           require(health.get('status') == 'READY', 'commerce_not_ready')
-          require(health.get('d1ReadVerified') is True, 'd1_read_unverified')
-          require(health.get('publicReadReady') is True, 'public_read_unready')
+          require(health.get('d1ReadVerified') is True and health.get('publicReadReady') is True, 'commerce_public_read_unverified')
           require(health.get('commerceFlowConfigured') is True, 'commerce_flow_unconfigured')
           require(health.get('paddleBindingsConfigured') is True, 'paddle_bindings_unconfigured')
           require(health.get('paddleCheckoutConfigured') is True, 'paddle_checkout_unconfigured')
@@ -89,10 +129,8 @@ jobs:
           source = health.get('sourceRevision')
           require(isinstance(source, str) and len(source) == 40 and all(c in '0123456789abcdefABCDEF' for c in source), 'commerce_revision_invalid')
 
-          require(listing.get('schema') == 'daube.experience-turn-list.v1', 'turn_list_schema_invalid')
-          turns = listing.get('turns')
-          require(isinstance(turns, list), 'turn_list_invalid')
-          turn = next((item for item in turns if isinstance(item, dict) and item.get('turnId') == 'first-dawn-decision-veto-v1'), None)
+          require(listing.get('schema') == 'daube.experience-turn-list.v1' and isinstance(listing.get('turns'), list), 'turn_list_invalid')
+          turn = next((item for item in listing['turns'] if isinstance(item, dict) and item.get('turnId') == 'first-dawn-decision-veto-v1'), None)
           require(isinstance(turn, dict), 'first_dawn_missing')
           require(turn.get('schema') == 'daube.experience-turn.v1', 'first_dawn_schema_invalid')
           require(turn.get('title') == 'FIRST DAWN · DECISION VETO', 'first_dawn_title_mismatch')
@@ -101,29 +139,18 @@ jobs:
           remaining = turn.get('capacityRemaining')
           require(isinstance(remaining, int) and 0 < remaining <= 36, 'first_dawn_capacity_remaining_invalid')
           product = turn.get('product') or {}
+          price = product.get('price') or {}
           require(product.get('id') == 'paradox-decision-veto', 'first_dawn_product_mismatch')
           require(product.get('sku') == 'DS-PARADOX-VETO-01', 'first_dawn_sku_mismatch')
-          price = product.get('price') or {}
           require(price.get('amountMinor') == 49000 and price.get('currency') == 'VND', 'first_dawn_price_mismatch')
 
           receipt = {
               'schema': 'daube.launch-critical.public-readback.v1',
               'commerceSourceRevision': source.lower(),
               'commerceReady': True,
-              'd1ReadVerified': True,
-              'publicReadReady': True,
-              'paddleBindingsConfigured': True,
-              'paddleCheckoutConfigured': True,
-              'paddleWebhookConfigured': True,
-              'providerReadbackConfigured': True,
               'firstDawn': {
-                  'turnId': turn.get('turnId'),
-                  'productId': product.get('id'),
-                  'sku': product.get('sku'),
-                  'amountMinor': price.get('amountMinor'),
-                  'currency': price.get('currency'),
-                  'capacity': turn.get('capacity'),
-                  'capacityRemaining': remaining,
+                  'turnId': turn.get('turnId'), 'productId': product.get('id'), 'sku': product.get('sku'),
+                  'amountMinor': 49000, 'currency': 'VND', 'capacity': 36, 'capacityRemaining': remaining,
                   'verifiedPaidClaimCount': turn.get('verifiedPaidClaimCount'),
                   'activeUnpaidHoldCount': turn.get('activeUnpaidHoldCount'),
               },
@@ -131,36 +158,12 @@ jobs:
               'realPaymentCanaryStillRequired': True,
               'secretMaterialSerialized': False,
           }
-          Path('/tmp/launch-critical-public-readback.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
           print(json.dumps(receipt, sort_keys=True))
           PY
-
-          commerce_sha="$(python3 -c "import json; print(json.load(open('/tmp/health.json'))['sourceRevision'])")"
-          remaining="$(python3 -c "import json; x=json.load(open('/tmp/turns.json')); t=next(v for v in x['turns'] if v['turnId']=='first-dawn-decision-veto-v1'); print(t['capacityRemaining'])")"
-          {
-            echo
-            echo '## Commerce + First Dawn readback'
-            echo '- commerce health: READY'
-            echo "- commerce exact source revision: ${commerce_sha}"
-            echo '- D1/public read: VERIFIED'
-            echo '- Paddle bindings/checkout/webhook/provider readback: CONFIGURED'
-            echo '- First Dawn: AVAILABLE / CLAIMABLE'
-            echo '- SKU: DS-PARADOX-VETO-01'
-            echo '- Price: 49,000 VND'
-            echo '- Capacity ceiling: 36'
-            echo "- Capacity remaining: ${remaining}"
-            echo '- Real settlement verified by this workflow: NO'
-            echo '- Real payment canary still required: YES'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Classify launch-critical public evidence
-        shell: bash
-        run: |
-          set -euo pipefail
           {
             echo
             echo '## Result'
             echo 'PUBLIC_RUNTIME_AND_COMMERCE_PREFLIGHT_VERIFIED'
-            echo
-            echo 'This closes public/read-only runtime evidence only. It does not self-certify the web source SHA, settlement, revenue, refund, or Founder/provider-reserved authority.'
+            echo '- Real settlement verified by this workflow: NO'
+            echo '- Real payment canary still required: YES'
           } >> "$GITHUB_STEP_SUMMARY"

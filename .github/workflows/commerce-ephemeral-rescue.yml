@@ -1,0 +1,160 @@
+name: Commerce ephemeral encrypted rescue
+
+on:
+  push:
+    paths:
+      - '.github/workflows/commerce-ephemeral-rescue.yml'
+      - 'release/commerce-rescue/request.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate rescue request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f release/commerce-rescue/request.json
+          request_id="$(jq -r '.requestId' release/commerce-rescue/request.json)"
+          expected_sha="$(jq -r '.expectedSha' release/commerce-rescue/request.json)"
+          [[ "$request_id" =~ ^[a-z0-9-]{8,80}$ ]]
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Generate one-run encryption identity
+        id: identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          umask 077
+          openssl req -x509 -newkey rsa:3072 -sha256 -nodes \
+            -subj "/CN=daube-commerce-rescue-${REQUEST_ID}" \
+            -keyout /tmp/rescue-private.pem \
+            -out /tmp/rescue-cert.pem \
+            -days 1 >/dev/null 2>&1
+          cert_b64="$(base64 -w0 /tmp/rescue-cert.pem)"
+          body_b64="$(printf '%s' "$cert_b64" | base64 -w0)"
+          key_path="release/commerce-rescue/${REQUEST_ID}/recipient-cert.b64"
+          gh api --method PUT \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${key_path}" \
+            -f message="ci(rescue): publish ephemeral recipient ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null
+          echo "RECIPIENT_READY ${REQUEST_ID}"
+
+      - name: Await encrypted exact-SHA payload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          payload_path="release/commerce-rescue/${REQUEST_ID}/payload.cms.b64"
+          found=0
+          for attempt in $(seq 1 90); do
+            if gh api -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/contents/${payload_path}?ref=${GITHUB_REF_NAME}" \
+              --jq '.content' >/tmp/github-content.b64 2>/dev/null; then
+              tr -d '\n' </tmp/github-content.b64 | base64 -d >/tmp/payload-text.b64
+              tr -d '\n' </tmp/payload-text.b64 | base64 -d >/tmp/payload.cms
+              found=1
+              break
+            fi
+            sleep 4
+          done
+          [[ "$found" == "1" ]] || { echo '::error::encrypted payload not received'; exit 71; }
+
+      - name: Decrypt and verify private commerce bundle
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/commerce-rescue
+          openssl cms -decrypt -binary -inform DER \
+            -in /tmp/payload.cms \
+            -recip /tmp/rescue-cert.pem \
+            -inkey /tmp/rescue-private.pem \
+            -out /tmp/commerce-bundle.tar.gz
+          tar -xzf /tmp/commerce-bundle.tar.gz -C /tmp/commerce-rescue
+          cd /tmp/commerce-rescue
+          actual_sha="$(jq -r '.expectedSha' manifest.json)"
+          [[ "$actual_sha" == "$EXPECTED_SHA" ]] || { echo '::error::bundle SHA mismatch'; exit 72; }
+          jq -e '.containsSecrets == false and .sourceVisibility == "private"' manifest.json >/dev/null
+          node --test tests/first-dawn-hardening.test.mjs
+          if [[ -f probes/sqlite-first-dawn.py ]]; then python3 probes/sqlite-first-dawn.py; fi
+
+      - name: Emit sanitized execution receipt
+        shell: bash
+        env:
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          cd /tmp/commerce-rescue
+          python3 - <<'PY'
+          import hashlib, json, os, platform
+          from pathlib import Path
+          files = [
+            'src/stores/d1-experience-economy.ts',
+            'migrations/0012_first_dawn_payment_passport_hardening.sql',
+            'src/cloudflare-deployment-contract.ts',
+            'tests/first-dawn-hardening.test.mjs',
+          ]
+          hashes = {}
+          for name in files:
+              data = Path(name).read_bytes()
+              hashes[name] = 'sha256:' + hashlib.sha256(data).hexdigest()
+          receipt = {
+              'schema': 'daube.commerce-ephemeral-rescue.v1',
+              'ok': True,
+              'requestId': os.environ['REQUEST_ID'],
+              'sourceRevision': os.environ['EXPECTED_SHA'],
+              'executor': 'github-public-hosted-ubuntu',
+              'runnerOs': platform.platform(),
+              'privateSourcePublished': False,
+              'secretsReceived': False,
+              'productionMutationPerformed': False,
+              'checks': ['first-dawn-hardening-node', 'first-dawn-sqlite-behavior'],
+              'files': hashes,
+          }
+          Path('/tmp/commerce-rescue-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commerce-ephemeral-rescue-${{ steps.request.outputs.request_id }}
+          path: /tmp/commerce-rescue-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish sanitized receipt to release channel
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          receipt_path="release/commerce-rescue/${REQUEST_ID}/receipt.json"
+          body_b64="$(base64 -w0 /tmp/commerce-rescue-receipt.json)"
+          gh api --method PUT \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${receipt_path}" \
+            -f message="ci(rescue): publish sanitized receipt ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null

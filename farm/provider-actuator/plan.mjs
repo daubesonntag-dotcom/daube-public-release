@@ -5,6 +5,7 @@ import path from 'node:path';
 const REQUEST_PATH = process.argv[2] || 'farm/provider-actuator/request.json';
 const RECEIPT_PATH = process.argv[3] || 'farm/provider-actuator/latest-receipt.json';
 const OUT_PATH = process.argv[4] || '/tmp/provider-actuator-plan.json';
+const ECOLOGY_PATH = process.argv[5] || null;
 const UNIT = 250_000;
 
 const request = JSON.parse(fs.readFileSync(REQUEST_PATH, 'utf8'));
@@ -14,7 +15,26 @@ if (request.privateAssetsUsed !== false) fail('private_assets_forbidden');
 if (request.mode !== 'zero-spend-cross-provider') fail('mode_invalid');
 if (!/^[a-z0-9-]{8,80}$/.test(String(request.requestId || ''))) fail('request_id_invalid');
 
-const backlog = bounded(request.backlogWorkUnits, UNIT, UNIT * 12, UNIT);
+let ecology = null;
+if (!ECOLOGY_PATH || !fs.existsSync(ECOLOGY_PATH)) fail('ecology_gate_required');
+try { ecology = JSON.parse(fs.readFileSync(ECOLOGY_PATH, 'utf8')); } catch { fail('ecology_gate_invalid_json'); }
+const ecologySystems = Array.isArray(ecology?.systems) ? ecology.systems : [];
+const ecologyGreen = Boolean(
+  ecology?.schema === 'daube.resource-farm-ecology-runtime.v1' &&
+  ecology?.status === 'GREEN' &&
+  Number(ecology?.score) >= 95 &&
+  ecology?.control?.actuatorAdmitted === true &&
+  ecology?.guardrails?.paidSpendAuthorized === false &&
+  ecology?.guardrails?.automaticPrivilegeExpansion === false &&
+  ecology?.guardrails?.newOAuthRequired === false &&
+  ecologySystems.length === 10 &&
+  ecologySystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95)
+);
+if (!ecologyGreen) fail('ecology_gate_blocked');
+
+const requestedBacklog = bounded(request.backlogWorkUnits, UNIT, UNIT * 12, UNIT);
+const ecologyRecommended = bounded(ecology?.control?.recommendedWorkUnits, UNIT, UNIT * 12, requestedBacklog);
+const backlog = Math.min(requestedBacklog, ecologyRecommended);
 const minGitHub = bounded(request.minGitHubReplicas, 1, 8, 2);
 const maxGitHub = bounded(request.maxGitHubReplicas, minGitHub, 8, 8);
 const maxSupabase = bounded(request.maxSupabaseReplicas, 1, 4, 4);
@@ -37,23 +57,21 @@ const previousHealthy = Boolean(
 let githubReplicas = clamp(Math.ceil(requiredUnits * 0.67), minGitHub, maxGitHub);
 let supabaseReplicas = clamp(requiredUnits - githubReplicas, 1, maxSupabase);
 
-// If prior execution was not healthy, add one bounded safety replica in each family.
-// If it was healthy, current demand is allowed to downscale naturally.
 if (previous && !previousHealthy) {
   githubReplicas = clamp(githubReplicas + 1, minGitHub, maxGitHub);
   supabaseReplicas = clamp(supabaseReplicas + 1, 1, maxSupabase);
 }
 
-// Keep adding bounded capacity until the requested work can be evidenced.
 while (githubReplicas + supabaseReplicas < requiredUnits && githubReplicas < maxGitHub) githubReplicas += 1;
 while (githubReplicas + supabaseReplicas < requiredUnits && supabaseReplicas < maxSupabase) supabaseReplicas += 1;
 
 const capacityUnits = githubReplicas + supabaseReplicas;
 const plan = {
-  schema: 'daube.resource-farm-provider-actuator-plan.v1',
+  schema: 'daube.resource-farm-provider-actuator-plan.v2',
   requestId: request.requestId,
   mode: request.mode,
   requestedWorkUnits: backlog,
+  originalRequestedWorkUnits: requestedBacklog,
   workUnitsPerReplica: UNIT,
   requiredReplicaUnits: requiredUnits,
   providerFamilies: [
@@ -66,6 +84,15 @@ const plan = {
   capacityReplicaUnits: capacityUnits,
   capacityWorkUnits: capacityUnits * UNIT,
   capacityMet: capacityUnits >= requiredUnits,
+  ecologyGate: {
+    required: true,
+    admitted: true,
+    status: ecology.status,
+    score: Number(ecology.score),
+    systemCount: ecologySystems.length,
+    recommendedWorkUnits: ecologyRecommended,
+    observedAt: ecology.observedAt ?? null,
+  },
   feedback: {
     previousReceiptSeen: Boolean(previous),
     previousHealthy,
@@ -80,6 +107,8 @@ const plan = {
     paidSpendAuthorized: false,
     maxGitHubReplicas: maxGitHub,
     maxSupabaseReplicas: maxSupabase,
+    minimumEcologyScore: 95,
+    ecologyFailClosed: true,
   },
 };
 

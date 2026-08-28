@@ -1,0 +1,64 @@
+name: Resource Farm Ecology Proof
+
+on:
+  push:
+    paths:
+      - 'farm/ecology/contract.json'
+      - 'farm/ecology/publish-receipt.sh'
+      - '.github/workflows/resource-farm-ecology-proof.yml'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resource-farm-ecology-proof-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Probe live ecology controller
+        run: |
+          set -euo pipefail
+          endpoint="$(jq -r '.endpoint' farm/ecology/contract.json)"
+          curl --fail --silent --show-error --max-time 20 \
+            -H 'accept: application/json' -H 'cache-control: no-store' \
+            "$endpoint" -o /tmp/ecology.json
+          jq -e '
+            .schema == "daube.resource-farm-ecology-runtime.v1" and
+            .status == "GREEN" and
+            .score >= 95 and
+            .minimumGreenScore == 95 and
+            .control.actuatorAdmitted == true and
+            .guardrails.paidSpendAuthorized == false and
+            .guardrails.automaticPrivilegeExpansion == false and
+            .guardrails.newOAuthRequired == false and
+            (.systems | length) == 10 and
+            ([.systems[] | (.status == "GREEN" and .score >= 95)] | all) and
+            ([.checks[]] | all)
+          ' /tmp/ecology.json >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resource-farm-ecology-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/ecology.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish immutable + latest ecology receipt with optimistic retry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash farm/ecology/publish-receipt.sh /tmp/ecology.json
+
+      - name: Report GREEN board
+        run: |
+          jq '{status,score,minimumGreenScore,evidenceKind,actuationMode,systems:[.systems[]|{name,status,score}],vitalSigns,control,guardrails,observedAt}' /tmp/ecology.json >> "$GITHUB_STEP_SUMMARY"

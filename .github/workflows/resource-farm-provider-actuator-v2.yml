@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - 'farm/provider-actuator/request.json'
+      - 'farm/provider-actuator/plan.mjs'
+      - 'farm/provider-actuator/publish-receipt.sh'
+      - '.github/workflows/resource-farm-provider-actuator-v2.yml'
   schedule:
     - cron: '23 */6 * * *'
   workflow_dispatch:
@@ -14,6 +17,9 @@ permissions:
 concurrency:
   group: resource-farm-provider-actuator-v2-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  ECOLOGY_URL: https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-ecology
 
 jobs:
   plan:
@@ -26,10 +32,29 @@ jobs:
       supabase_replicas: ${{ steps.out.outputs.supabase_replicas }}
       requested_work_units: ${{ steps.out.outputs.requested_work_units }}
       previous_receipt_seen: ${{ steps.out.outputs.previous_receipt_seen }}
+      ecology_score: ${{ steps.out.outputs.ecology_score }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Require live Ecology GREEN >=95
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 \
+            -H 'accept: application/json' -H 'cache-control: no-store' \
+            "$ECOLOGY_URL" -o /tmp/ecology.json
+          jq -e '
+            .schema == "daube.resource-farm-ecology-runtime.v1" and
+            .status == "GREEN" and
+            .score >= 95 and
+            .control.actuatorAdmitted == true and
+            .guardrails.paidSpendAuthorized == false and
+            .guardrails.automaticPrivilegeExpansion == false and
+            .guardrails.newOAuthRequired == false and
+            (.systems | length) == 10 and
+            ([.systems[] | (.status == "GREEN" and .score >= 95)] | all)
+          ' /tmp/ecology.json >/dev/null
 
       - name: Build bounded provider plan
         run: |
@@ -37,8 +62,9 @@ jobs:
           node farm/provider-actuator/plan.mjs \
             farm/provider-actuator/request.json \
             farm/provider-actuator/latest-receipt.json \
-            /tmp/plan.json
-          jq -e '.capacityMet == true and .policy.zeroSpendOnly == true and .providerFamilyCount == 2' /tmp/plan.json >/dev/null
+            /tmp/plan.json \
+            /tmp/ecology.json
+          jq -e '.capacityMet == true and .policy.zeroSpendOnly == true and .providerFamilyCount == 2 and .ecologyGate.admitted == true and .ecologyGate.score >= 95' /tmp/plan.json >/dev/null
 
       - name: Export dynamic matrix
         id: out
@@ -49,12 +75,15 @@ jobs:
           echo "supabase_replicas=$(jq -r '.supabaseReplicas' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
           echo "requested_work_units=$(jq -r '.requestedWorkUnits' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
           echo "previous_receipt_seen=$(jq -r '.feedback.previousReceiptSeen' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
+          echo "ecology_score=$(jq -r '.ecologyGate.score' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
           echo "github_matrix=$(jq -c '{replica:[range(1;(.githubReplicas + 1))]}' /tmp/plan.json)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
           name: provider-actuator-${{ steps.out.outputs.request_id }}-plan-${{ github.run_id }}
-          path: /tmp/plan.json
+          path: |
+            /tmp/plan.json
+            /tmp/ecology.json
           if-no-files-found: error
           retention-days: 7
 
@@ -135,33 +164,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Publish audited feedback receipt
+      - name: Publish audited feedback receipt with optimistic retry
         env:
           GH_TOKEN: ${{ github.token }}
           REQUEST_ID: ${{ needs.plan.outputs.request_id }}
-        run: |
-          set -euo pipefail
-          body_b64="$(base64 -w0 /tmp/provider-actuator-receipt.json)"
-          history="farm/provider-actuator/receipts/${REQUEST_ID}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
-          gh api --method PUT -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
-            -f message="farm(actuator): record ${REQUEST_ID} run ${GITHUB_RUN_ID}" \
-            -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME" >/dev/null
-
-          latest='farm/provider-actuator/latest-receipt.json'
-          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
-            --jq '.sha' 2>/dev/null || true)"
-          args=(--method PUT -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
-            -f message="farm(actuator): refresh feedback from ${GITHUB_RUN_ID}" \
-            -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME")
-          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
-          gh api "${args[@]}" >/dev/null
+        run: bash farm/provider-actuator/publish-receipt.sh /tmp/provider-actuator-receipt.json "$REQUEST_ID"
 
       - name: Report actuator truth boundary
         run: |
           jq '{status,requestId,providerFamilies,actualReplicas,totalEvidenceWorkUnits,feedbackClosedLoopObserved,providerExecutionDispatchClosedLoopProven,providerCapacityProvisioningClosedLoopProven,truthBoundary}' \
             /tmp/provider-actuator-receipt.json >> "$GITHUB_STEP_SUMMARY"
+          printf '\nEcology admission score: %s\n' '${{ needs.plan.outputs.ecology_score }}' >> "$GITHUB_STEP_SUMMARY"

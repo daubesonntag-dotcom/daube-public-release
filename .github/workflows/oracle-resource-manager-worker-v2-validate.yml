@@ -10,6 +10,14 @@ on:
       - 'cloud-init.yaml.tftpl'
       - 'worker.py'
       - '.github/workflows/oracle-resource-manager-worker-v2-validate.yml'
+  pull_request:
+    paths:
+      - 'main.tf'
+      - 'variables.tf'
+      - 'schema.yaml'
+      - 'cloud-init.yaml.tftpl'
+      - 'worker.py'
+      - '.github/workflows/oracle-resource-manager-worker-v2-validate.yml'
   workflow_dispatch:
 
 permissions:

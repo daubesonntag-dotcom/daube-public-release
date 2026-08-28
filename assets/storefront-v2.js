@@ -5,7 +5,7 @@
   let selected = null;
 
   const $ = (id) => document.getElementById(id);
-  const money = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount || 0));
+  const money = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount || 0));
   const text = (value) => String(value ?? '').trim();
 
   async function api(path, options = {}) {
@@ -27,7 +27,7 @@
     const grid = $('catalog-grid');
     if (!grid) return;
     if (!catalog.length) {
-      grid.innerHTML = '<p class="errorState">Catalog hiện chưa có offer công khai đủ bằng chứng.</p>';
+      grid.innerHTML = '<p class="errorState">No public offers currently satisfy the release requirements.</p>';
       return;
     }
     grid.innerHTML = '';
@@ -39,7 +39,7 @@
       const copy = document.createElement('p'); copy.textContent = product.subtitle || product.description || 'A bounded D’AUBE offer.';
       const bottom = document.createElement('div'); bottom.className = 'catalogBottom';
       const price = document.createElement('strong'); price.textContent = money(product.price?.amountMinor);
-      const link = document.createElement('a'); link.href = productLink(product); link.textContent = 'Xem & đặt →';
+      const link = document.createElement('a'); link.href = productLink(product); link.textContent = 'View & order →';
       bottom.append(price, link); card.append(badge, title, copy, bottom); grid.append(card);
     });
   }
@@ -65,10 +65,10 @@
     try {
       await navigator.clipboard.writeText(value);
       const before = button.textContent;
-      button.textContent = 'Đã sao chép';
+      button.textContent = 'Copied';
       setTimeout(() => { button.textContent = before; }, 1600);
     } catch {
-      button.textContent = 'Hãy sao chép thủ công';
+      button.textContent = 'Copy manually';
     }
   }
 
@@ -81,7 +81,7 @@
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'copyButton';
-      button.textContent = 'Sao chép';
+      button.textContent = 'Copy';
       button.addEventListener('click', () => copyValue(value, button));
       row.append(button);
     }
@@ -92,8 +92,8 @@
     const panel = $('payment-panel');
     if (!panel) return;
     panel.hidden = false;
-    $('payment-title').textContent = `Đơn ${receipt.order.publicCode}`;
-    $('payment-summary').textContent = `Quét VietQR hoặc chuyển đúng ${money(receipt.payment.amountVnd)} với nội dung ${receipt.payment.reference || receipt.order.publicCode}. Hãy kiểm tra người thụ hưởng trong app ngân hàng trước khi xác nhận.`;
+    $('payment-title').textContent = `Order ${receipt.order.publicCode}`;
+    $('payment-summary').textContent = `Scan the VietQR or transfer exactly ${money(receipt.payment.amountVnd)} using reference ${receipt.payment.reference || receipt.order.publicCode}. Confirm the beneficiary in your banking app before authorizing payment.`;
 
     const qrHost = $('payment-qr');
     qrHost.replaceChildren();
@@ -103,12 +103,12 @@
       const frame = document.createElement('div'); frame.className = 'paymentQrFrame';
       const image = document.createElement('img');
       image.src = qrDataUrl;
-      image.alt = `VietQR cho đơn ${receipt.order.publicCode}, số tiền ${money(receipt.payment.amountVnd)}`;
+      image.alt = `VietQR for order ${receipt.order.publicCode}, amount ${money(receipt.payment.amountVnd)}`;
       image.width = 420; image.height = 420; image.decoding = 'async';
       const copy = document.createElement('div'); copy.className = 'paymentQrCopy';
       const badge = document.createElement('strong'); badge.textContent = 'DIRECT VIETQR · VND';
       const steps = document.createElement('ol');
-      ['Mở app ngân hàng có hỗ trợ VietQR.', 'Quét mã và kiểm tra đúng người thụ hưởng.', `Xác nhận đúng ${money(receipt.payment.amountVnd)} và reference ${receipt.payment.reference}.`, 'Sau khi chuyển, quay lại Tra đơn. D’AUBE chỉ đánh dấu PAID sau đối chiếu ngân hàng.'].forEach((value) => {
+      ['Open a banking app that supports VietQR.', 'Scan the code and verify the beneficiary.', `Confirm the exact amount ${money(receipt.payment.amountVnd)} and reference ${receipt.payment.reference}.`, 'After transferring, return to Order status. D’AUBE marks the order PAID only after bank reconciliation.'].forEach((value) => {
         const li = document.createElement('li'); li.textContent = value; steps.append(li);
       });
       copy.append(badge, steps); frame.append(image, copy); qrHost.append(frame);
@@ -118,12 +118,12 @@
 
     const details = $('payment-details');
     details.innerHTML = '';
-    paymentDetail(details, 'Ngân hàng', text(receipt.payment.bankName));
-    paymentDetail(details, 'Số tài khoản', text(receipt.payment.accountNumber), { copy: true });
-    paymentDetail(details, 'Người thụ hưởng', text(receipt.payment.beneficiaryName));
-    paymentDetail(details, 'Số tiền', money(receipt.payment.amountVnd));
-    paymentDetail(details, 'Nội dung', text(receipt.payment.reference || receipt.order.publicCode), { copy: true });
-    paymentDetail(details, 'Trạng thái', 'AWAITING PAYMENT');
+    paymentDetail(details, 'Bank', text(receipt.payment.bankName));
+    paymentDetail(details, 'Account number', text(receipt.payment.accountNumber), { copy: true });
+    paymentDetail(details, 'Beneficiary', text(receipt.payment.beneficiaryName));
+    paymentDetail(details, 'Amount', money(receipt.payment.amountVnd));
+    paymentDetail(details, 'Reference', text(receipt.payment.reference || receipt.order.publicCode), { copy: true });
+    paymentDetail(details, 'Status', 'AWAITING PAYMENT');
 
     panel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
   }
@@ -152,13 +152,13 @@
     event.preventDefault();
     const error = $('order-error');
     error.hidden = true;
-    if (!selected) { error.textContent = 'Chưa có sản phẩm hợp lệ.'; error.hidden = false; return; }
+    if (!selected) { error.textContent = 'No valid product is selected.'; error.hidden = false; return; }
     const customerName = text($('customer-name').value);
     const email = text($('email').value);
     const phone = text($('phone').value);
     const consentPrivacy = $('consent').checked === true;
-    if (!email && !phone) { error.textContent = 'Vui lòng nhập email hoặc số điện thoại.'; error.hidden = false; return; }
-    const submit = $('order-submit'); submit.disabled = true; submit.textContent = 'Đang tạo VietQR…';
+    if (!email && !phone) { error.textContent = 'Enter an email address or phone number.'; error.hidden = false; return; }
+    const submit = $('order-submit'); submit.disabled = true; submit.textContent = 'Creating VietQR…';
     try {
       const idempotencyKey = `web-${crypto.randomUUID()}`;
       const receipt = await api('/order', {
@@ -179,18 +179,18 @@
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : 'operation_failed';
       const messages = {
-        privacy_consent_required: 'Bạn cần đồng ý Privacy Notice trước khi gửi đơn.',
-        contact_required: 'Vui lòng nhập email hoặc số điện thoại.',
-        email_invalid: 'Email chưa hợp lệ.',
-        phone_invalid: 'Số điện thoại chưa hợp lệ.',
-        rate_limited: 'Có quá nhiều yêu cầu trong thời gian ngắn. Vui lòng thử lại sau ít phút.',
-        payment_rail_unavailable: 'Kênh Direct Pay tạm unavailable. Không có khoản tiền nào bị trừ.',
-        direct_vietqr_bank_unmapped: 'Ngân hàng nhận chưa có VietQR mapping an toàn. Không có khoản tiền nào bị trừ.',
+        privacy_consent_required: 'Accept the Privacy Notice before submitting the order.',
+        contact_required: 'Enter an email address or phone number.',
+        email_invalid: 'The email address is invalid.',
+        phone_invalid: 'The phone number is invalid.',
+        rate_limited: 'Too many requests were made in a short period. Try again in a few minutes.',
+        payment_rail_unavailable: 'Direct Pay is temporarily unavailable. No money has been charged.',
+        direct_vietqr_bank_unmapped: 'The receiving bank does not currently have a safe VietQR mapping. No money has been charged.',
       };
-      error.textContent = messages[code] || 'Chưa thể tạo VietQR lúc này. Không có khoản tiền nào bị trừ.';
+      error.textContent = messages[code] || 'VietQR could not be created right now. No money has been charged.';
       error.hidden = false;
     } finally {
-      submit.disabled = false; submit.textContent = 'Tạo đơn & nhận VietQR';
+      submit.disabled = false; submit.textContent = 'Create order & get VietQR';
     }
   });
 
@@ -201,19 +201,19 @@
   $('status-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const target = $('status-result');
-    target.textContent = 'Đang kiểm tra…';
+    target.textContent = 'Checking…';
     try {
       const payload = await api('/status', { method: 'POST', body: JSON.stringify({ publicCode: text($('status-code').value).toUpperCase(), contact: text($('status-contact').value) }) });
       const order = payload.order;
       target.textContent = `${order.public_code} · ${order.status} · payment ${order.payment_state}${order.payment_amount_vnd ? ` · ${money(order.payment_amount_vnd)}` : ''}`;
     } catch {
-      target.textContent = 'Không tìm thấy đơn khớp mã và thông tin liên hệ.';
+      target.textContent = 'No order matches that code and contact information.';
     }
   });
 
   loadCatalog().catch(() => {
     const grid = $('catalog-grid');
-    if (grid) grid.innerHTML = '<p class="errorState">Storefront hiện chưa thể đọc catalog. Không có giao dịch nào được tạo.</p>';
+    if (grid) grid.innerHTML = '<p class="errorState">The storefront cannot load the catalog right now. No transaction has been created.</p>';
     document.querySelector('.storeShell')?.setAttribute('data-storefront-state', 'degraded');
   });
 })();

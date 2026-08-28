@@ -1,10 +1,13 @@
 {
-  "schema": "daube.money-first-cross-repo-target.v1",
+  "schema": "daube.money-first-cross-repo-target.v2",
   "repository": "daubesonntag-dotcom/daube-business-os",
   "revision": "79933822c2c8c5bc2cb1b094b6d318ab59738550",
   "path": "config/enterprise/money-first-execution-status.v1.json",
+  "sourceBlobSha": "231f09179b32b6d24b52b5917c20e4e84f3f2f1b",
+  "snapshotPath": "release/evidence/business-os-mf002-79933822.json",
+  "snapshotAcquisition": "authenticated-github-connector",
   "packet": "MF-002",
   "expectedStatus": "PUBLIC_QUALIFICATION_RUNTIME_VERIFIED",
   "minimumScore": 95,
-  "truthBoundary": "This target validates a public qualification runtime and its fail-closed economic claims. It does not prove an independent customer, payment, settlement, delivery or revenue."
+  "truthBoundary": "Private source bytes were acquired at the exact commit through the authenticated GitHub connector and sealed in the public CI farm. The public runner validates the sealed bytes plus live runtime; it does not claim unauthenticated direct access to the private repository."
 }

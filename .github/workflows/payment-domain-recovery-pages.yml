@@ -6,6 +6,7 @@ on:
     paths:
       - 'index.html'
       - 'pay/**'
+      - 'storefront/**'
       - 'pricing/**'
       - 'terms/**'
       - 'privacy/**'
@@ -45,6 +46,7 @@ jobs:
           set -euo pipefail
           test -s index.html
           test -s pay/index.html
+          test -s storefront/index.html
           test -s pricing/index.html
           test -s terms/index.html
           test -s privacy/index.html
@@ -55,8 +57,10 @@ jobs:
           grep -Fq 'US$39' pay/index.html
           grep -Fq 'US$95' pay/index.html
           grep -Fq '/pay/' index.html
+          grep -Fq '/pay/' storefront/index.html
+          grep -Fq 'US$15 / US$39 / US$95' storefront/index.html
           grep -Fq 'Paddle' pay/index.html
-          ! grep -Eiq '(pdl_live_apikey_|pdl_sdbx_apikey_|service_role|webhook_secret|clientToken[^A-Za-z])' pay/index.html
+          ! grep -Eiq '(pdl_live_apikey_|pdl_sdbx_apikey_|service_role|webhook_secret|clientToken[^A-Za-z])' pay/index.html storefront/index.html
 
       - name: Configure GitHub Pages recovery publisher
         uses: actions/configure-pages@v6
@@ -70,28 +74,35 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify canonical apex and Paddle review routes
+      - name: Verify canonical apex, storefront bridge and Paddle review routes
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 18); do
             root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
+            storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
             pricing_code="$(curl --silent --show-error --location --output /tmp/pricing.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pricing/ || true)"
             terms_code="$(curl --silent --show-error --location --output /tmp/terms.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/terms/ || true)"
             privacy_code="$(curl --silent --show-error --location --output /tmp/privacy.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/privacy/ || true)"
             refund_code="$(curl --silent --show-error --location --output /tmp/refund.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/refund/ || true)"
             contact_code="$(curl --silent --show-error --location --output /tmp/contact.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/contact/ || true)"
-            if [[ "$root_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
+            if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
               && grep -Fq 'Meaning,' /tmp/root.html \
+              && grep -Fq '/storefront/' /tmp/root.html \
+              && grep -Fq '/pay/' /tmp/storefront.html \
+              && grep -Fq 'US$15 / US$39 / US$95' /tmp/storefront.html \
               && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
               && grep -Fq 'US$15' /tmp/pay.html \
+              && grep -Fq 'US$39' /tmp/pay.html \
+              && grep -Fq 'US$95' /tmp/pay.html \
               && grep -Fq 'Terms' /tmp/pay.html \
               && grep -Fq 'Privacy' /tmp/pay.html \
               && grep -Fq 'Refund' /tmp/pay.html; then
               {
                 echo '## Payment domain recovery verified'
                 echo '- canonical apex: 200'
+                echo '- cached-root bridge /storefront/: 200 → /pay/ visible'
                 echo '- /pay/: 200'
                 echo '- /pricing/: 200'
                 echo '- /terms/: 200'
@@ -105,5 +116,5 @@ jobs:
             fi
             sleep 3
           done
-          echo '::error::Canonical payment-review surface did not converge after Pages deployment.'
+          echo '::error::Canonical payment-review surface/storefront bridge did not converge after Pages deployment.'
           exit 1

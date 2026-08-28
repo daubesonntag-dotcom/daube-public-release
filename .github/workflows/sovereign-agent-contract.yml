@@ -100,7 +100,7 @@ jobs:
           printf '%s' '{"daube":"sovereign-agent-contract"}' > "$msg"
           openssl pkeyutl -sign -rawin -inkey "$key" -in "$msg" -out "$sig"
           openssl pkeyutl -verify -rawin -pubin -inkey "$pub" -in "$msg" -sigfile "$sig"
-      - name: libcrypto ctypes Ed25519 fallback contract
+      - name: libcrypto ctypes Ed25519 raw fallback contract
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +122,7 @@ jobs:
               public_pem, fingerprint=agent.ensure_identity()
               assert agent.RAW_KEY.exists() and len(agent.RAW_KEY.read_bytes())==32
               assert not agent.KEY.exists()
-              payload={'daube':'libcrypto-fallback-contract'}
+              payload={'daube':'libcrypto-raw-fallback-contract'}
               signature=base64.b64decode(agent.sign(payload))
               assert len(signature)==64
               msg=root/'msg.json'; sigfile=root/'sig.bin'; pub=root/'pub.pem'
@@ -132,5 +132,43 @@ jobs:
                   '-in',str(msg),'-sigfile',str(sigfile)
               ])
               assert fingerprint==agent.hashlib.sha256(public_pem.encode()).hexdigest()
-          print('libcrypto fallback contract: PASS')
+          print('libcrypto raw fallback contract: PASS')
+          PY
+      - name: Termux PEM one-shot fallback contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, importlib.util, pathlib, shutil, subprocess, tempfile
+          path=pathlib.Path('farm/sovereign-agent/direct-agent.py')
+          spec=importlib.util.spec_from_file_location('agent_pem_fallback', path)
+          agent=importlib.util.module_from_spec(spec); spec.loader.exec_module(agent)
+          openssl=shutil.which('openssl')
+          assert openssl
+          with tempfile.TemporaryDirectory() as tmp:
+              root=pathlib.Path(tmp)
+              agent.HOME=root
+              agent.KEY=root/'host-ed25519.pem'
+              agent.RAW_KEY=root/'host-ed25519.raw'
+              agent.PUB=root/'host-ed25519.pub.pem'
+              agent.LATEST=root/'latest-direct-proof.json'
+              subprocess.check_call([openssl,'genpkey','-algorithm','ED25519','-out',str(agent.KEY)])
+              subprocess.check_call([openssl,'pkey','-in',str(agent.KEY),'-pubout','-out',str(agent.PUB)])
+              public_pem=agent.PUB.read_text()
+              payload={'daube':'termux-pem-one-shot-fallback'}
+              # Reproduce the Android class of failure after a valid PEM identity
+              # already exists: the CLI frontend fails, but the same identity must
+              # continue through libcrypto without key rotation.
+              agent._openssl_sign_pem_file=lambda *_args,**_kwargs: (_ for _ in ()).throw(
+                  subprocess.CalledProcessError(1,['openssl','pkeyutl','-sign'])
+              )
+              signature=base64.b64decode(agent.sign(payload))
+              assert len(signature)==64
+              msg=root/'msg.json'; sigfile=root/'sig.bin'; pub=root/'verify-pub.pem'
+              msg.write_bytes(agent.canonical_json(payload)); sigfile.write_bytes(signature); pub.write_text(public_pem)
+              subprocess.check_call([
+                  openssl,'pkeyutl','-verify','-rawin','-pubin','-inkey',str(pub),
+                  '-in',str(msg),'-sigfile',str(sigfile)
+              ])
+          print('Termux PEM fallback contract: PASS')
           PY

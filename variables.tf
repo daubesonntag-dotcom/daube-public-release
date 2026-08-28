@@ -1,7 +1,25 @@
-variable "region" { type = string }
-variable "tenancy_ocid" { type = string; sensitive = true }
-variable "compartment_ocid" { type = string; default = null; nullable = true; sensitive = true }
-variable "compartment_id" { type = string; default = null; nullable = true; sensitive = true }
+variable "region" {
+  type = string
+}
+
+variable "tenancy_ocid" {
+  type      = string
+  sensitive = true
+}
+
+variable "compartment_ocid" {
+  type      = string
+  default   = null
+  nullable  = true
+  sensitive = true
+}
+
+variable "compartment_id" {
+  type      = string
+  default   = null
+  nullable  = true
+  sensitive = true
+}
 
 variable "ssh_authorized_key" {
   type      = string
@@ -20,7 +38,10 @@ variable "admin_cidr" {
   }
 }
 
-variable "display_name" { type = string; default = "ds-prod-core-01" }
+variable "display_name" {
+  type    = string
+  default = "ds-prod-core-01"
+}
 
 variable "ocpus" {
   type    = number
@@ -49,7 +70,22 @@ variable "boot_volume_size_in_gbs" {
   }
 }
 
-variable "public_release_repo" { type = string; default = "https://github.com/daubesonntag-dotcom/daube-public-release.git" }
-variable "public_release_branch" { type = string; default = "main" }
-variable "accept_oracle_always_free_capacity_risk" { type = bool; default = false }
-variable "confirm_free_volume_headroom" { type = bool; default = false }
+variable "public_release_repo" {
+  type    = string
+  default = "https://github.com/daubesonntag-dotcom/daube-public-release.git"
+}
+
+variable "public_release_branch" {
+  type    = string
+  default = "main"
+}
+
+variable "accept_oracle_always_free_capacity_risk" {
+  type    = bool
+  default = false
+}
+
+variable "confirm_free_volume_headroom" {
+  type    = bool
+  default = false
+}

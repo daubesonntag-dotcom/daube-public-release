@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.1.0",
+  "program_id": "DAUBE-MONEY-FIRST-ENTERPRISE-V1",
+  "recorded_at": "2026-08-29T06:43:00+07:00",
+  "truth_boundary": "Runtime evidence may promote only the capability it directly proves. A live qualification intake does not prove an independent customer, checkout, payment-provider operation, settlement, customer delivery or revenue. GitHub Pages deployment success does not prove a stale Cloudflare bare-apex cache has converged.",
+  "program_control": {
+    "status": "CONTROL_PLANE_MERGED",
+    "repository": "daubesonntag-dotcom/daube-business-os",
+    "pr": 329,
+    "merge_commit": "01e5e12cd6a27db3a54912208f634681eadca4aa",
+    "master_issue": 328
+  },
+  "packets": [
+    {
+      "id": "MF-001",
+      "repository": "daubesonntag-dotcom/daube-business-os",
+      "issue": 328,
+      "status": "CONTROL_PLANE_MERGED_RUNTIME_QUEUE_PENDING",
+      "evidence": ["money-first program", "operating-group portfolio", "work registry", "dispatcher", "tests"],
+      "next_truth_gate": "Generate and consume live money queue / founder exception data from runtime evidence."
+    },
+    {
+      "id": "MF-002",
+      "repository": "daubesonntag-dotcom/daube-web",
+      "issue": 73,
+      "pr": 74,
+      "merge_commit": "8e3e982dcde945e26cbab978b377459d53425171",
+      "status": "PUBLIC_QUALIFICATION_RUNTIME_VERIFIED",
+      "evidence": [
+        "money-first offer surface contract",
+        "daube-public-release PR #171 / merge 3705ff6cbfdbd95e4c93369a67c73db8e15e6827",
+        "public /automation-sprint/ HTTP 200",
+        "public automation-sprint-v2.js HTTP 200",
+        "Supabase Edge daube-money-first-lead v2 ACTIVE / health READY",
+        "canonical-origin synthetic POST HTTP 201 with persisted RECEIVED lead",
+        "RLS enabled with anon/authenticated SELECT and INSERT privileges absent",
+        "synthetic verification row deleted after evidence capture",
+        "canonical preflight 100/100 GREEN with desktop and mobile Chromium",
+        "Forge OS source reconciliation PR #3974 / merge 03473ec8e959a6371b8aa64d670d3276795b6c4d"
+      ],
+      "next_truth_gate": "Receive an independent non-synthetic qualification, admit or decline it through the bounded Sprint process, and create a commercial order/payment state only through canonical Commerce if the lead proceeds."
+    },
+    {
+      "id": "MF-003",
+      "repository": "daubesonntag-dotcom/daube-commerce",
+      "issue": 65,
+      "pr": 66,
+      "merge_commit": "375a4db86f104b733be5aef7c28b0d2cf7cac313",
+      "status": "CONTRACT_MERGED_PROVIDER_RUNTIME_PENDING",
+      "evidence": ["canonical offer ids", "pricing hypotheses", "order states", "settlement truth contract"],
+      "next_truth_gate": "A real payment-provider adapter, checkout/order runtime, refund/entitlement rules and external settlement/reconciliation evidence exist."
+    },
+    {
+      "id": "MF-004",
+      "repository": "daubesonntag-dotcom/daube-forge-os",
+      "issue": 3955,
+      "pr": 3956,
+      "merge_commit": "caa7be5a785f1105d8f164431c0fe20ca1922206",
+      "status": "CONTRACT_MERGED_DELIVERY_RUNTIME_PENDING",
+      "evidence": ["bounded sprint stages", "scope classes", "reuse admission", "capacity priority"],
+      "next_truth_gate": "One real admitted Sprint completes Intake through Learn with evidence and reusable-asset decision."
+    },
+    {
+      "id": "MF-005",
+      "repository": "daubesonntag-dotcom/daube-work-arcade",
+      "issue": 29,
+      "pr": 30,
+      "merge_commit": "75ea0c2e0c89938496e5991a890094629e2f4898",
+      "status": "CONTRACT_MERGED_MISSION_RUNTIME_PENDING",
+      "evidence": ["engagement classes", "commercial boundary", "submission/admission contract"],
+      "next_truth_gate": "A mission flow enforces disclosure/provenance and produces an admissible signal or contribution."
+    },
+    {
+      "id": "MF-006",
+      "repository": "daubesonntag-dotcom/daube-public-release",
+      "issue": 121,
+      "pr": 122,
+      "merge_commit": "882f3fd756f9e39acda27ac069d05062960e81b9",
+      "status": "CONTRACT_MERGED_PUBLIC_SURFACE_PENDING",
+      "evidence": ["five public proof classes", "claim truth rules"],
+      "next_truth_gate": "A deployed public proof index renders real evidence without unsupported claims or private data."
+    },
+    {
+      "id": "MF-007",
+      "repository": "daubesonntag-dotcom/daube-design-system",
+      "issue": 6,
+      "pr": 7,
+      "merge_commit": "0888a4ff415ba15f2560964eb9a7f9d3ceeb8fc7",
+      "status": "CONTRACT_MERGED_COMPONENT_IMPLEMENTATION_PENDING",
+      "evidence": ["offer/proof/provenance primitive contracts"],
+      "next_truth_gate": "Reusable components exist, pass accessibility/responsive checks and are consumed by Web/Public Release."
+    },
+    {
+      "id": "MF-008",
+      "repository": "daubesonntag-dotcom/daube-compute-mesh",
+      "issue": 26,
+      "pr": 28,
+      "merge_commit": "b9f0e17dbe323836a8134ab570913c127287e2bf",
+      "status": "POLICY_MERGED_SCHEDULER_ENFORCEMENT_PENDING",
+      "evidence": ["P0-P5 compute priority classes", "fallback rules", "consent boundaries"],
+      "next_truth_gate": "Scheduler evidence demonstrates paid-delivery priority and bounded fallback on real jobs."
+    },
+    {
+      "id": "MF-009",
+      "repository": "daubesonntag-dotcom/daube-ci-platform",
+      "issue": 24,
+      "pr": 25,
+      "merge_commit": "b762eaae381ee66b60ee16c66f43c4d5797de99a",
+      "status": "POLICY_MERGED_EXECUTABLE_PROFILE_PENDING",
+      "evidence": ["money-path profile", "failure classes", "evidence bundle rules"],
+      "next_truth_gate": "A real workflow consumes MONEY_PATH_V1 and emits classified evidence without bypassing failures."
+    },
+    {
+      "id": "MF-010",
+      "repository": "daubesonntag-dotcom/daube-studio-runtime",
+      "issue": 6,
+      "pr": 7,
+      "merge_commit": "90143c48fdec234357f86393db0207b72a7b60bf",
+      "status": "POLICY_MERGED_RUNTIME_ENFORCEMENT_PENDING",
+      "evidence": ["creative admission classes", "provenance/reuse output contract"],
+      "next_truth_gate": "Creative runtime rejects unadmitted work and emits provenance/reuse evidence for an admitted job."
+    },
+    {
+      "id": "MF-011",
+      "repository": "daubesonntag-dotcom/daube-ailleurs",
+      "issue": 2,
+      "pr": 3,
+      "merge_commit": "8ac7446d06170cd801ecbeae2b3367db74678e01",
+      "status": "POLICY_MERGED_ADMISSION_ENFORCEMENT_PENDING",
+      "evidence": ["direct-revenue", "commercial experiment", "strategic-IP admission paths"],
+      "next_truth_gate": "Ailleurs work is actually admitted/rejected from measurable budget/revenue/experiment evidence."
+    }
+  ],
+  "runtime_reality": {
+    "customer_facing_qualification_runtime_verified": true,
+    "automation_sprint_public_route_verified": true,
+    "qualification_persistence_verified": true,
+    "qualification_direct_public_table_access": false,
+    "canonical_pages_deployment_verified": true,
+    "bare_apex_cloudflare_cache_converged": false
+  },
+  "infrastructure_boundaries": [
+    {
+      "id": "CLOUDFLARE_BARE_APEX_CACHE",
+      "status": "BLOCKED_EXTERNAL_AUTHORITY",
+      "observed": "Bare https://daubesonntag.com/ returns an older cached HTML body with cf-cache-status HIT while cache-busted Pages readback and /automation-sprint/ serve the new release.",
+      "credential_probe": "CLOUDFLARE_API_TOKEN absent from GitHub Actions secret plane; probe exited 41 and published sanitized failure status.",
+      "safe_current_state": "The Automation Sprint route, JS asset and lead runtime are independently reachable and verified. Do not claim the bare apex cache has converged until an authorized purge or natural cache expiry is independently observed."
+    }
+  ],
+  "economic_reality": {
+    "offer_contracts_exist": true,
+    "pricing_hypotheses_exist": true,
+    "customer_facing_qualification_runtime_verified": true,
+    "checkout_live_verified": false,
+    "payment_provider_live_verified": false,
+    "settled_external_cash_verified": false,
+    "customer_delivery_verified_under_program": false,
+    "revenue_verified_under_program": false
+  },
+  "next_execution_order": [
+    "Observe and process the first independent non-synthetic MF-002 qualification without promoting it to revenue.",
+    "Implement MF-003 canonical order/checkout/payment-provider runtime without committing credentials.",
+    "Implement MF-004 executable Sprint intake/delivery/evidence tooling and run it only on a real admitted Sprint.",
+    "Wire MF-007 shared primitives into Web/Public Release.",
+    "Wire MF-009 money-path CI into the revenue-path repositories.",
+    "Recheck the Cloudflare bare-apex cache independently; promote it only after the plain URL serves the current canonical release.",
+    "Only then promote commercial states from prelaunch when live external evidence supports them."
+  ]
+}

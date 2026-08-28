@@ -1,0 +1,47 @@
+name: Oracle Resource Manager Bundle Validate
+
+on:
+  push:
+    branches: [oracle-free-host-v1]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-resource-manager-bundle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+      - name: Terraform format and Resource Manager compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform version
+          terraform fmt -check -diff main.tf variables.tf
+          terraform init -backend=false -input=false
+          terraform validate
+          grep -F 'required_version = ">= 1.5.0, < 1.6.0"' main.tf
+          test -s schema.yaml
+          test -s cloud-init.yaml.tftpl
+      - name: Zero-spend static gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'shape               = "VM.Standard.A1.Flex"' main.tf
+          grep -F 'paid_spend_authorized = false' main.tf
+          grep -F 'sovereign_local       = false' main.tf
+          grep -F 'accept_oracle_always_free_capacity_risk' main.tf
+          grep -F 'confirm_free_volume_headroom' main.tf
+          ! grep -RE '(private_key|api[_-]?key|auth_token|password)[[:space:]]*=' -- main.tf variables.tf schema.yaml cloud-init.yaml.tftpl

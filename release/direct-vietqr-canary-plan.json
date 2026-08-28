@@ -1,6 +1,7 @@
 {
   "schema": "daube.direct-vietqr-canary-plan.v1",
-  "candidateSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "candidateSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
+  "sourceTreeEquivalentTo": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
   "origin": "https://commerce.daubesonntag.com",
   "provider": "direct_vietqr",
   "network": "VietQR/NAPAS",
@@ -45,7 +46,7 @@
   "secretMaterialStoredHere": false,
   "paymentAuthorizedByThisPlan": false,
   "moneyMovementPerformedByThisPlan": false,
-  "currentState": "WAITING_FOR_EXACT_CANDIDATE_RUNTIME",
+  "currentState": "ADMISSION_REQUESTED_WAITING_RUNTIME_EVIDENCE",
   "nextAutomaticStep": "PREPARE_CHECKOUT_ONLY_AFTER_RUNTIME_GATE_PASS",
   "founderReservedStep": "REAL_PAYMENT_OR_REFUND_MONEY_MOVEMENT"
 }

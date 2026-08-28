@@ -1,0 +1,362 @@
+name: D'AUBE Web ephemeral encrypted rescue
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/web-ephemeral-rescue.yml'
+      - 'release/web-rescue/request.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daube-web-ephemeral-rescue
+  cancel-in-progress: false
+
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_PROFILE: daube-web-flagship-exact-v1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate exact-SHA rescue request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
+            if ! git diff-tree --no-commit-id --name-only -r HEAD | grep -Fxq 'release/web-rescue/request.json'; then
+              echo 'pending=false' >> "$GITHUB_OUTPUT"
+              echo 'NO_WEB_RESCUE_REQUEST' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+          if [[ ! -f release/web-rescue/request.json ]]; then
+            echo 'pending=false' >> "$GITHUB_OUTPUT"
+            echo 'NO_PENDING_WEB_RESCUE_REQUEST' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, re
+          p=json.load(open('release/web-rescue/request.json',encoding='utf-8'))
+          rid=str(p.get('requestId',''))
+          sha=str(p.get('expectedSha',''))
+          profile=str(p.get('verificationProfile',''))
+          repo=str(p.get('sourceRepository',''))
+          assert re.fullmatch(r'[a-z0-9-]{8,80}',rid), 'request_id_invalid'
+          assert re.fullmatch(r'[0-9a-f]{40}',sha), 'expected_sha_invalid'
+          assert profile==os.environ['EXPECTED_PROFILE'], 'profile_invalid'
+          assert repo=='daubesonntag-dotcom/daube-web', 'source_repository_invalid'
+          assert p.get('containsSecrets') is False, 'request_must_declare_no_secrets'
+          out=os.environ['GITHUB_OUTPUT']
+          with open(out,'a',encoding='utf-8') as f:
+              f.write('pending=true\n')
+              f.write(f'request_id={rid}\nexpected_sha={sha}\nprofile={profile}\n')
+          PY
+
+      - name: Generate one-run encryption identity
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          umask 077
+          openssl req -x509 -newkey rsa:3072 -sha256 -nodes \
+            -subj "/CN=daube-web-rescue-${REQUEST_ID}" \
+            -keyout /tmp/web-rescue-private.pem \
+            -out /tmp/web-rescue-cert.pem \
+            -days 1 >/dev/null 2>&1
+          cert_b64="$(base64 -w0 /tmp/web-rescue-cert.pem)"
+          body_b64="$(printf '%s' "$cert_b64" | base64 -w0)"
+          path="release/web-rescue/${REQUEST_ID}/recipient-cert.b64"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+            -f message="ci(web-rescue): publish ephemeral recipient ${REQUEST_ID}" \
+            -f content="$body_b64" -f branch="$GITHUB_REF_NAME" >/dev/null
+          echo "RECIPIENT_READY ${REQUEST_ID}"
+
+      - name: Await encrypted exact-SHA payload
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          path="release/web-rescue/${REQUEST_ID}/payload.cms.b64"
+          found=0
+          for attempt in $(seq 1 120); do
+            if gh api -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${GITHUB_REF_NAME}" \
+              --jq '.content' >/tmp/web-github-content.b64 2>/dev/null; then
+              tr -d '\n' </tmp/web-github-content.b64 | base64 -d >/tmp/web-payload-text.b64
+              tr -d '\n' </tmp/web-payload-text.b64 | base64 -d >/tmp/web-payload.cms
+              found=1
+              break
+            fi
+            sleep 3
+          done
+          [[ "$found" == 1 ]] || { echo '::error::encrypted payload not received'; exit 71; }
+
+      - name: Decrypt, constrain and verify source bundle
+        id: bundle
+        if: ${{ steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          PROFILE: ${{ steps.request.outputs.profile }}
+        run: |
+          set -euo pipefail
+          umask 077
+          rm -rf /tmp/daube-web-rescue
+          mkdir -p /tmp/daube-web-rescue
+          openssl cms -decrypt -binary -inform DER \
+            -in /tmp/web-payload.cms \
+            -recip /tmp/web-rescue-cert.pem \
+            -inkey /tmp/web-rescue-private.pem \
+            -out /tmp/daube-web-bundle.tar.gz
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, tarfile
+          archive='/tmp/daube-web-bundle.tar.gz'
+          root=pathlib.Path('/tmp/daube-web-rescue').resolve()
+          assert os.path.getsize(archive) <= 25*1024*1024, 'encrypted_bundle_too_large'
+          with tarfile.open(archive,'r:gz') as tf:
+              members=tf.getmembers()
+              assert 1 <= len(members) <= 800, 'bundle_member_count_invalid'
+              total=0
+              for m in members:
+                  p=pathlib.PurePosixPath(m.name)
+                  assert not p.is_absolute() and '..' not in p.parts, 'bundle_path_escape'
+                  assert not (m.issym() or m.islnk() or m.isdev()), 'bundle_special_member_forbidden'
+                  if m.isfile(): total += m.size
+              assert total <= 40*1024*1024, 'bundle_unpacked_too_large'
+              tf.extractall(root, filter='data')
+          manifest=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
+          assert manifest.get('schema')=='daube.web-private-bundle.v1', 'manifest_schema_invalid'
+          assert manifest.get('expectedSha')==os.environ['EXPECTED_SHA'], 'manifest_sha_mismatch'
+          assert manifest.get('verificationProfile')==os.environ['PROFILE'], 'manifest_profile_mismatch'
+          assert manifest.get('sourceRepository')=='daubesonntag-dotcom/daube-web', 'manifest_repo_mismatch'
+          assert manifest.get('sourceVisibility')=='private', 'manifest_visibility_invalid'
+          assert manifest.get('containsSecrets') is False, 'manifest_secret_boundary_invalid'
+          files=manifest.get('files')
+          assert isinstance(files,dict) and 1 <= len(files) <= 700, 'manifest_files_invalid'
+          canonical=[]
+          for rel,expected in sorted(files.items()):
+              p=pathlib.PurePosixPath(rel)
+              assert not p.is_absolute() and '..' not in p.parts and rel!='manifest.json', 'manifest_path_invalid'
+              target=(root/rel).resolve()
+              assert root in target.parents and target.is_file(), f'manifest_file_missing:{rel}'
+              actual=hashlib.sha256(target.read_bytes()).hexdigest()
+              assert expected==actual, f'manifest_digest_mismatch:{rel}'
+              canonical.append(f'{rel}:{actual}')
+          digest=hashlib.sha256(('\n'.join(canonical)+'\n').encode()).hexdigest()
+          assert manifest.get('rootDigest')==digest, 'manifest_root_digest_mismatch'
+          print(json.dumps({'bundle':'VERIFIED','fileCount':len(files),'rootDigest':'sha256:'+digest}))
+          PY
+          echo 'verified=true' >> "$GITHUB_OUTPUT"
+
+      - name: Execute fixed web verification profile with private logs
+        id: verify
+        if: ${{ steps.bundle.outputs.verified == 'true' }}
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          CI: '1'
+          DAUBE_RELEASE_SHA: ${{ steps.request.outputs.expected_sha }}
+          DAUBE_WEB_PREVIEW_URL: http://127.0.0.1:4173/
+        run: |
+          set -u
+          cd /tmp/daube-web-rescue
+          mkdir -p /tmp/web-rescue-logs /tmp/web-rescue-state
+          : > /tmp/web-rescue-state/checks.tsv
+          failed=0
+          record() { printf '%s\t%s\n' "$1" "$2" >> /tmp/web-rescue-state/checks.tsv; printf 'CHECK_%s %s\n' "$2" "$1"; }
+          run_check() {
+            name="$1"; shift
+            "$@" >"/tmp/web-rescue-logs/${name}.log" 2>&1
+            code=$?
+            if [[ $code -eq 0 ]]; then record "$name" PASS; else record "$name" FAIL; failed=1; fi
+            return 0
+          }
+
+          run_check dependency-materialization npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+          if [[ "$failed" == 0 ]]; then
+            run_check flagship-contract npm test
+            run_check typecheck npm run typecheck
+            run_check production-build npm run build
+            run_check secret-hygiene npm run verify:secret-hygiene
+            run_check supply-chain npm run verify:supply-chain
+            run_check payment-identity npm run verify:payment-identity
+            run_check dawn-commitment npm run verify:dawn-commitment
+            run_check founder-security npm run verify:founder-security
+            run_check founder-high-assurance npm run verify:founder-high-assurance
+            run_check founder-adversarial npm run verify:founder-adversarial
+            run_check founder-legal-flow npm run verify:founder-legal-flow
+            run_check strict-static-release node scripts/release/verify-static-build.mjs --strict
+            run_check cloudflare-static-runtime node scripts/cloudflare/verify-static-runtime.mjs
+            run_check cloudflare-git-contract node scripts/cloudflare/verify-git-driven-release-contract.mjs
+            run_check cloudflare-wrangler-dry-run npx --yes wrangler@4.115.0 deploy --dry-run
+          else
+            for name in flagship-contract typecheck production-build secret-hygiene supply-chain payment-identity dawn-commitment founder-security founder-high-assurance founder-adversarial founder-legal-flow strict-static-release cloudflare-static-runtime cloudflare-git-contract cloudflare-wrangler-dry-run; do record "$name" SKIP; done
+          fi
+
+          build_ok="$(awk -F '\t' '$1=="production-build" {print $2}' /tmp/web-rescue-state/checks.tsv | tail -1)"
+          if [[ "$build_ok" == PASS ]]; then
+            npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/web-rescue-logs/preview.log 2>&1 &
+            preview_pid=$!
+            preview_ready=0
+            for _ in $(seq 1 60); do
+              if curl --fail --silent --max-time 1 http://127.0.0.1:4173/ >/dev/null 2>&1; then preview_ready=1; break; fi
+              sleep 1
+            done
+            if [[ "$preview_ready" == 1 ]]; then
+              node scripts/quality/browser-a11y-evidence.mjs >/tmp/web-rescue-logs/browser-a11y.log 2>&1
+              code=$?
+              if [[ $code -eq 0 ]]; then record browser-a11y PASS; else record browser-a11y FAIL; failed=1; fi
+            else
+              record browser-a11y FAIL; failed=1
+            fi
+            kill "$preview_pid" 2>/dev/null || true
+            wait "$preview_pid" 2>/dev/null || true
+          else
+            record browser-a11y SKIP
+          fi
+
+          if [[ "$failed" == 0 ]] && ! grep -q $'\tFAIL$\|\tSKIP$' /tmp/web-rescue-state/checks.tsv; then
+            echo PASS >/tmp/web-rescue-state/overall
+            echo 'overall=PASS' >> "$GITHUB_OUTPUT"
+          else
+            echo FAIL >/tmp/web-rescue-state/overall
+            echo 'overall=FAIL' >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Emit sanitized evidence receipt
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          PROFILE: ${{ steps.request.outputs.profile }}
+          BUNDLE_RESULT: ${{ steps.bundle.outcome }}
+          VERIFY_RESULT: ${{ steps.verify.outputs.overall }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, platform, shutil, subprocess
+          root=pathlib.Path('/tmp/daube-web-rescue')
+          state=pathlib.Path('/tmp/web-rescue-state/checks.tsv')
+          checks=[]
+          if state.exists():
+              for line in state.read_text().splitlines():
+                  if '\t' in line:
+                      name,status=line.split('\t',1); checks.append({'name':name,'status':status})
+          def tool(cmd):
+              try: return subprocess.check_output(cmd,stderr=subprocess.DEVNULL,text=True,timeout=5).strip().splitlines()[0][:120]
+              except Exception: return None
+          def tree_digest(path):
+              p=pathlib.Path(path)
+              if not p.exists(): return None
+              rows=[]
+              for f in sorted(x for x in p.rglob('*') if x.is_file()):
+                  rel=f.relative_to(p).as_posix(); h=hashlib.sha256(f.read_bytes()).hexdigest(); rows.append(f'{rel}:{h}:{f.stat().st_size}')
+              return 'sha256:'+hashlib.sha256(('\n'.join(rows)+'\n').encode()).hexdigest() if rows else None
+          overall=os.environ.get('VERIFY_RESULT') or ('FAIL' if os.environ.get('BUNDLE_RESULT')!='success' else 'UNKNOWN')
+          receipt={
+              'schema':'daube.web-ephemeral-rescue.v1',
+              'ok': overall=='PASS',
+              'requestId':os.environ.get('REQUEST_ID'),
+              'sourceRepository':'daubesonntag-dotcom/daube-web',
+              'sourceRevision':os.environ.get('EXPECTED_SHA'),
+              'verificationProfile':os.environ.get('PROFILE'),
+              'executor':'github-public-hosted-ubuntu-ephemeral-encrypted',
+              'runnerOs':platform.platform(),
+              'node':tool(['node','--version']),
+              'npm':tool(['npm','--version']),
+              'chrome':tool(['bash','-lc','(google-chrome --version || chromium --version || true) 2>/dev/null']),
+              'bundleResult':os.environ.get('BUNDLE_RESULT'),
+              'checks':checks,
+              'distTreeDigest':tree_digest(root/'dist'),
+              'browserEvidenceTreeDigest':tree_digest(root/'artifacts'/'browser'),
+              'privateSourcePublished':False,
+              'privateCommandLogsPublished':False,
+              'secretsReceived':False,
+              'productionMutationPerformed':False,
+              'productionDeploymentVerified':False,
+              'founderVisualAcceptance':False,
+              'paidSpendAuthorized':False,
+          }
+          canonical=json.dumps(receipt,sort_keys=True,separators=(',',':')).encode()
+          receipt['receiptDigest']='sha256:'+hashlib.sha256(canonical).hexdigest()
+          pathlib.Path('/tmp/web-rescue-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'schema':receipt['schema'],'ok':receipt['ok'],'sourceRevision':receipt['sourceRevision'],'checkCount':len(checks),'receiptDigest':receipt['receiptDigest']}))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        with:
+          name: web-ephemeral-rescue-${{ steps.request.outputs.request_id }}
+          path: /tmp/web-rescue-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish sanitized receipt
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          test -f /tmp/web-rescue-receipt.json
+          path="release/web-rescue/${REQUEST_ID}/receipt.json"
+          body_b64="$(base64 -w0 /tmp/web-rescue-receipt.json)"
+          existing_sha="$(gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${GITHUB_REF_NAME}" --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${path}" -f message="ci(web-rescue): publish sanitized receipt ${REQUEST_ID}" -f content="$body_b64" -f branch="$GITHUB_REF_NAME")
+          [[ -z "$existing_sha" ]] || args+=(-f sha="$existing_sha")
+          gh api "${args[@]}" >/dev/null
+
+      - name: Retire request and encrypted transport material
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          for path in \
+            "release/web-rescue/${REQUEST_ID}/payload.cms.b64" \
+            "release/web-rescue/${REQUEST_ID}/recipient-cert.b64" \
+            "release/web-rescue/request.json"; do
+            sha="$(gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${GITHUB_REF_NAME}" --jq '.sha' 2>/dev/null || true)"
+            if [[ -n "$sha" ]]; then
+              gh api --method DELETE -H 'Accept: application/vnd.github+json' \
+                "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+                -f message="ci(web-rescue): retire ${REQUEST_ID}" -f sha="$sha" -f branch="$GITHUB_REF_NAME" >/dev/null
+            fi
+          done
+
+      - name: Enforce verification result
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        shell: bash
+        env:
+          OVERALL: ${{ steps.verify.outputs.overall }}
+        run: |
+          test "$OVERALL" = PASS
+
+      - name: Destroy ephemeral private material
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -rf /tmp/daube-web-rescue /tmp/daube-web-bundle.tar.gz /tmp/web-payload.cms \
+            /tmp/web-payload-text.b64 /tmp/web-github-content.b64 /tmp/web-rescue-private.pem \
+            /tmp/web-rescue-cert.pem /tmp/web-rescue-receipt.json /tmp/web-rescue-logs /tmp/web-rescue-state

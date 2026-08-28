@@ -1,0 +1,8 @@
+{
+  "schema": "daube.public-lock-receipt.v1",
+  "lockfile": "package-lock.json",
+  "sha256": "562c62a3412e017a060898d0d7e8667c5bb2e5417768315041445a54cde98af2",
+  "cleanNpmCiPassed": true,
+  "exactDirectRangesPassed": true,
+  "source": "daubesonntag-dotcom/daube-public-release:lockgen/daube-web-20260829"
+}

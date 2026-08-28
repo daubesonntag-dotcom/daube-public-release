@@ -1,0 +1,23 @@
+{
+  "schema": "daube.payment-system-readiness.public.v1",
+  "systemReadiness": 100,
+  "maxScore": 100,
+  "color": "GREEN",
+  "systemBlocked": false,
+  "paymentInstructionLive": true,
+  "settlementIngressConfigured": true,
+  "independentCustomerRevenueProven": false,
+  "commercialRevenueVerified": false,
+  "complianceComplete": false,
+  "historyPurgeComplete": false,
+  "usdCardLive": false,
+  "eurRuntimeAdmitted": false,
+  "truthBoundary": "System readiness is technical readiness only. External customer, provider, bank, government and GitHub Support evidence gates its own claims and cannot be fabricated by score or CI.",
+  "canonicalAuthority": "daubesonntag-dotcom/daube-commerce",
+  "currentDomesticRail": "Direct VietQR / merchant-direct VND bank transfer",
+  "internationalFallbackClasses": [
+    "licensed-card-or-merchant-of-record-provider",
+    "PayPal Business cross-border candidate",
+    "manual-review direct international bank transfer candidate"
+  ]
+}

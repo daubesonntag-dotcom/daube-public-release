@@ -67,6 +67,8 @@
 
     .heroVisual{position:relative;min-height:650px;border-left:1px solid var(--line);background:linear-gradient(155deg,#e9ddca 0%,#d7c2a5 36%,#b68b59 78%,#8b603b 100%);overflow:hidden;isolation:isolate}
     .heroVisual:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.17),transparent 22%,transparent 78%,rgba(50,31,17,.12)),radial-gradient(circle at 52% 22%,rgba(255,241,209,.95) 0 5%,rgba(247,196,122,.58) 7%,transparent 30%);mix-blend-mode:screen}
+    .heroVisual:after{content:"";position:absolute;inset:0;z-index:21;pointer-events:none;background:linear-gradient(180deg,rgba(255,248,236,.03) 0%,transparent 54%,rgba(32,21,14,.18) 100%)}
+    .heroDawnMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:20;display:block;filter:saturate(.94) contrast(1.02)}
     .wall{position:absolute;inset:0;background:linear-gradient(90deg,rgba(73,50,30,.06) 1px,transparent 1px);background-size:80px 100%;opacity:.25}
     .archOuter{position:absolute;width:64%;height:78%;left:18%;bottom:-7%;border-radius:50% 50% 0 0/38% 38% 0 0;background:#7d5839;box-shadow:0 0 0 22px rgba(236,218,190,.42),0 0 0 23px rgba(48,34,22,.11),0 50px 100px rgba(49,31,17,.26)}
     .archInner{position:absolute;inset:7% 10% 0;border-radius:50% 50% 0 0/36% 36% 0 0;background:linear-gradient(180deg,#fff2d6 0%,#f0c47d 22%,#cb8150 58%,#734631 100%);overflow:hidden}
@@ -83,7 +85,7 @@
     .stem:before,.stem:after{content:"";position:absolute;width:36px;height:16px;border-radius:100% 0 100% 0;background:#55664a}
     .stem:before{left:-34px;top:44px;transform:rotate(22deg)}
     .stem:after{left:1px;top:72px;transform:scaleX(-1) rotate(20deg)}
-    .visualCaption{position:absolute;left:24px;bottom:24px;z-index:12;color:rgba(255,248,236,.9);font-size:10px;letter-spacing:.17em;text-transform:uppercase;text-shadow:0 1px 8px rgba(48,29,17,.35)}
+    .visualCaption{position:absolute;left:24px;bottom:24px;z-index:22;color:rgba(255,248,236,.94);font-size:10px;letter-spacing:.17em;text-transform:uppercase;text-shadow:0 1px 8px rgba(48,29,17,.45)}
 
     .principle{display:grid;grid-template-columns:.6fr 1.4fr .7fr;align-items:start;gap:40px;padding:clamp(42px,5vw,74px) clamp(28px,6vw,92px);border-bottom:1px solid var(--line);background:#f5efe6}
     .index{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#73695e}
@@ -156,8 +158,10 @@
           <div class="actions" data-reveal><a class="button buttonPrimary" href="#worlds">Khám phá D’AUBE <span aria-hidden="true">→</span></a><a class="button" href="#presence">Xem nguyên tắc</a></div>
           <div class="heroMeta" data-reveal><span>Independent · Vietnam</span><span>Digital × Physical</span><span>Meaning, made visible.</span></div>
         </div>
-        <div class="heroVisual" role="img" aria-label="Ngưỡng cửa vòm mở ra ánh bình minh ấm, biểu tượng cho Rạng Trong">
-          <div class="wall" aria-hidden="true"></div><div class="archOuter" aria-hidden="true"><div class="archInner"></div><div class="curtain curtainLeft"></div><div class="curtain curtainRight"></div></div><div class="floor" aria-hidden="true"></div><div class="vase" aria-hidden="true"></div><div class="stem" aria-hidden="true"></div><div class="visualCaption">First light · threshold study 01</div>
+        <div class="heroVisual" role="img" aria-label="Ngưỡng cửa mở ra ánh bình minh ấm, biểu tượng cho Rạng Trong">
+          <div class="wall" aria-hidden="true"></div><div class="archOuter" aria-hidden="true"><div class="archInner"></div><div class="curtain curtainLeft"></div><div class="curtain curtainRight"></div></div><div class="floor" aria-hidden="true"></div><div class="vase" aria-hidden="true"></div><div class="stem" aria-hidden="true"></div>
+          <img class="heroDawnMedia" src="../assets/founder-visual-lock/01-hero-dawn.webp" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
+          <div class="visualCaption">First light · founder visual lock 01</div>
         </div>
       </section>
 

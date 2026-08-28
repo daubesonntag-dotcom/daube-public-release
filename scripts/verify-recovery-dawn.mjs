@@ -74,4 +74,11 @@ try{
   await c.call('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const a=[];Object.defineProperty(window,'__daubeErrors',{value:a});addEventListener('error',e=>a.push(String(e.message||'error').slice(0,200)));addEventListener('unhandledrejection',e=>a.push(String(e.reason||'rejection').slice(0,200)));})();`});
   const cases=[];cases.push(await runCase(c,{name:'desktop-1440x900',width:1440,height:900,mobile:false,reduced:false}));cases.push(await runCase(c,{name:'mobile-390x844-reduced',width:390,height:844,mobile:true,reduced:true}));
   const receipt={schema:'daube.recovery-dawn-clarity-browser.v1',ok:true,cases,privateSourceRequired:false,externalMediaRequired:false,truthBoundaryPreserved:true,verifiedAt:new Date().toISOString()};writeFileSync(resolve(artifactDir,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify({ok:true,cases:cases.length}));
-}finally{c?.close();child.kill('SIGTERM');rmSync(profile,{recursive:true,force:true});}
+}finally{
+  c?.close();
+  if(child.exitCode===null){
+    child.kill('SIGTERM');
+    await Promise.race([new Promise(resolveExit=>child.once('exit',resolveExit)),sleep(750)]);
+  }
+  try{rmSync(profile,{recursive:true,force:true,maxRetries:4,retryDelay:100});}catch{}
+}

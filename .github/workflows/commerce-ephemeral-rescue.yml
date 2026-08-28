@@ -68,8 +68,16 @@ jobs:
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
           echo "profile=$profile" >> "$GITHUB_OUTPUT"
 
+      - name: Report request gate
+        if: ${{ always() }}
+        shell: bash
+        env:
+          PENDING: ${{ steps.request.outputs.pending }}
+        run: |
+          printf 'REQUEST_GATE_PENDING=%s\n' "${PENDING:-unset}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Generate one-run encryption identity
-        if: steps.request.outputs.pending == 'true'
+        if: ${{ steps.request.outputs.pending == 'true' }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -100,7 +108,7 @@ jobs:
           echo "RECIPIENT_READY ${REQUEST_ID}"
 
       - name: Await encrypted exact-SHA payload
-        if: steps.request.outputs.pending == 'true'
+        if: ${{ steps.request.outputs.pending == 'true' }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -123,7 +131,7 @@ jobs:
           [[ "$found" == "1" ]] || { echo '::error::encrypted payload not received'; exit 71; }
 
       - name: Decrypt and verify private commerce bundle
-        if: steps.request.outputs.pending == 'true'
+        if: ${{ steps.request.outputs.pending == 'true' }}
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
@@ -161,7 +169,7 @@ jobs:
           esac
 
       - name: Emit sanitized execution receipt
-        if: steps.request.outputs.pending == 'true'
+        if: ${{ steps.request.outputs.pending == 'true' }}
         shell: bash
         env:
           REQUEST_ID: ${{ steps.request.outputs.request_id }}
@@ -213,7 +221,7 @@ jobs:
           PY
 
       - uses: actions/upload-artifact@v4
-        if: steps.request.outputs.pending == 'true'
+        if: ${{ steps.request.outputs.pending == 'true' }}
         with:
           name: commerce-ephemeral-rescue-${{ steps.request.outputs.request_id }}
           path: /tmp/commerce-rescue-receipt.json

@@ -1,4 +1,4 @@
 CLOUDFLARE_PUBLIC_CREDENTIAL_PROBE
-NONCE=2026-08-28T13:58+07
-PURPOSE=commerce-production-execution-rescue
-SOURCE=daube-commerce@e98f4beb41713307d10e25bcae368472fa564425
+NONCE=2026-08-29T06:39+07
+PURPOSE=canonical-bare-apex-cache-revalidation
+SOURCE=daube-public-release@3705ff6cbfdbd95e4c93369a67c73db8e15e6827

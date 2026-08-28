@@ -3,6 +3,7 @@
 import crypto from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +15,14 @@ const STATIC_PORT = 4820;
 const DEBUG_PORT = 9570;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha256 = (buffer) => crypto.createHash("sha256").update(buffer).digest("hex");
+const RECOVERY_PATH = path.join(ROOT, "release/payment-domain-recovery-v1.json");
+const recovery = existsSync(RECOVERY_PATH) ? JSON.parse(readFileSync(RECOVERY_PATH, "utf8")) : null;
+const recoveryActive = Boolean(
+  recovery?.schema === "daube.payment-domain-recovery.v1" &&
+  recovery?.status === "ACTIVE_RECOVERY" &&
+  recovery?.recoveryAuthority?.publisher === "github-pages" &&
+  recovery?.recoveryAuthority?.temporary === true
+);
 
 function chromeBinary() {
   for (const name of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
@@ -125,7 +134,7 @@ async function navigate(cdp, viewport, reducedMotion = false) {
     features: [{ name: "prefers-reduced-motion", value: reducedMotion ? "reduce" : "no-preference" }],
   });
   await cdp.send("Page.navigate", { url: `http://127.0.0.1:${STATIC_PORT}/` });
-  await waitFor(cdp, "document.readyState === 'complete' && document.querySelector('h1')", "release-channel document");
+  await waitFor(cdp, "document.readyState === 'complete' && document.querySelector('h1')", recoveryActive ? "payment-recovery document" : "release-channel document");
   await sleep(100);
 }
 
@@ -133,21 +142,42 @@ async function snapshotState(cdp) {
   return cdp.evaluate(`(()=>{const canonical=document.querySelector('link[rel="canonical"]')?.href||'';const robots=document.querySelector('meta[name="robots"]')?.content||'';const links=[...document.querySelectorAll('a')].map(a=>a.href);const scripts=[...document.scripts].map(s=>s.src).filter(Boolean);const styleLinks=[...document.querySelectorAll('link[rel="stylesheet"]')].map(l=>l.href);return{title:document.title,viewport:{width:innerWidth,height:innerHeight},h1Count:document.querySelectorAll('h1').length,h1:document.querySelector('h1')?.textContent?.trim()||'',canonical,robots,links,scripts,styleLinks,horizontalOverflow:document.documentElement.scrollWidth-innerWidth,bodyText:document.body.innerText,hasLegacyHomepageScene:Boolean(document.querySelector('[data-chapter], [data-public-homepage], .chapter-media')),reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches};})()`);
 }
 
-function assertState(state, { reducedMotion = false } = {}) {
-  if (state.title !== "D’AUBE SONNTAG · Public release channel") throw new Error(`Unexpected title: ${state.title}`);
-  if (state.h1Count !== 1 || state.h1 !== "Public release channel") throw new Error("Release-channel heading contract failed");
+function assertCommonState(state, reducedMotion) {
   if (state.canonical !== "https://daubesonntag.com/") throw new Error(`Canonical target mismatch: ${state.canonical}`);
-  if (state.robots !== "noindex,nofollow,noarchive,nosnippet") throw new Error(`Robots contract mismatch: ${state.robots}`);
-  if (!state.links.includes("https://daubesonntag.com/")) throw new Error("Canonical customer link missing");
-  if (!state.bodyText.includes("not the canonical homepage authority")) throw new Error("Authority boundary is not visible");
-  if (!state.bodyText.includes("daube-web")) throw new Error("Canonical source repository is not visible");
-  if (state.hasLegacyHomepageScene) throw new Error("Legacy homepage scene leaked into release-channel root");
-  if (state.scripts.length !== 0 || state.styleLinks.length !== 0) throw new Error("Release-channel root unexpectedly loads external script/style resources");
+  if (state.h1Count !== 1) throw new Error(`Expected exactly one H1, observed ${state.h1Count}`);
+  if (state.hasLegacyHomepageScene) throw new Error("Legacy homepage scene leaked into current root");
   if (state.horizontalOverflow > 2) throw new Error(`Horizontal overflow detected: ${state.horizontalOverflow}px`);
   if (state.reducedMotion !== reducedMotion) throw new Error("Reduced-motion emulation mismatch");
   for (const forbidden of ["Founder OS", "COMMERCE LIVE", "production complete", "revenue verified"]) {
     if (state.bodyText.toLowerCase().includes(forbidden.toLowerCase())) throw new Error(`Unsupported/private claim leaked: ${forbidden}`);
   }
+}
+
+function assertState(state, { reducedMotion = false } = {}) {
+  assertCommonState(state, reducedMotion);
+  if (recoveryActive) {
+    if (state.title !== "D’AUBE SONNTAG · RẠNG TRONG") throw new Error(`Unexpected recovery title: ${state.title}`);
+    if (!state.h1.includes("Meaning,")) throw new Error(`Recovery H1 mismatch: ${state.h1}`);
+    if (!state.robots.startsWith("index,follow")) throw new Error(`Recovery robots contract mismatch: ${state.robots}`);
+    if (!state.links.includes(`http://127.0.0.1:${STATIC_PORT}/pay/`)) throw new Error("D’AUBE Pay recovery link missing");
+    if (!state.links.includes(`http://127.0.0.1:${STATIC_PORT}/terms/`)) throw new Error("Terms link missing");
+    if (!state.links.includes(`http://127.0.0.1:${STATIC_PORT}/privacy/`)) throw new Error("Privacy link missing");
+    if (!state.links.includes(`http://127.0.0.1:${STATIC_PORT}/refund/`)) throw new Error("Refund link missing");
+    for (const marker of ["US$15", "US$39", "US$95", "Original work.", "Clear support."]) {
+      if (!state.bodyText.includes(marker)) throw new Error(`Payment recovery marker missing: ${marker}`);
+    }
+    if (!state.styleLinks.some((url) => url.endsWith("/assets/mobile-first-flagship-v3.css"))) throw new Error("Approved V3 stylesheet missing");
+    if (!state.scripts.some((url) => url.endsWith("/assets/mobile-first-flagship-v3.js"))) throw new Error("Approved V3 script missing");
+    return;
+  }
+
+  if (state.title !== "D’AUBE SONNTAG · Public release channel") throw new Error(`Unexpected title: ${state.title}`);
+  if (state.h1 !== "Public release channel") throw new Error("Release-channel heading contract failed");
+  if (state.robots !== "noindex,nofollow,noarchive,nosnippet") throw new Error(`Robots contract mismatch: ${state.robots}`);
+  if (!state.links.includes("https://daubesonntag.com/")) throw new Error("Canonical customer link missing");
+  if (!state.bodyText.includes("not the canonical homepage authority")) throw new Error("Authority boundary is not visible");
+  if (!state.bodyText.includes("daube-web")) throw new Error("Canonical source repository is not visible");
+  if (state.scripts.length !== 0 || state.styleLinks.length !== 0) throw new Error("Release-channel root unexpectedly loads script/style resources");
 }
 
 async function screenshot(cdp, name) {
@@ -191,26 +221,28 @@ async function main() {
     await cdp.open();
     await Promise.all([cdp.send("Page.enable"), cdp.send("Runtime.enable")]);
 
+    const prefix = recoveryActive ? "payment-recovery" : "release-channel";
     await navigate(cdp, { width: 1440, height: 900, mobile: false }, false);
     const desktop = await snapshotState(cdp);
     assertState(desktop);
-    const desktopScreenshot = await screenshot(cdp, "release-channel-desktop.png");
+    const desktopScreenshot = await screenshot(cdp, `${prefix}-desktop.png`);
 
     await navigate(cdp, { width: 390, height: 844, mobile: true }, false);
     const mobile = await snapshotState(cdp);
     assertState(mobile);
-    const mobileScreenshot = await screenshot(cdp, "release-channel-mobile.png");
+    const mobileScreenshot = await screenshot(cdp, `${prefix}-mobile.png`);
 
     await navigate(cdp, { width: 390, height: 844, mobile: true }, true);
     const reducedMotion = await snapshotState(cdp);
     assertState(reducedMotion, { reducedMotion: true });
-    const reducedScreenshot = await screenshot(cdp, "release-channel-reduced-motion.png");
+    const reducedScreenshot = await screenshot(cdp, `${prefix}-reduced-motion.png`);
 
     const evidence = {
-      schema: "daube.public-release.browser-evidence.v1",
+      schema: "daube.public-release.browser-evidence.v2",
       generatedAt: new Date().toISOString(),
       status: "PASS",
-      role: "PUBLIC_RELEASE_PROJECTION",
+      role: recoveryActive ? "BOUNDED_PAYMENT_DOMAIN_RECOVERY" : "PUBLIC_RELEASE_PROJECTION",
+      recoveryActive,
       canonicalHomepageAuthority: "daubesonntag-dotcom/daube-web",
       desktop,
       mobile,
@@ -218,9 +250,10 @@ async function main() {
       screenshots: [desktopScreenshot, mobileScreenshot, reducedScreenshot],
       truthBoundary: {
         localChromiumRendered: true,
-        releaseChannelRoleVerified: true,
+        releaseOrRecoveryRoleVerified: true,
         canonicalApexProductionVerified: false,
-        customerHomepageVisualAcceptance: false,
+        paymentProviderApprovalVerified: false,
+        customerRevenueVerified: false,
       },
     };
     await writeFile(path.join(OUTPUT, "evidence.json"), `${JSON.stringify(evidence, null, 2)}\n`);

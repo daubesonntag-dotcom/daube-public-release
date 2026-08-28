@@ -23,9 +23,9 @@ function check(category, id, points, pass, detail) {
 
 // International pricing and truthful settlement — 25 points.
 check('international-pricing', 'usd-default-control', 5, /id="currency-usd"[^>]*isActive/.test(html), 'USD is the visible default currency control.');
-check('international-pricing', 'usd-default-state', 5, /return 'USD'/.test(js) && /displayCurrency === 'VND' \? 'VND' : 'USD'/.test(js), 'Runtime defaults to USD unless the visitor explicitly saved VND.');
+check('international-pricing', 'usd-default-state', 5, /localStorage\.getItem\(CURRENCY_KEY\) === 'VND' \? 'VND' : 'USD'/.test(js) && /return 'USD'/.test(js), 'Runtime defaults to USD unless the visitor explicitly saved VND.');
 check('international-pricing', 'truthful-fx-reference', 5, /USD_REFERENCE_VND\s*=\s*26100/.test(js), 'USD equivalent uses an explicit reference rather than relabeling VND as USD.');
-check('international-pricing', 'local-settlement-boundary', 5, /local settlement in VND/i.test(html) && /moneyVnd\(receipt\.payment\.amountVnd\)/.test(js), 'Exact VND appears only where local settlement requires it.');
+check('international-pricing', 'local-settlement-boundary', 5, /(Local VND settlement remains|local settlement in VND)/i.test(html) && /moneyVnd\(receipt\.payment\.amountVnd\)/.test(js), 'Exact VND appears only where local settlement requires it.');
 check('international-pricing', 'exact-usd-surface', 5, /href="\/pay\/"/.test(html) && /US\$15/.test(pay) && /US\$39/.test(pay) && /US\$95/.test(pay), 'Exact USD Workflow Kit surface remains linked and truthful.');
 
 // Information architecture and conversion clarity — 25 points.

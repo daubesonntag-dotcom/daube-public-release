@@ -26,11 +26,19 @@ class CDP{
 }
 async function evaluate(c,expression){const r=await c.call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)fail('runtime_evaluation_exception');return r.result?.value;}
 async function waitReady(c){for(let i=0;i<100;i++){const s=await evaluate(c,`({ready:document.readyState,hero:!!document.querySelector('.hero'),title:document.querySelector('h1')?.textContent||''})`).catch(()=>null);if(s?.ready==='complete'&&s.hero&&s.title) return;await sleep(100);}fail('surface_timeout');}
+async function exerciseScrollReveal(c, viewportHeight){
+  const total=await evaluate(c,'Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)');
+  const step=Math.max(260,Math.floor(viewportHeight*.72));
+  for(let y=0;y<total;y+=step){await evaluate(c,`window.scrollTo({top:${y},behavior:'instant'})`);await sleep(95);}
+  await evaluate(c,'window.scrollTo({top:0,behavior:"instant"})');
+  await sleep(180);
+}
 
 async function runCase(c,def){
   await c.call('Emulation.setDeviceMetricsOverride',{width:def.width,height:def.height,deviceScaleFactor:1,mobile:def.mobile});
   await c.call('Emulation.setEmulatedMedia',{media:'',features:[{name:'prefers-reduced-motion',value:def.reduced?'reduce':'no-preference'}]});
   await c.call('Page.navigate',{url}); await waitReady(c); await sleep(def.reduced?120:950);
+  if(!def.reduced) await exerciseScrollReveal(c,def.height);
   const state=await evaluate(c,`(()=>{
     const q=s=>document.querySelector(s); const qa=s=>[...document.querySelectorAll(s)];
     const body=document.body.innerText; const normalizedBody=body.toLocaleLowerCase('vi-VN'); const first=q('.button'); const rect=first?.getBoundingClientRect();
@@ -53,7 +61,7 @@ async function runCase(c,def){
   assert(state.cards===3,`${def.name}:cards`); assert(state.night&&state.orb&&state.arch,`${def.name}:art_direction`);
   assert(state.heroMedia===0,`${def.name}:hero_media_dependency`); assert(state.recovery&&state.truth,`${def.name}:truth_boundary`);
   assert(state.scroll<=state.width+1,`${def.name}:horizontal_overflow`); assert(state.touchW>=44&&state.touchH>=44,`${def.name}:touch_target`);
-  assert(state.reduced===def.reduced,`${def.name}:reduced_motion_query`); if(def.reduced)assert(state.revealHidden===0,`${def.name}:reduced_motion_visibility`);
+  assert(state.reduced===def.reduced,`${def.name}:reduced_motion_query`); assert(state.revealHidden===0,`${def.name}:all_reveals_visible_after_journey`);
   assert(state.errors.length===0,`${def.name}:runtime_errors`);
   const ax=await c.call('Accessibility.getFullAXTree');
   const nodes=ax.nodes||[];
@@ -61,7 +69,7 @@ async function runCase(c,def){
   assert(nodes.some(n=>n.ignored!==true&&n.role?.value==='link'&&String(n.name?.value||'').includes('Khám phá D’AUBE')),`${def.name}:ax_primary_link`);
   const shot=await c.call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,fromSurface:true});
   const path=resolve(artifactDir,`${def.name}.png`);writeFileSync(path,Buffer.from(shot.data,'base64'));
-  return {name:def.name,viewport:{width:def.width,height:def.height,mobile:def.mobile},reducedMotion:def.reduced,checks:'PASS',screenshot:`${def.name}.png`};
+  return {name:def.name,viewport:{width:def.width,height:def.height,mobile:def.mobile},reducedMotion:def.reduced,checks:'PASS',allRevealsVisible:true,screenshot:`${def.name}.png`};
 }
 
 mkdirSync(artifactDir,{recursive:true});
@@ -73,7 +81,7 @@ try{
   c=new CDP(page.webSocketDebuggerUrl);await c.connect();await Promise.all([c.call('Page.enable'),c.call('Runtime.enable'),c.call('Accessibility.enable')]);
   await c.call('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const a=[];Object.defineProperty(window,'__daubeErrors',{value:a});addEventListener('error',e=>a.push(String(e.message||'error').slice(0,200)));addEventListener('unhandledrejection',e=>a.push(String(e.reason||'rejection').slice(0,200)));})();`});
   const cases=[];cases.push(await runCase(c,{name:'desktop-1440x900',width:1440,height:900,mobile:false,reduced:false}));cases.push(await runCase(c,{name:'mobile-390x844-reduced',width:390,height:844,mobile:true,reduced:true}));
-  const receipt={schema:'daube.recovery-dawn-clarity-browser.v1',ok:true,cases,privateSourceRequired:false,externalMediaRequired:false,truthBoundaryPreserved:true,verifiedAt:new Date().toISOString()};writeFileSync(resolve(artifactDir,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify({ok:true,cases:cases.length}));
+  const receipt={schema:'daube.recovery-dawn-clarity-browser.v2',ok:true,cases,privateSourceRequired:false,externalMediaRequired:false,truthBoundaryPreserved:true,fullPageVisualEvidence:true,verifiedAt:new Date().toISOString()};writeFileSync(resolve(artifactDir,'receipt.json'),JSON.stringify(receipt,null,2)+'\n');console.log(JSON.stringify({ok:true,cases:cases.length}));
 }finally{
   c?.close();
   if(child.exitCode===null){

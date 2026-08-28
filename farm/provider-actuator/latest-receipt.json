@@ -21,7 +21,7 @@
   "feedback": {
     "previousReceiptSeen": true,
     "previousHealthy": true,
-    "previousRequestId": "provider-actuator-gen-b-20260829",
+    "previousRequestId": "provider-actuator-gen-c-20260829",
     "previousTotalEvidenceWorkUnits": 1000000
   },
   "feedbackClosedLoopObserved": true,
@@ -31,5 +31,5 @@
   "paidSpendAuthorized": false,
   "privateAssetsUsed": false,
   "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
-  "observedAt": "2026-08-28T19:13:27.121Z"
+  "observedAt": "2026-08-28T19:51:38.185Z"
 }

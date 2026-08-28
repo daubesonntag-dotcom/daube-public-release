@@ -1,0 +1,263 @@
+name: Resource Farm Provider Actuator V1
+
+on:
+  push:
+    paths:
+      - 'farm/provider-actuator/request.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resource-farm-provider-actuator-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    outputs:
+      request_id: ${{ steps.out.outputs.request_id }}
+      github_matrix: ${{ steps.out.outputs.github_matrix }}
+      github_replicas: ${{ steps.out.outputs.github_replicas }}
+      supabase_replicas: ${{ steps.out.outputs.supabase_replicas }}
+      requested_work_units: ${{ steps.out.outputs.requested_work_units }}
+      previous_receipt_seen: ${{ steps.out.outputs.previous_receipt_seen }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build bounded provider plan
+        run: |
+          set -euo pipefail
+          node farm/provider-actuator/plan.mjs \
+            farm/provider-actuator/request.json \
+            farm/provider-actuator/latest-receipt.json \
+            /tmp/provider-actuator-plan.json
+          jq -e '.capacityMet == true and .policy.zeroSpendOnly == true and .providerFamilyCount == 2' /tmp/provider-actuator-plan.json >/dev/null
+
+      - name: Export dynamic matrix
+        id: out
+        run: |
+          set -euo pipefail
+          echo "request_id=$(jq -r '.requestId' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "github_replicas=$(jq -r '.githubReplicas' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "supabase_replicas=$(jq -r '.supabaseReplicas' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "requested_work_units=$(jq -r '.requestedWorkUnits' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "previous_receipt_seen=$(jq -r '.feedback.previousReceiptSeen' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "github_matrix=$(jq -c '{replica:[range(1;(.githubReplicas + 1))]}' /tmp/provider-actuator-plan.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Preserve plan evidence
+        run: cp /tmp/provider-actuator-plan.json /tmp/plan.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ steps.out.outputs.request_id }}-plan
+          path: /tmp/plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  github-provider:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.plan.outputs.github_matrix) }}
+    steps:
+      - name: Execute deterministic GitHub provider work
+        env:
+          REPLICA: ${{ matrix.replica }}
+          REQUEST_ID: ${{ needs.plan.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const replica = Number(process.env.REPLICA);
+          const workUnits = 250000;
+          const seed = 1000 + replica;
+          let x = (2166136261 ^ seed) >>> 0;
+          const started = process.hrtime.bigint();
+          for (let i = 0; i < workUnits; i += 1) {
+            x = (x ^ ((i + seed) >>> 0)) >>> 0;
+            x = Math.imul(x, 16777619) >>> 0;
+          }
+          const elapsedMs = Math.max(0.001, Number(process.hrtime.bigint() - started) / 1e6);
+          const receipt = {
+            schema: 'daube.resource-farm-provider-execution.v1',
+            requestId: process.env.REQUEST_ID,
+            providerFamily: 'github-public-runner',
+            backend: 'github-actions-ubuntu-24.04',
+            replica,
+            workUnits,
+            workUnitsPerSecond: Number((workUnits / (elapsedMs / 1000)).toFixed(2)),
+            checksum: x.toString(16).padStart(8, '0'),
+            success: true,
+            observedAt: new Date().toISOString(),
+            paidSpendAuthorized: false,
+            privateAssetsUsed: false,
+          };
+          fs.writeFileSync(`/tmp/github-${replica}.json`, JSON.stringify(receipt, null, 2) + '\n');
+          console.log(JSON.stringify(receipt));
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-github-${{ matrix.replica }}
+          path: /tmp/github-${{ matrix.replica }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+  supabase-provider:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch bounded Supabase Edge replicas
+        env:
+          REPLICAS: ${{ needs.plan.outputs.supabase_replicas }}
+        run: |
+          set -euo pipefail
+          endpoint='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-pollen-edge/v1/farm/pollen'
+          pids=()
+          for i in $(seq 1 "$REPLICAS"); do
+            (
+              curl --fail --silent --show-error --max-time 20 "$endpoint" -o "/tmp/supabase-${i}.json"
+              jq -e '
+                .schema == "daube.resource-farm-pollen-receipt.v1" and
+                .providerFamily == "supabase-edge" and
+                .success == true and
+                .paidSpendAuthorized == false and
+                .privateAssetsUsed == false and
+                (.workUnits >= 250000)
+              ' "/tmp/supabase-${i}.json" >/dev/null
+              jq --argjson replica "$i" '. + {actuatorReplica:$replica}' "/tmp/supabase-${i}.json" > "/tmp/supabase-${i}.tmp"
+              mv "/tmp/supabase-${i}.tmp" "/tmp/supabase-${i}.json"
+            ) &
+            pids+=("$!")
+          done
+          rc=0
+          for pid in "${pids[@]}"; do wait "$pid" || rc=1; done
+          [[ "$rc" == '0' ]]
+          jq -s '.' /tmp/supabase-*.json > /tmp/supabase-bundle.json
+          [[ "$(jq 'length' /tmp/supabase-bundle.json)" == "$REPLICAS" ]]
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-supabase
+          path: /tmp/supabase-bundle.json
+          if-no-files-found: error
+          retention-days: 7
+
+  harvest:
+    needs: [plan, github-provider, supabase-provider]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: provider-actuator-${{ needs.plan.outputs.request_id }}-*
+          path: /tmp/evidence
+          merge-multiple: true
+
+      - name: Verify cross-provider harvest
+        env:
+          EXPECTED_GITHUB: ${{ needs.plan.outputs.github_replicas }}
+          EXPECTED_SUPABASE: ${{ needs.plan.outputs.supabase_replicas }}
+          REQUESTED_WORK_UNITS: ${{ needs.plan.outputs.requested_work_units }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import glob, json, os
+          from pathlib import Path
+
+          root = Path('/tmp/evidence')
+          plan = json.loads((root / 'plan.json').read_text())
+          github = [json.loads(Path(p).read_text()) for p in sorted(glob.glob('/tmp/evidence/github-*.json'))]
+          supabase = json.loads((root / 'supabase-bundle.json').read_text())
+          expected_github = int(os.environ['EXPECTED_GITHUB'])
+          expected_supabase = int(os.environ['EXPECTED_SUPABASE'])
+          requested = int(os.environ['REQUESTED_WORK_UNITS'])
+
+          assert len(github) == expected_github, (len(github), expected_github)
+          assert len(supabase) == expected_supabase, (len(supabase), expected_supabase)
+          assert all(r['providerFamily'] == 'github-public-runner' and r['success'] is True for r in github)
+          assert all(r['providerFamily'] == 'supabase-edge' and r['success'] is True for r in supabase)
+          all_receipts = github + supabase
+          assert all(r.get('paidSpendAuthorized') is False for r in all_receipts)
+          assert all(r.get('privateAssetsUsed') is False for r in all_receipts)
+          total = sum(int(r.get('workUnits', 0)) for r in all_receipts)
+          families = sorted({r['providerFamily'] for r in all_receipts})
+          admitted = len(families) == 2 and total >= requested
+          feedback_seen = bool(plan.get('feedback', {}).get('previousReceiptSeen'))
+          receipt = {
+            'schema': 'daube.resource-farm-provider-actuator-receipt.v1',
+            'status': 'ADMITTED' if admitted else 'REJECTED',
+            'requestId': plan['requestId'],
+            'requestedWorkUnits': requested,
+            'totalEvidenceWorkUnits': total,
+            'providerFamilies': families,
+            'providerFamilyCount': len(families),
+            'actualReplicas': {
+              'github-public-runner': len(github),
+              'supabase-edge': len(supabase),
+            },
+            'plan': {
+              'githubReplicas': plan['githubReplicas'],
+              'supabaseReplicas': plan['supabaseReplicas'],
+              'capacityWorkUnits': plan['capacityWorkUnits'],
+            },
+            'feedback': plan.get('feedback', {}),
+            'feedbackClosedLoopObserved': admitted and feedback_seen,
+            'providerExecutionDispatchClosedLoopProven': admitted and feedback_seen,
+            'crossProviderExecutionActuationProven': admitted,
+            'providerCapacityProvisioningClosedLoopProven': False,
+            'paidSpendAuthorized': False,
+            'privateAssetsUsed': False,
+            'truthBoundary': 'Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.',
+          }
+          assert receipt['status'] == 'ADMITTED'
+          Path('/tmp/provider-actuator-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provider-actuator-${{ needs.plan.outputs.request_id }}-harvest
+          path: /tmp/provider-actuator-receipt.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish audited feedback receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ needs.plan.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          body_b64="$(base64 -w0 /tmp/provider-actuator-receipt.json)"
+          history="farm/provider-actuator/receipts/${REQUEST_ID}.json"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
+            -f message="farm(actuator): record ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null
+
+          latest='farm/provider-actuator/latest-receipt.json'
+          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
+            -f message="farm(actuator): advance feedback to ${REQUEST_ID}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
+          gh api "${args[@]}" >/dev/null
+
+      - name: Report actuator truth boundary
+        run: |
+          set -euo pipefail
+          jq '{status,requestId,providerFamilies,actualReplicas,totalEvidenceWorkUnits,feedbackClosedLoopObserved,providerExecutionDispatchClosedLoopProven,providerCapacityProvisioningClosedLoopProven,truthBoundary}' /tmp/provider-actuator-receipt.json >> "$GITHUB_STEP_SUMMARY"

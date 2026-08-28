@@ -125,6 +125,7 @@ jobs:
           light.data.size=4.0
           scene=bpy.context.scene
           scene.camera=cam
+          scene.world=bpy.data.worlds.new('DAUBE_ENGINE_CANARY_WORLD')
           scene.world.color=(0.025,0.03,0.04)
           scene.render.engine='CYCLES'
           scene.cycles.device='CPU'

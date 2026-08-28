@@ -1,0 +1,84 @@
+name: D’AUBE Talent Pool
+description: Join the public Talent Pool for future funded missions and opportunities.
+title: "[Talent Pool] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in D’AUBE SONNTAG. This is an interest/talent pool, not a promise of paid work or employment.
+
+        **Privacy:** Do not post government ID, bank details, home address, passwords, API keys, private customer data, or other sensitive information here.
+  - type: input
+    id: display_name
+    attributes:
+      label: Public display name / handle
+      placeholder: Name or handle you are comfortable sharing publicly
+    validations:
+      required: true
+  - type: textarea
+    id: skills
+    attributes:
+      label: Skills
+      description: List the skills you would like D’AUBE to match against future Missions.
+      placeholder: UI/UX, React, illustration, video editing, QA, research...
+    validations:
+      required: true
+  - type: textarea
+    id: portfolio
+    attributes:
+      label: Public portfolio / evidence
+      description: Public links to work, repositories, case studies, writing, designs or other evidence. Do not share private/confidential work without permission.
+    validations:
+      required: false
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Preferred opportunity type
+      options:
+        - Paid bounded Mission / bounty
+        - Independent contract project
+        - Future part-time or employment opportunity
+        - Vendor / studio partnership
+        - Optional Commons / open-source contribution
+        - Open to several types
+    validations:
+      required: true
+  - type: textarea
+    id: availability
+    attributes:
+      label: Availability / capacity
+      description: Keep this general; do not post private schedule details you do not want public.
+      placeholder: e.g. 5–10 hours/week; weekends; project-based
+    validations:
+      required: true
+  - type: input
+    id: rate
+    attributes:
+      label: Rate / bounty preference (optional)
+      description: Optional. Use a range/currency if useful. This is not an offer or guarantee.
+      placeholder: e.g. 500k–1m VND per bounded design Mission
+    validations:
+      required: false
+  - type: input
+    id: language_timezone
+    attributes:
+      label: Languages / time zone (optional)
+      placeholder: Vietnamese, English; UTC+7
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: What kind of D’AUBE work would you enjoy?
+      description: Tell us what problems or outcomes you like working on.
+    validations:
+      required: false
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I understand this public Talent Pool is not a promise of employment or paid work.
+          required: true
+        - label: I have not posted sensitive/private credentials or identity/banking information in this issue.
+          required: true

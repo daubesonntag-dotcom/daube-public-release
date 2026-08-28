@@ -16,21 +16,111 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: resource-farm-public-runner-evidence-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FARM_GENERATION: '5'
+  FARM_WORK_UNITS_PER_PRODUCER: '250000'
+  FARM_TARGET_GITHUB_THROUGHPUT: '25000000'
+  FARM_MIN_REPLICAS: '2'
+  FARM_MAX_REPLICAS: '8'
+  FARM_SCALE_STEP: '2'
+
 jobs:
+  foreman-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      target_replicas: ${{ steps.plan.outputs.target_replicas }}
+      prior_replicas: ${{ steps.plan.outputs.prior_replicas }}
+      prior_throughput: ${{ steps.plan.outputs.prior_throughput }}
+      prior_run_id: ${{ steps.plan.outputs.prior_run_id }}
+    steps:
+      - name: Read prior seed bank and choose herd size
+        id: plan
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io, json, math, os, urllib.request, zipfile
+
+          repo=os.environ['REPOSITORY']
+          token=os.environ['GH_TOKEN']
+          api='https://api.github.com'
+          headers={'Accept':'application/vnd.github+json','Authorization':f'Bearer {token}','User-Agent':'daube-resource-farm-foreman/1'}
+          def get_json(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=15) as r:
+                  return json.load(r)
+          runs=get_json(f'{api}/repos/{repo}/actions/workflows/resource-farm-public-runner-evidence.yml/runs?branch=main&status=success&per_page=10')['workflow_runs']
+          prior=None
+          seed_artifact=None
+          for run in runs:
+              artifacts=get_json(f'{api}/repos/{repo}/actions/runs/{run["id"]}/artifacts?per_page=100').get('artifacts',[])
+              candidates=[a for a in artifacts if a.get('name','').startswith('farm-generation-') and a.get('name','').endswith('-seed-bank') and not a.get('expired',False)]
+              if candidates:
+                  prior=run
+                  seed_artifact=sorted(candidates,key=lambda a:a.get('created_at',''),reverse=True)[0]
+                  break
+          if not prior or not seed_artifact:
+              raise SystemExit('no fresh prior seed bank: fail closed')
+          req=urllib.request.Request(f'{api}/repos/{repo}/actions/artifacts/{seed_artifact["id"]}/zip',headers=headers)
+          with urllib.request.urlopen(req,timeout=20) as r:
+              raw=r.read()
+          with zipfile.ZipFile(io.BytesIO(raw)) as z:
+              names=[n for n in z.namelist() if n.endswith('.json')]
+              if not names: raise SystemExit('prior seed bank has no JSON receipt')
+              seed=json.loads(z.read(names[0]))
+          prior_replicas=int(seed.get('producerReplicas') or 0)
+          prior_throughput=float(seed.get('githubParallelThroughput') or 0)
+          if prior_replicas < 1 or prior_throughput <= 0:
+              raise SystemExit('prior seed lacks admitted GitHub herd metrics')
+          avg=prior_throughput/prior_replicas
+          target=float(os.environ['FARM_TARGET_GITHUB_THROUGHPUT'])
+          min_r=int(os.environ['FARM_MIN_REPLICAS']); max_r=int(os.environ['FARM_MAX_REPLICAS']); step=int(os.environ['FARM_SCALE_STEP'])
+          desired=max(min_r,min(max_r,math.ceil(target/avg)))
+          bounded=max(prior_replicas-step,min(prior_replicas+step,desired))
+          bounded=max(min_r,min(max_r,bounded))
+          matrix=list(range(bounded))
+          receipt={
+            'schema':'daube.resource-farm-foreman-plan.v1','generation':5,'priorRunId':prior['id'],'priorSeedArtifactId':seed_artifact['id'],
+            'priorReplicas':prior_replicas,'priorGithubParallelThroughput':prior_throughput,'priorAverageProducerThroughput':round(avg,2),
+            'targetGithubParallelThroughput':target,'desiredReplicas':desired,'targetReplicas':bounded,'scaleStep':step,'matrix':matrix,
+            'paidSpendAuthorized':False,'privateAssetsUsed':False
+          }
+          print(json.dumps(receipt,sort_keys=True))
+          with open('/tmp/foreman-plan.json','w') as f: json.dump(receipt,f,sort_keys=True)
+          out=os.environ['GITHUB_OUTPUT']
+          with open(out,'a') as f:
+              f.write('matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+              f.write(f'target_replicas={bounded}\nprior_replicas={prior_replicas}\nprior_throughput={prior_throughput}\nprior_run_id={prior["id"]}\n')
+          PY
+      - name: Store foreman plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: farm-generation-5-foreman-plan
+          path: /tmp/foreman-plan.json
+          if-no-files-found: error
+          retention-days: 7
+
   parallel-producers:
+    needs: foreman-plan
     name: producer-${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 8
       matrix:
-        shard: [0, 1, 2, 3, 4, 5]
+        shard: ${{ fromJSON(needs.foreman-plan.outputs.matrix) }}
     steps:
       - name: CPU production receipt
         shell: bash
@@ -39,43 +129,15 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import hashlib, json, os, platform, time
-          shard=int(os.environ['FARM_SHARD'])
-          work_units=250000
-          started=time.perf_counter()
-          digest=hashlib.sha256()
-          for i in range(work_units):
-              digest.update(f'daube-farm-generation-4-{shard}-{i}'.encode())
-          elapsed=max(time.perf_counter()-started, 1e-9)
-          receipt={
-            'schema':'daube.resource-farm-parallel-producer-receipt.v4',
-            'generation':4,
-            'resourceClasses':['compute','ci-build'],
-            'poolId':f'github-public-runner-{shard}',
-            'providerFamily':'github-public-runner',
-            'backend':'github-hosted-linux-cpu',
-            'shard':shard,
-            'runnerOS':platform.system(),
-            'arch':platform.machine(),
-            'cpuCount':os.cpu_count(),
-            'workUnits':work_units,
-            'workUnitsPerSecond':round(work_units/elapsed,2),
-            'latencyMs':round(elapsed*1000,2),
-            'sha256':digest.hexdigest(),
-            'success':True,
-            'observedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-            'paidSpendAuthorized':False,
-            'privateAssetsUsed':False,
-          }
-          path=f'/tmp/producer-{shard}.json'
-          with open(path,'w',encoding='utf-8') as f:
-              json.dump(receipt,f,sort_keys=True)
-          print(json.dumps(receipt, sort_keys=True))
-          assert receipt['runnerOS']=='Linux'
-          assert receipt['cpuCount'] and receipt['cpuCount'] >= 1
-          assert receipt['workUnitsPerSecond'] > 0
+          import hashlib,json,os,platform,time
+          shard=int(os.environ['FARM_SHARD']); work_units=int(os.environ['FARM_WORK_UNITS_PER_PRODUCER'])
+          started=time.perf_counter(); digest=hashlib.sha256()
+          for i in range(work_units): digest.update(f'daube-farm-generation-5-{shard}-{i}'.encode())
+          elapsed=max(time.perf_counter()-started,1e-9)
+          receipt={'schema':'daube.resource-farm-parallel-producer-receipt.v5','generation':5,'resourceClasses':['compute','ci-build'],'poolId':f'github-public-runner-{shard}','providerFamily':'github-public-runner','backend':'github-hosted-linux-cpu','shard':shard,'runnerOS':platform.system(),'arch':platform.machine(),'cpuCount':os.cpu_count(),'workUnits':work_units,'workUnitsPerSecond':round(work_units/elapsed,2),'latencyMs':round(elapsed*1000,2),'sha256':digest.hexdigest(),'success':True,'observedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'paidSpendAuthorized':False,'privateAssetsUsed':False}
+          with open(f'/tmp/producer-{shard}.json','w') as f: json.dump(receipt,f,sort_keys=True)
+          print(json.dumps(receipt,sort_keys=True)); assert receipt['runnerOS']=='Linux' and receipt['cpuCount']>=1 and receipt['workUnitsPerSecond']>0
           PY
-
       - name: Compiler production receipt
         shell: bash
         env:
@@ -85,12 +147,11 @@ jobs:
           cat >/tmp/farm_canary.c <<'C'
           #include <stdio.h>
           #include <stdlib.h>
-          int main(int argc, char **argv){ unsigned long s=(argc>1)?strtoul(argv[1],0,10):0; unsigned long x=2166136261u+s; for(unsigned long i=0;i<100000;i++){x^=(i+s);x*=16777619u;} printf("FARM_COMPILED_OK:%lu:%lu\n",s,x); return 0; }
+          int main(int argc,char **argv){unsigned long s=(argc>1)?strtoul(argv[1],0,10):0;unsigned long x=2166136261u+s;for(unsigned long i=0;i<100000;i++){x^=(i+s);x*=16777619u;}printf("FARM_COMPILED_OK:%lu:%lu\n",s,x);return 0;}
           C
           gcc -O2 /tmp/farm_canary.c -o /tmp/farm_canary
           /tmp/farm_canary "$FARM_SHARD" | tee /tmp/farm_compiler_receipt.txt
           grep -q "^FARM_COMPILED_OK:${FARM_SHARD}:" /tmp/farm_compiler_receipt.txt
-
       - name: Store producer pollen receipt
         uses: actions/upload-artifact@v4
         with:
@@ -107,130 +168,77 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
-          test -n "$CHROME"
-          cat >/tmp/farm-browser.html <<'HTML'
-          <!doctype html><html><body><div id="result">boot</div><script>
-          const values=new Uint32Array(32768); for(let i=0;i<values.length;i++) values[i]=(i*2654435761)>>>0;
-          let x=0; for(const v of values) x=(x^v)>>>0;
-          document.getElementById('result').textContent='FARM_BROWSER_OK:'+navigator.userAgent+':'+values.length+':'+x;
-          </script></body></html>
-          HTML
-          python3 -m http.server 8765 --directory /tmp >/tmp/farm-http.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID || true' EXIT
-          sleep 1
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"; test -n "$CHROME"
+          printf '%s' '<!doctype html><div id="r">boot</div><script>let x=0;for(let i=0;i<32768;i++)x=(x^((i*2654435761)>>>0))>>>0;document.getElementById("r").textContent="FARM_BROWSER_OK:"+x</script>' >/tmp/farm-browser.html
+          python3 -m http.server 8765 --directory /tmp >/tmp/farm-http.log 2>&1 & SERVER_PID=$!; trap 'kill $SERVER_PID || true' EXIT; sleep 1
           "$CHROME" --headless --no-sandbox --disable-gpu --dump-dom http://127.0.0.1:8765/farm-browser.html | tee /tmp/farm-browser-receipt.html
           grep -q 'FARM_BROWSER_OK:' /tmp/farm-browser-receipt.html
-          echo "browser_binary=$CHROME"
 
   pollination-harvest:
     if: always()
-    needs: [parallel-producers, browser-canary]
+    needs: [foreman-plan, parallel-producers, browser-canary]
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
-      - name: Admit pollen sources
+      - name: Admit feed and pollen sources
         shell: bash
         env:
+          FOREMAN_RESULT: ${{ needs.foreman-plan.result }}
           PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
           BROWSER_RESULT: ${{ needs.browser-canary.result }}
         run: |
-          set -euo pipefail
-          test "$PRODUCERS_RESULT" = success
-          test "$BROWSER_RESULT" = success
-
+          set -euo pipefail; test "$FOREMAN_RESULT" = success; test "$PRODUCERS_RESULT" = success; test "$BROWSER_RESULT" = success
       - name: Collect GitHub producer pollen
         uses: actions/download-artifact@v4
         with:
           pattern: farm-producer-*
           path: /tmp/farm-pollen
           merge-multiple: true
-
       - name: Collect Supabase Edge pollen
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location \
-            --max-time 15 \
-            --header 'accept: application/json' \
-            'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-pollen-edge/v1/farm/pollen' \
-            --output /tmp/farm-pollen/supabase-edge.json
+          curl --fail --silent --show-error --location --max-time 15 --header 'accept: application/json' 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-resource-farm-pollen-edge/v1/farm/pollen?generation=5' --output /tmp/farm-pollen/supabase-edge.json
           python3 - <<'PY'
           import json
-          with open('/tmp/farm-pollen/supabase-edge.json',encoding='utf-8') as f:
-              r=json.load(f)
-          assert r['schema']=='daube.resource-farm-pollen-receipt.v1'
-          assert r['generation']==4
-          assert r['providerFamily']=='supabase-edge'
-          assert r['poolId']=='supabase-edge-cpu'
-          assert 'compute' in r['resourceClasses']
-          assert r['workUnits']==250000
-          assert r['workUnitsPerSecond'] > 0
-          assert r['success'] is True
-          assert r['paidSpendAuthorized'] is False
-          assert r['privateAssetsUsed'] is False
+          r=json.load(open('/tmp/farm-pollen/supabase-edge.json'))
+          assert r['schema']=='daube.resource-farm-pollen-receipt.v2' and r['generation']==5 and r['providerFamily']=='supabase-edge'
+          assert 'compute' in r['resourceClasses'] and r['workUnits']==250000 and r['workUnitsPerSecond']>0 and r['success'] is True
+          assert r['paidSpendAuthorized'] is False and r['privateAssetsUsed'] is False
           print(json.dumps(r,sort_keys=True))
           PY
-
-      - name: Cross-provider pollinate and harvest receipts
+      - name: Adaptive cross-provider harvest
         shell: bash
+        env:
+          EXPECTED_REPLICAS: ${{ needs.foreman-plan.outputs.target_replicas }}
+          PRIOR_REPLICAS: ${{ needs.foreman-plan.outputs.prior_replicas }}
+          PRIOR_THROUGHPUT: ${{ needs.foreman-plan.outputs.prior_throughput }}
+          PRIOR_RUN_ID: ${{ needs.foreman-plan.outputs.prior_run_id }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import glob, json
-          files=sorted(glob.glob('/tmp/farm-pollen/producer-*.json'))
-          if len(files) != 6:
-              raise SystemExit(f'expected 6 GitHub producer receipts, got {len(files)}')
-          producers=[]
-          shards=set()
+          import glob,json,os
+          expected=int(os.environ['EXPECTED_REPLICAS']); files=sorted(glob.glob('/tmp/farm-pollen/producer-*.json'))
+          if len(files)!=expected: raise SystemExit(f'expected {expected} producer receipts, got {len(files)}')
+          producers=[]; shards=set()
           for path in files:
-              with open(path,encoding='utf-8') as f:
-                  r=json.load(f)
-              assert r['schema']=='daube.resource-farm-parallel-producer-receipt.v4'
-              assert r['generation']==4
-              assert r['providerFamily']=='github-public-runner'
-              assert r['success'] is True
-              assert r['paidSpendAuthorized'] is False
-              assert r['privateAssetsUsed'] is False
-              assert r['shard'] not in shards
-              shards.add(r['shard'])
-              producers.append(r)
-          with open('/tmp/farm-pollen/supabase-edge.json',encoding='utf-8') as f:
-              edge=json.load(f)
-          github_work=sum(r['workUnits'] for r in producers)
-          github_throughput=round(sum(r['workUnitsPerSecond'] for r in producers),2)
-          best=max(producers,key=lambda r:r['workUnitsPerSecond'])
+              r=json.load(open(path)); assert r['schema']=='daube.resource-farm-parallel-producer-receipt.v5' and r['generation']==5 and r['success'] is True
+              assert r['paidSpendAuthorized'] is False and r['privateAssetsUsed'] is False and r['shard'] not in shards; shards.add(r['shard']); producers.append(r)
+          edge=json.load(open('/tmp/farm-pollen/supabase-edge.json'))
+          github_work=sum(r['workUnits'] for r in producers); github_throughput=round(sum(r['workUnitsPerSecond'] for r in producers),2)
           families=sorted(set([r['providerFamily'] for r in producers]+[edge['providerFamily']]))
-          harvest={
-            'schema':'daube.resource-farm-pollination-harvest.v4',
-            'generation':4,
-            'producerReplicas':len(producers),
-            'githubAggregateWorkUnits':github_work,
-            'githubParallelThroughput':github_throughput,
-            'externalPollinatorWorkUnits':edge['workUnits'],
-            'externalPollinatorThroughput':edge['workUnitsPerSecond'],
-            'totalEvidenceWorkUnits':github_work+edge['workUnits'],
-            'providerFamilies':families,
-            'providerFamilyCount':len(families),
-            'monocultureRisk':len(families)<2,
-            'crossProviderPollination':len(families)>=2,
-            'bestGithubProducerShard':best['shard'],
-            'bestGithubProducerThroughput':best['workUnitsPerSecond'],
-            'pollinationMode':'cross-provider-receipt-exchange-and-selection',
-            'paidSpendAuthorized':False,
-            'privateAssetsUsed':False,
-          }
-          assert github_work == 1500000
-          assert github_throughput > 0
-          assert edge['workUnits']==250000
-          assert len(families) >= 2
-          assert harvest['monocultureRisk'] is False
-          with open('/tmp/farm-harvest.json','w',encoding='utf-8') as f:
-              json.dump(harvest,f,sort_keys=True)
-          print(json.dumps(harvest,sort_keys=True))
+          best=max(producers,key=lambda r:r['workUnitsPerSecond'])
+          harvest={'schema':'daube.resource-farm-pollination-harvest.v5','generation':5,'producerReplicas':len(producers),'priorProducerReplicas':int(os.environ['PRIOR_REPLICAS']),'priorGithubParallelThroughput':float(os.environ['PRIOR_THROUGHPUT']),'priorRunId':int(os.environ['PRIOR_RUN_ID']),'adaptiveHerd':True,'githubAggregateWorkUnits':github_work,'githubParallelThroughput':github_throughput,'externalPollinatorWorkUnits':edge['workUnits'],'externalPollinatorThroughput':edge['workUnitsPerSecond'],'totalEvidenceWorkUnits':github_work+edge['workUnits'],'providerFamilies':families,'providerFamilyCount':len(families),'monocultureRisk':len(families)<2,'crossProviderPollination':len(families)>=2,'bestGithubProducerShard':best['shard'],'bestGithubProducerThroughput':best['workUnitsPerSecond'],'paidSpendAuthorized':False,'privateAssetsUsed':False}
+          assert github_work==expected*250000 and len(families)>=2 and harvest['monocultureRisk'] is False
+          json.dump(harvest,open('/tmp/farm-harvest.json','w'),sort_keys=True); print(json.dumps(harvest,sort_keys=True))
           PY
-
+      - name: Store generation 5 seed bank
+        uses: actions/upload-artifact@v4
+        with:
+          name: farm-generation-5-seed-bank
+          path: /tmp/farm-harvest.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Store external pollinator receipt
         uses: actions/upload-artifact@v4
         with:
@@ -239,75 +247,38 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Store generation 4 seed bank
-        uses: actions/upload-artifact@v4
-        with:
-          name: farm-generation-4-seed-bank
-          path: /tmp/farm-harvest.json
-          if-no-files-found: error
-          retention-days: 7
-
   prove-public-runner:
     if: always()
-    needs: [parallel-producers, browser-canary, pollination-harvest]
+    needs: [foreman-plan, parallel-producers, browser-canary, pollination-harvest]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: CPU compute receipt
         shell: bash
         env:
+          FOREMAN_RESULT: ${{ needs.foreman-plan.result }}
           PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
           POLLINATION_RESULT: ${{ needs.pollination-harvest.result }}
+          TARGET_REPLICAS: ${{ needs.foreman-plan.outputs.target_replicas }}
         run: |
-          set -euo pipefail
-          test "$PRODUCERS_RESULT" = success
-          test "$POLLINATION_RESULT" = success
-          echo 'CPU_HERD_OK:6:CROSS_PROVIDER'
-
+          set -euo pipefail; test "$FOREMAN_RESULT" = success; test "$PRODUCERS_RESULT" = success; test "$POLLINATION_RESULT" = success; echo "CPU_ADAPTIVE_HERD_OK:$TARGET_REPLICAS:CROSS_PROVIDER"
       - name: Compiler and executable receipt
         shell: bash
-        env:
-          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
-        run: |
-          set -euo pipefail
-          test "$PRODUCERS_RESULT" = success
-          echo 'COMPILER_HERD_OK:6'
-
+        env: { PRODUCERS_RESULT: '${{ needs.parallel-producers.result }}' }
+        run: 'test "$PRODUCERS_RESULT" = success && echo COMPILER_HERD_OK'
       - name: Headless browser receipt
         shell: bash
-        env:
-          BROWSER_RESULT: ${{ needs.browser-canary.result }}
-        run: |
-          set -euo pipefail
-          test "$BROWSER_RESULT" = success
-          echo 'BROWSER_HERD_OK:1'
-
+        env: { BROWSER_RESULT: '${{ needs.browser-canary.result }}' }
+        run: 'test "$BROWSER_RESULT" = success && echo BROWSER_HERD_OK'
       - name: Harvest summary
         shell: bash
         env:
-          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
-          BROWSER_RESULT: ${{ needs.browser-canary.result }}
-          POLLINATION_RESULT: ${{ needs.pollination-harvest.result }}
+          TARGET_REPLICAS: ${{ needs.foreman-plan.outputs.target_replicas }}
+          PRIOR_REPLICAS: ${{ needs.foreman-plan.outputs.prior_replicas }}
         run: |
           set -euo pipefail
-          test "$PRODUCERS_RESULT" = success
-          test "$BROWSER_RESULT" = success
-          test "$POLLINATION_RESULT" = success
           python3 - <<'PY'
-          import json, os
-          receipt={
-            'schema':'daube.resource-farm-harvest-summary.v4',
-            'generation':4,
-            'parallelProducerReplicas':6,
-            'declaredGithubCpuWorkUnits':1500000,
-            'externalPollinatorWorkUnits':250000,
-            'browserWorkUnits':32768,
-            'crossProviderPollination':True,
-            'producerResult':os.environ['PRODUCERS_RESULT'],
-            'browserResult':os.environ['BROWSER_RESULT'],
-            'pollinationResult':os.environ['POLLINATION_RESULT'],
-            'paidSpendAuthorized':False,
-            'privateAssetsUsed':False,
-          }
-          print(json.dumps(receipt, sort_keys=True))
+          import json,os
+          r={'schema':'daube.resource-farm-harvest-summary.v5','generation':5,'adaptiveHerd':True,'priorReplicas':int(os.environ['PRIOR_REPLICAS']),'targetReplicas':int(os.environ['TARGET_REPLICAS']),'crossProviderPollination':True,'paidSpendAuthorized':False,'privateAssetsUsed':False}
+          print(json.dumps(r,sort_keys=True))
           PY

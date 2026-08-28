@@ -72,8 +72,8 @@ test("normal Pages remains manual mirror while the recovery publisher is narrow 
   assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
   assert.match(recoveryWorkflow, /Verify canonical apex, storefront bridge and Paddle review routes/);
   assert.match(storefront, /D’AUBE DIRECT PAY · VIETQR \/ NAPAS/);
-  assert.match(storefront, /Tạo đơn &amp; nhận VietQR/);
-  assert.match(storefront, /Tạo đơn ≠ đã trả/);
+  assert.match(storefront, /Create order &amp; get VietQR/);
+  assert.match(storefront, /Order created ≠ paid/);
   assert.equal(recovery.paymentTruth.pagesOwnsOrderTruth, false);
   assert.equal(recovery.paymentTruth.pagesOwnsSettlementTruth, false);
 });

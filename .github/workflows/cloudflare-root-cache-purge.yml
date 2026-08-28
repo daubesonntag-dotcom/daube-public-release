@@ -1,4 +1,4 @@
-name: Cloudflare root cache purge
+name: Cloudflare payment-surface cache purge
 
 on:
   push:
@@ -14,12 +14,12 @@ permissions:
 jobs:
   purge-root:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       ZONE_NAME: daubesonntag.com
     steps:
-      - name: Purge stale root cache and classify boundary
+      - name: Purge stale public payment-review cache and classify boundary
         id: purge
         continue-on-error: true
         shell: bash
@@ -58,11 +58,9 @@ jobs:
 
           python3 - <<'PY' >/tmp/purge.json
           import json
-          print(json.dumps({'files': [
-            'https://daubesonntag.com/',
-            'https://daubesonntag.com/index.html',
-            'https://www.daubesonntag.com/'
-          ]}))
+          base='https://daubesonntag.com'
+          paths=['/','/index.html','/pay/','/pay/index.html','/pricing/','/terms/','/privacy/','/refund/','/contact/']
+          print(json.dumps({'files':[base+p for p in paths] + ['https://www.daubesonntag.com/']}))
           PY
 
           purge_code="$(curl --silent --show-error --output /tmp/purge-result.json --write-out '%{http_code}' \
@@ -86,21 +84,26 @@ jobs:
             exit 44
           fi
 
-          for attempt in 1 2 3 4 5 6; do
-            if curl --fail --silent --show-error \
-                --header 'Cache-Control: no-cache' \
-                --max-time 20 \
-                https://daubesonntag.com/ -o /tmp/root.html; then
-              if grep -Fq '/assets/mobile-first-flagship-v3.css' /tmp/root.html \
-                && ! grep -Fq 'RẠNG TRONG · COMING SOON' /tmp/root.html; then
-                echo 'purged_and_v3_verified' > "$RESULT"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            root_code="$(curl --silent --show-error --location --header 'Cache-Control: no-cache' --max-time 20 --output /tmp/root.html --write-out '%{http_code}' https://daubesonntag.com/ || true)"
+            pay_code="$(curl --silent --show-error --location --header 'Cache-Control: no-cache' --max-time 20 --output /tmp/pay.html --write-out '%{http_code}' https://daubesonntag.com/pay/ || true)"
+            if [[ "$root_code" == 200 && "$pay_code" == 200 ]] \
+              && grep -Fq '/assets/mobile-first-flagship-v3.css' /tmp/root.html \
+              && grep -Fq '/pay/' /tmp/root.html \
+              && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
+              && grep -Fq 'US$15' /tmp/pay.html \
+              && grep -Fq 'US$39' /tmp/pay.html \
+              && grep -Fq 'US$95' /tmp/pay.html \
+              && grep -Fq 'Refund' /tmp/pay.html \
+              && grep -Fq 'Privacy' /tmp/pay.html \
+              && ! grep -Fq 'RẠNG TRONG · COMING SOON' /tmp/root.html; then
+                echo 'purged_and_payment_surface_verified' > "$RESULT"
                 exit 0
-              fi
             fi
             sleep 2
           done
 
-          echo 'purge_accepted_root_still_stale' > "$RESULT"
+          echo 'purge_accepted_payment_surface_still_stale' > "$RESULT"
           exit 45
 
       - name: Publish bounded diagnostic receipt
@@ -111,9 +114,9 @@ jobs:
         run: |
           set -euo pipefail
           reason="$(cat /tmp/daube-cloudflare-result 2>/dev/null || printf '%s' 'runner_failed_before_probe')"
-          if [[ "$reason" == 'purged_and_v3_verified' ]]; then
+          if [[ "$reason" == 'purged_and_payment_surface_verified' ]]; then
             state=success
-            description='Cloudflare root purged; V3 verified'
+            description='Cloudflare cache purged; D’AUBE Pay review surface verified'
           else
             state=failure
             description="Cloudflare boundary: ${reason}"
@@ -141,5 +144,5 @@ jobs:
         if: steps.purge.outcome != 'success'
         shell: bash
         run: |
-          echo 'Cloudflare root purge did not complete; see ops/cloudflare-root-purge commit status.'
+          echo 'Cloudflare payment-surface cache purge did not complete; see ops/cloudflare-root-purge commit status.'
           exit 1

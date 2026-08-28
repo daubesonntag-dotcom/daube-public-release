@@ -26,6 +26,41 @@ locals {
     "ProviderFamily"      = "oracle-cloud"
     "ProductionAuthority" = "bounded-origin-worker"
   }
+
+  oracle_cloud_init = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    public_release_repo   = var.public_release_repo
+    public_release_branch = var.public_release_branch
+    admin_cidr            = var.admin_cidr
+    worker_script_b64     = base64encode(file("${path.module}/worker.py"))
+    worker_auth_token     = random_password.worker_auth.result
+    worker_receipt_secret = random_password.worker_receipt.result
+    tls_bootstrap_b64     = base64encode(file("${path.module}/tls-bootstrap.sh"))
+    tls_hostname          = var.tls_hostname
+    tls_acme_email        = var.tls_acme_email
+  })
+
+  oracle_autoproof_bootstrap = templatefile("${path.module}/autoproof-bootstrap.sh.tftpl", {
+    provider_attestation_b64   = base64encode(file("${path.module}/provider-attestation.py"))
+    provider_proof_publish_b64 = base64encode(file("${path.module}/proof-publish.sh"))
+  })
+
+  oracle_user_data = join("\n", [
+    "MIME-Version: 1.0",
+    "Content-Type: multipart/mixed; boundary=\"==DAUBE_ORACLE_A1==\"",
+    "",
+    "--==DAUBE_ORACLE_A1==",
+    "Content-Type: text/cloud-config; charset=\"us-ascii\"",
+    "Content-Disposition: attachment; filename=\"cloud-config.yaml\"",
+    "",
+    local.oracle_cloud_init,
+    "--==DAUBE_ORACLE_A1==",
+    "Content-Type: text/x-shellscript; charset=\"us-ascii\"",
+    "Content-Disposition: attachment; filename=\"daube-oracle-a1-autoproof.sh\"",
+    "",
+    local.oracle_autoproof_bootstrap,
+    "--==DAUBE_ORACLE_A1==--",
+    "",
+  ])
 }
 
 resource "random_password" "worker_auth" {
@@ -109,7 +144,7 @@ resource "oci_core_security_list" "origin" {
   ingress_security_rules {
     protocol    = "6"
     source      = "0.0.0.0/0"
-    description = "HTTPS bounded origin and compute worker"
+    description = "HTTPS bounded origin, compute worker and signed provider attestation"
     tcp_options {
       min = 443
       max = 443
@@ -160,17 +195,7 @@ resource "oci_core_instance" "daube_free_host" {
 
   metadata = {
     ssh_authorized_keys = trimspace(var.ssh_authorized_key)
-    user_data = base64encode(templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      public_release_repo   = var.public_release_repo
-      public_release_branch = var.public_release_branch
-      admin_cidr            = var.admin_cidr
-      worker_script_b64     = base64encode(file("${path.module}/worker.py"))
-      worker_auth_token     = random_password.worker_auth.result
-      worker_receipt_secret = random_password.worker_receipt.result
-      tls_bootstrap_b64     = base64encode(file("${path.module}/tls-bootstrap.sh"))
-      tls_hostname          = var.tls_hostname
-      tls_acme_email        = var.tls_acme_email
-    }))
+    user_data           = base64encode(local.oracle_user_data)
   }
 
   instance_options {
@@ -225,12 +250,17 @@ output "health_url" {
 
 output "worker_direct_url" {
   value       = "http://${oci_core_instance.daube_free_host.public_ip}"
-  description = "Direct origin URL for non-secret health/capability canaries only. Compute POST is HTTPS-only."
+  description = "Direct origin URL for non-secret health/capability canaries only. Compute POST and provider attestation are HTTPS-only."
 }
 
 output "tls_hostname_mode" {
   value       = var.tls_hostname
   description = "Configured TLS hostname or 'auto'. In auto mode runtime derives daube-<public-ip>.sslip.io without a DNS account."
+}
+
+output "oracle_a1_proof_state_url" {
+  value       = "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-oracle-a1-state"
+  description = "Sanitized D'AUBE runtime truth surface. It stays UNPROVEN until the real A1 host completes HTTPS challenge, OCI range, IMDS and Ed25519 verification."
 }
 
 output "worker_auth_token" {
@@ -247,13 +277,14 @@ output "worker_receipt_secret" {
 
 output "resource_farm_classification" {
   value = {
-    hosting               = "CANDIDATE_AFTER_RUNTIME_CANARY"
-    compute               = "CANDIDATE_AFTER_RUNTIME_CANARY"
-    provider_family       = "oracle-cloud"
-    sovereign_local       = false
-    paid_spend_authorized = false
-    commercial_role       = "bounded-production-origin-worker"
-    worker_contract       = "daube.compute.v1"
-    tls_bootstrap         = var.tls_hostname == "auto" ? "public-ca-auto-dns" : "public-ca-branded-dns"
+    hosting                  = "CANDIDATE_AFTER_RUNTIME_CANARY"
+    compute                  = "CANDIDATE_AFTER_RUNTIME_CANARY"
+    provider_family          = "oracle-cloud"
+    sovereign_local          = false
+    paid_spend_authorized    = false
+    commercial_role          = "bounded-production-origin-worker"
+    worker_contract          = "daube.compute.v1"
+    tls_bootstrap            = var.tls_hostname == "auto" ? "public-ca-auto-dns" : "public-ca-branded-dns"
+    autonomous_runtime_proof = "oci-imds-v2+ed25519+oracle-public-range+https-callback"
   }
 }

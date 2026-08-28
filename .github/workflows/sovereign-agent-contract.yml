@@ -1,0 +1,70 @@
+name: Sovereign Agent Contract
+
+on:
+  pull_request:
+    paths:
+      - 'farm/sovereign-agent/**'
+      - '.github/workflows/sovereign-agent-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sovereign-agent-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Syntax contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile farm/sovereign-agent/direct-agent.py
+          bash -n farm/sovereign-agent/install.sh
+      - name: Anti-cloud classification contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path=Path('farm/sovereign-agent/direct-agent.py')
+          spec=importlib.util.spec_from_file_location('agent',path)
+          agent=importlib.util.module_from_spec(spec); spec.loader.exec_module(agent)
+          cases=[
+            (['Microsoft Corporation','Virtual Machine'],'microsoft-azure'),
+            (['Amazon EC2'],'amazon-ec2'),
+            (['Google Compute Engine'],'google-compute'),
+            (['Oracle Cloud'],'oracle-cloud'),
+            (['DigitalOcean'],'digitalocean'),
+          ]
+          for signals,expected in cases:
+            agent.read_first=lambda _paths,s=signals:s
+            agent.metadata_probe=lambda *_args,**_kwargs:False
+            result=agent.cloud_heuristic()
+            assert result['detected'] is True, (signals,result)
+            assert result['providerHint']==expected, (signals,result)
+          agent.read_first=lambda _paths:['Dell Inc.','OptiPlex 7090']
+          agent.metadata_probe=lambda *_args,**_kwargs:False
+          local=agent.cloud_heuristic()
+          assert local['detected'] is False, local
+          print('anti-cloud classification contracts: PASS')
+          PY
+      - name: Ed25519 runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$(mktemp)"; msg="$(mktemp)"; sig="$(mktemp)"; pub="$(mktemp)"
+          trap 'rm -f "$key" "$msg" "$sig" "$pub"' EXIT
+          openssl genpkey -algorithm ED25519 -out "$key"
+          openssl pkey -in "$key" -pubout -out "$pub"
+          printf '%s' '{"daube":"sovereign-agent-contract"}' > "$msg"
+          openssl pkeyutl -sign -rawin -inkey "$key" -in "$msg" -out "$sig"
+          openssl pkeyutl -verify -rawin -pubin -inkey "$pub" -in "$msg" -sigfile "$sig"

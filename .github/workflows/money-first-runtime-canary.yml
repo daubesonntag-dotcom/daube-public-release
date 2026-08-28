@@ -1,0 +1,77 @@
+name: money-first-runtime-canary
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/money-first-runtime-canary.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify live money-first preemption and fail-closed routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          endpoint='https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-money-first-dispatch'
+          curl --fail-with-body --silent --show-error --max-time 20 "$endpoint" -o evidence/health.json
+          cat > /tmp/preempt.json <<'JSON'
+          {
+            "jobs": [
+              {"jobId":"spec-runtime","priorityClass":"P5_SPECULATIVE","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary","state":"RUNNING","nodeId":"gpu-live-1","preemptible":true},
+              {"jobId":"paid-runtime","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary"}
+            ],
+            "nodes": [
+              {"id":"gpu-live-1","status":"READY","backends":["gpu"],"trustClass":"public-untrusted","consented":true,"costKnown":true,"estimatedCostUnits":0,"availableSlots":0,"queueDepth":1,"reliability":0.99,"vramGiB":0}
+            ]
+          }
+          JSON
+          curl --fail-with-body --silent --show-error --max-time 20 -H 'content-type: application/json' --data-binary @/tmp/preempt.json "$endpoint" -o evidence/preempt.json
+          cat > /tmp/unknown-cost.json <<'JSON'
+          {
+            "jobs": [
+              {"jobId":"paid-no-cost-truth","priorityClass":"P0_PAID_DELIVERY","acceptedBackends":["gpu"],"privacyClass":"public-safe","minVramGiB":0,"maxRuntimeSeconds":120,"maxCostUnits":0,"consentBasis":"public-canary","evidenceDestination":"runtime-canary"}
+            ],
+            "nodes": [
+              {"id":"gpu-unknown-cost","status":"READY","backends":["gpu"],"trustClass":"public-untrusted","consented":true,"costKnown":false,"estimatedCostUnits":0,"availableSlots":1,"queueDepth":0,"reliability":0.99,"vramGiB":0}
+            ]
+          }
+          JSON
+          curl --fail-with-body --silent --show-error --max-time 20 -H 'content-type: application/json' --data-binary @/tmp/unknown-cost.json "$endpoint" -o evidence/unknown-cost.json
+          python - <<'PY'
+          import json, hashlib
+          from pathlib import Path
+          health=json.loads(Path('evidence/health.json').read_text())
+          pre=json.loads(Path('evidence/preempt.json').read_text())
+          unk=json.loads(Path('evidence/unknown-cost.json').read_text())
+          assert health['status']=='LIVE' and health['paidSpendAuthorized'] is False and health['oauthRequired'] is False
+          assert pre['status']=='GREEN' and pre['paidDeliveryProtected'] is True
+          d=pre['decisions'][0]
+          assert d['action']=='PREEMPT_AND_DISPATCH' and d['preemptedJobId']=='spec-runtime' and d['paidSpendAuthorized'] is False
+          assert unk['status']=='DEGRADED' and unk['decisions'][0]['action']=='BLOCKED_CAPACITY'
+          receipt={
+            'schema':'daube.money-first-runtime-canary.v1',
+            'status':'GREEN',
+            'runtimeEndpointLive':True,
+            'paidDeliveryPreemptionProven':True,
+            'unknownCostFailClosedProven':True,
+            'oauthRequired':False,
+            'paidSpendAuthorized':False,
+            'preemptionAction':d['action'],
+            'preemptedJobId':d['preemptedJobId']
+          }
+          Path('evidence/money-first-runtime-canary.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-first-runtime-canary
+          path: evidence/
+          retention-days: 7

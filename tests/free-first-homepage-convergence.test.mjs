@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), "
 const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 const index = read("index.html");
+const storefront = read("storefront/index.html");
 const robots = read("robots.txt");
 const agents = read("AGENTS.md");
 const pagesWorkflow = read(".github/workflows/pages.yml");
@@ -69,7 +70,10 @@ test("normal Pages remains manual mirror while the recovery publisher is narrow 
   assert.match(pagesWorkflow, /ci\/github-pages: mirror/);
   assert.match(recoveryWorkflow, /Payment Domain Recovery Pages/);
   assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
-  assert.match(recoveryWorkflow, /Verify canonical apex and Paddle review routes/);
+  assert.match(recoveryWorkflow, /Verify canonical apex, storefront bridge and Paddle review routes/);
+  assert.match(storefront, /D’AUBE DIRECT PAY · VIETQR \/ NAPAS/);
+  assert.match(storefront, /Tạo đơn &amp; nhận VietQR/);
+  assert.match(storefront, /Tạo đơn ≠ đã trả/);
   assert.equal(recovery.paymentTruth.pagesOwnsOrderTruth, false);
   assert.equal(recovery.paymentTruth.pagesOwnsSettlementTruth, false);
 });

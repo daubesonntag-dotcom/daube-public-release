@@ -7,6 +7,7 @@ const exists = (path) => fs.existsSync(new URL(`../${path}`, import.meta.url));
 
 const index = read("index.html");
 const storefront = read("storefront/index.html");
+const storefrontJs = read("assets/storefront-v2.js");
 const robots = read("robots.txt");
 const agents = read("AGENTS.md");
 const pagesWorkflow = read(".github/workflows/pages.yml");
@@ -71,10 +72,13 @@ test("normal Pages remains manual mirror while the recovery publisher is narrow 
   assert.match(recoveryWorkflow, /Payment Domain Recovery Pages/);
   assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
   assert.match(recoveryWorkflow, /Verify canonical apex, storefront bridge and Paddle review routes/);
-  assert.match(storefront, /D’AUBE DIRECT PAY · VIETQR \/ NAPAS/);
-  assert.match(storefront, /Create order &amp; get VietQR/);
+  assert.match(storefront, /USD-first display/);
+  assert.match(storefront, /Continue to local bank payment/);
   assert.match(storefront, /clear scope/i);
-  assert.match(storefront, /bank verification/i);
+  assert.match(storefront, /verified/i);
+  assert.match(storefrontJs, /direct_vietqr_bank_transfer/);
+  assert.match(storefrontJs, /qrSvgDataUrl/);
+  assert.match(storefrontJs, /USD_REFERENCE_VND\s*=\s*26100/);
   assert.equal(recovery.paymentTruth.pagesOwnsOrderTruth, false);
   assert.equal(recovery.paymentTruth.pagesOwnsSettlementTruth, false);
 });

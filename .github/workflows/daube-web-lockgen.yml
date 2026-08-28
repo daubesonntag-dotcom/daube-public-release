@@ -1,0 +1,57 @@
+name: D'AUBE Web Lockfile Forge
+
+on:
+  push:
+    branches:
+      - lockgen/daube-web-20260829
+    paths:
+      - lockgen/daube-web/package.json
+      - .github/workflows/daube-web-lockgen.yml
+
+permissions:
+  contents: write
+
+jobs:
+  lockgen:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch revision
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: lockgen/daube-web-20260829
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Use Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Generate lockfile only
+        working-directory: lockgen/daube-web
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lockfile can drive a clean install
+        working-directory: lockgen/daube-web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Reject mutable direct dependency ranges
+        working-directory: lockgen/daube-web
+        run: |
+          node - <<'NODE'
+          const p = require('./package.json');
+          for (const group of ['dependencies','devDependencies']) {
+            for (const [name, version] of Object.entries(p[group] || {})) {
+              if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+                throw new Error(`${group}.${name} is not exact: ${version}`);
+              }
+            }
+          }
+          NODE
+      - name: Commit generated lockfile
+        run: |
+          git config user.name 'D-AUBE Lockfile Forge'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add lockgen/daube-web/package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'lockgen: materialize daube-web package-lock'
+          git push origin HEAD:lockgen/daube-web-20260829

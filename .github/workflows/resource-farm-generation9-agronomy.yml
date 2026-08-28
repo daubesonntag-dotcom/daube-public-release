@@ -166,13 +166,16 @@ jobs:
           drain_seconds=queue_depth/(active*service_rate); pressure=drain_seconds/deadline
           mode='DRAIN' if pressure>1 else 'STEADY'; target_concurrency=min(max_concurrency,max(active,math.ceil(queue_depth/(deadline*service_rate)))) if mode=='DRAIN' else active
           irrigation={'evidenceClass':'controlled-trial-backlog','queueDepth':queue_depth,'mode':mode,'targetConcurrency':target_concurrency,'estimatedDrainSeconds':round(drain_seconds,3),'deadlinePressure':round(pressure,6)}
-          # Harvest grading uses only runtime/provenance quality. Economic output stays explicitly unclaimed.
-          quality=1.0; success=1.0; qadj=round((gh['workUnitsPerSecond']+edge['workUnitsPerSecond'])*quality*success,2)
-          harvest={'grade':'A','qualityScore':quality,'successRate':success,'provenanceComplete':True,'policyCompliant':True,'qualityAdjustedThroughput':qadj,'marketReadiness':'TECHNICALLY_MARKETABLE','revenueReceiptPresent':False,'economicYieldStatus':'UNPROVEN_UNTIL_CUSTOMER_PAYMENT_RECEIPT'}
+          # Each provider keeps its own measured throughput. Only evidence work units are additive here.
+          quality=1.0; success=1.0
+          github_qadj=round(gh['workUnitsPerSecond']*quality*success,2); edge_qadj=round(edge['workUnitsPerSecond']*quality*success,2)
+          combined_evidence_work=int(gh['workUnits'])+int(edge['workUnits'])
+          harvest={'grade':'A','qualityScore':quality,'successRate':success,'provenanceComplete':True,'policyCompliant':True,'githubQualityAdjustedThroughput':github_qadj,'edgeQualityAdjustedThroughput':edge_qadj,'combinedEvidenceWorkUnits':combined_evidence_work,'aggregateParallelThroughputClaimed':False,'marketReadiness':'TECHNICALLY_MARKETABLE','revenueReceiptPresent':False,'economicYieldStatus':'UNPROVEN_UNTIL_CUSTOMER_PAYMENT_RECEIPT'}
           compost={'input':'generation-8-synthetic-quarantine-learning','regressionHeuristic':'quarantine-malformed-or-security-signaled-receipts-before-harvest','reusedInGeneration9':True}
-          seed={'schema':'daube.resource-farm-agronomy-harvest.v9','generation':9,'soil':{'githubFertility':gh['soilFertility'],'githubFeedState':gh['feedState']},'nursery':nursery,'rotation':rotation,'irrigation':irrigation,'harvest':harvest,'compost':compost,'providerFamilies':rotation['providerFamilies'],'providerFamilyCount':2,'monocultureRisk':False,'paidSpendAuthorized':False,'privateAssetsUsed':False,'truthBoundary':'This generation proves agronomy controls on a bounded repository CI field and independent Edge pollinator. It does not prove general provider provisioning, account-wide quota, sovereign-local hardware, customer revenue, or paid spend.','observedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+          seed={'schema':'daube.resource-farm-agronomy-harvest.v9','generation':9,'soil':{'githubFertility':gh['soilFertility'],'githubFeedState':gh['feedState']},'nursery':nursery,'rotation':rotation,'irrigation':irrigation,'harvest':harvest,'compost':compost,'providerFamilies':rotation['providerFamilies'],'providerFamilyCount':2,'monocultureRisk':False,'paidSpendAuthorized':False,'privateAssetsUsed':False,'truthBoundary':'This generation proves agronomy controls on a bounded repository CI field and independent Edge pollinator. Provider throughput measurements are separate and are not summed into a parallel-capacity claim. It does not prove general provider provisioning, account-wide quota, sovereign-local hardware, customer revenue, or paid spend.','observedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
           assert rotation['admitted'] and rotation['providerFamilyCount']>=2 and not rotation['monocultureRisk']
           assert irrigation['targetConcurrency']>=1 and harvest['grade']=='A' and harvest['revenueReceiptPresent'] is False
+          assert harvest['combinedEvidenceWorkUnits']==500000 and harvest['aggregateParallelThroughputClaimed'] is False
           json.dump(seed,open('/tmp/farm9-seed-bank.json','w'),sort_keys=True); print(json.dumps(seed,sort_keys=True))
           PY
       - name: Store generation 9 seed bank

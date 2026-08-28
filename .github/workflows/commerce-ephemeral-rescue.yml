@@ -25,13 +25,18 @@ jobs:
           test -f release/commerce-rescue/request.json
           request_id="$(jq -r '.requestId' release/commerce-rescue/request.json)"
           expected_sha="$(jq -r '.expectedSha' release/commerce-rescue/request.json)"
+          profile="$(jq -r '.verificationProfile' release/commerce-rescue/request.json)"
           [[ "$request_id" =~ ^[a-z0-9-]{8,80}$ ]]
           [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          case "$profile" in
+            first-dawn-hardening|workers-builds-recovery-contract) ;;
+            *) echo '::error::unsupported rescue verification profile'; exit 70 ;;
+          esac
           echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
 
       - name: Generate one-run encryption identity
-        id: identity
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,6 +86,7 @@ jobs:
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          PROFILE: ${{ steps.request.outputs.profile }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/commerce-rescue
@@ -92,43 +98,72 @@ jobs:
           tar -xzf /tmp/commerce-bundle.tar.gz -C /tmp/commerce-rescue
           cd /tmp/commerce-rescue
           actual_sha="$(jq -r '.expectedSha' manifest.json)"
+          actual_profile="$(jq -r '.verificationProfile' manifest.json)"
           [[ "$actual_sha" == "$EXPECTED_SHA" ]] || { echo '::error::bundle SHA mismatch'; exit 72; }
+          [[ "$actual_profile" == "$PROFILE" ]] || { echo '::error::bundle profile mismatch'; exit 73; }
           jq -e '.containsSecrets == false and .sourceVisibility == "private"' manifest.json >/dev/null
-          node --test tests/first-dawn-hardening.test.mjs
-          if [[ -f probes/sqlite-first-dawn.py ]]; then python3 probes/sqlite-first-dawn.py; fi
+
+          case "$PROFILE" in
+            first-dawn-hardening)
+              test -f tests/first-dawn-hardening.test.mjs
+              test -f probes/sqlite-first-dawn.py
+              node --test tests/first-dawn-hardening.test.mjs
+              python3 probes/sqlite-first-dawn.py
+              printf '%s\n' '["first-dawn-hardening-node","first-dawn-sqlite-behavior"]' > /tmp/rescue-checks.json
+              ;;
+            workers-builds-recovery-contract)
+              test -f scripts/cloudflare/workers-builds-recovery.sh
+              test -f tests/workers-builds-recovery-contract.test.mjs
+              node --test tests/workers-builds-recovery-contract.test.mjs
+              printf '%s\n' '["workers-builds-recovery-contract-node"]' > /tmp/rescue-checks.json
+              ;;
+          esac
 
       - name: Emit sanitized execution receipt
         shell: bash
         env:
           REQUEST_ID: ${{ steps.request.outputs.request_id }}
           EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+          PROFILE: ${{ steps.request.outputs.profile }}
         run: |
           set -euo pipefail
           cd /tmp/commerce-rescue
           python3 - <<'PY'
           import hashlib, json, os, platform
           from pathlib import Path
-          files = [
-            'src/stores/d1-experience-economy.ts',
-            'migrations/0012_first_dawn_payment_passport_hardening.sql',
-            'src/cloudflare-deployment-contract.ts',
-            'tests/first-dawn-hardening.test.mjs',
-          ]
+          profile = os.environ['PROFILE']
+          if profile == 'first-dawn-hardening':
+              files = [
+                  'src/stores/d1-experience-economy.ts',
+                  'migrations/0012_first_dawn_payment_passport_hardening.sql',
+                  'src/cloudflare-deployment-contract.ts',
+                  'tests/first-dawn-hardening.test.mjs',
+                  'probes/sqlite-first-dawn.py',
+              ]
+          elif profile == 'workers-builds-recovery-contract':
+              files = [
+                  'scripts/cloudflare/workers-builds-recovery.sh',
+                  'tests/workers-builds-recovery-contract.test.mjs',
+              ]
+          else:
+              raise SystemExit('receipt_profile_invalid')
           hashes = {}
           for name in files:
               data = Path(name).read_bytes()
               hashes[name] = 'sha256:' + hashlib.sha256(data).hexdigest()
+          checks = json.loads(Path('/tmp/rescue-checks.json').read_text())
           receipt = {
-              'schema': 'daube.commerce-ephemeral-rescue.v1',
+              'schema': 'daube.commerce-ephemeral-rescue.v2',
               'ok': True,
               'requestId': os.environ['REQUEST_ID'],
               'sourceRevision': os.environ['EXPECTED_SHA'],
+              'verificationProfile': profile,
               'executor': 'github-public-hosted-ubuntu',
               'runnerOs': platform.platform(),
               'privateSourcePublished': False,
               'secretsReceived': False,
               'productionMutationPerformed': False,
-              'checks': ['first-dawn-hardening-node', 'first-dawn-sqlite-behavior'],
+              'checks': checks,
               'files': hashes,
           }
           Path('/tmp/commerce-rescue-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

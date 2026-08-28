@@ -47,11 +47,36 @@ jobs:
             }
           }
           NODE
-      - name: Commit generated lockfile
+      - name: Emit content-addressed receipt
+        working-directory: lockgen/daube-web
+        run: |
+          LOCK_SHA256="$(sha256sum package-lock.json | awk '{print $1}')"
+          node -e "const fs=require('fs'); fs.writeFileSync('lock-receipt.json', JSON.stringify({schema:'daube.public-lock-receipt.v1', sourceCommit:process.env.GITHUB_SHA, node:process.version, lockfile:'package-lock.json', sha256:process.env.LOCK_SHA256, cleanNpmCiPassed:true, exactDirectRangesPassed:true}, null, 2)+'\n')" 
+        env:
+          LOCK_SHA256: ${{ env.LOCK_SHA256 }}
+      - name: Normalize receipt digest
+        working-directory: lockgen/daube-web
+        run: |
+          LOCK_SHA256="$(sha256sum package-lock.json | awk '{print $1}')"
+          node - <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const lock = fs.readFileSync('package-lock.json');
+          const receipt = {
+            schema: 'daube.public-lock-receipt.v1',
+            lockfile: 'package-lock.json',
+            sha256: crypto.createHash('sha256').update(lock).digest('hex'),
+            cleanNpmCiPassed: true,
+            exactDirectRangesPassed: true,
+            source: 'daubesonntag-dotcom/daube-public-release:lockgen/daube-web-20260829'
+          };
+          fs.writeFileSync('lock-receipt.json', JSON.stringify(receipt, null, 2) + '\n');
+          NODE
+      - name: Commit generated lockfile and receipt
         run: |
           git config user.name 'D-AUBE Lockfile Forge'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add lockgen/daube-web/package-lock.json
+          git add lockgen/daube-web/package-lock.json lockgen/daube-web/lock-receipt.json
           git diff --cached --quiet && exit 0
-          git commit -m 'lockgen: materialize daube-web package-lock'
+          git commit -m 'lockgen: materialize daube-web package-lock receipt'
           git push origin HEAD:lockgen/daube-web-20260829

@@ -1,0 +1,90 @@
+name: D'AUBE Automation Sprint Preflight
+
+on:
+  push:
+    branches:
+      - feat/automation-sprint-live-intake-v1-20260829
+    paths:
+      - 'automation-sprint/**'
+      - 'assets/automation-sprint-v2.js'
+      - 'scripts/build-canonical-dawn-pages.mjs'
+      - '.github/workflows/automation-sprint-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-sprint-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Build canonical projection and require live lead runtime
+        run: node scripts/build-canonical-dawn-pages.mjs
+
+      - name: Start local preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4181 --bind 127.0.0.1 >/tmp/automation-sprint-http.log 2>&1 &
+          echo $! >/tmp/automation-sprint-http.pid
+          for _ in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:4181/automation-sprint/ >/dev/null && exit 0
+            sleep .2
+          done
+          exit 1
+
+      - name: Re-run canonical browser gate
+        run: node scripts/verify-canonical-dawn.mjs
+
+      - name: Enforce canonical quality score >=95
+        run: node scripts/canonical-dawn-quality-score.mjs
+
+      - name: Verify Automation Sprint public contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent http://127.0.0.1:4181/automation-sprint/ -o /tmp/sprint.html
+          curl --fail --silent http://127.0.0.1:4181/assets/automation-sprint-v2.js -o /tmp/sprint.js
+          grep -Fq 'DAUBE-AUTOMATION-SPRINT-V1' /tmp/sprint.html
+          grep -Fq 'No payment is created by this form.' /tmp/sprint.html
+          grep -Fq 'from US$149' /tmp/sprint.html
+          grep -Fq 'from €139' /tmp/sprint.html
+          grep -Fq 'from 2,900,000 VND' /tmp/sprint.html
+          grep -Fq 'consent_to_contact' /tmp/sprint.html
+          grep -Fq 'daube-money-first-lead' /tmp/sprint.js
+          grep -Fq 'paymentCreated: false' /tmp/sprint.js
+          grep -Fq 'revenueRecorded: false' /tmp/sprint.js
+          grep -Fq 'daube:money-offer-qualification-submitted' /tmp/sprint.js
+          ! grep -Eiq '(service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_|webhook_secret)' /tmp/sprint.html /tmp/sprint.js
+
+      - name: Verify live qualified-lead health truth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-money-first-lead/health \
+            -o /tmp/lead-health.json
+          jq -e '.ok == true and .status == "READY" and .offerId == "DAUBE-AUTOMATION-SPRINT-V1" and .directPublicTableAccess == false and .paymentCreatedByThisEndpoint == false and .revenueRecordedByThisEndpoint == false' /tmp/lead-health.json >/dev/null
+
+      - name: Upload bounded evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: automation-sprint-preflight-evidence
+          path: artifacts/canonical-dawn/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Stop preview
+        if: always()
+        run: kill "$(cat /tmp/automation-sprint-http.pid)" 2>/dev/null || true

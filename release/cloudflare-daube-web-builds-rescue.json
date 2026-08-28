@@ -1,0 +1,9 @@
+{
+  "schema": "daube.cloudflare-web-builds-rescue-request.v1",
+  "requestId": "dawn-clarity-d3610db3-20260829-0534",
+  "repository": "daubesonntag-dotcom/daube-web",
+  "expectedSha": "d3610db36cea001edbc6d7dab2088fbdb50ab3f3",
+  "workerName": "daube-sonntag-web",
+  "mutationApproved": true,
+  "zeroSpendOnly": true
+}

@@ -1,5 +1,5 @@
 {
-  "schema": "daube.direct-vietqr-canary-plan.v2",
+  "schema": "daube.direct-vietqr-canary-plan.v3",
   "commerceCandidateSha": "c98b3f9551fda159a1b85035edfcd06e3df5218f",
   "commerceSourceTreeEquivalentTo": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
   "runtime": {
@@ -8,7 +8,6 @@
     "function": "daube-founder-smoke-checkout",
     "functionVersion": 3,
     "functionDigest": "f2a63c7411ce2f3a6c8a56fd86f5eacf345d43ad3031890a96039a6229c88da6",
-    "verifyJwt": false,
     "externalReadbackStatus": 200,
     "externalReadbackContentType": "image/svg+xml; charset=utf-8",
     "exactAmountVisible": true,
@@ -25,8 +24,6 @@
     "publicCode": "DS-5AD61772",
     "paymentReference": "DS5AD61772",
     "amountMinor": 49000,
-    "status": "awaiting_payment",
-    "paymentState": "pending",
     "source": "founder-smoke-edge-v3"
   },
   "autofill": {
@@ -37,19 +34,29 @@
     "manualAmountEntryRequired": false,
     "manualReferenceEntryRequired": false
   },
-  "founderTechnicalCanary": {
-    "payerClass": "founder_test",
-    "maxAmountMinor": 50000,
-    "provesIndependentCustomerDemand": false,
-    "provesRevenueOnlyAfterAuthoritativeSettlementAndReconciliation": true
+  "technicalTransferEvidence": {
+    "runtimeReceiptId": "f19d9603-329c-4c2e-899b-a516aff44a98",
+    "amountVnd": 49000,
+    "amountMatched": true,
+    "paymentReferenceMatched": true,
+    "occurredAt": "2026-08-28T19:52:00+07:00",
+    "sourceArtifactSha256": "a23ef41f5acde78671d54961172ea8eb79e22c3cb48b69f8628bca703353b472",
+    "verificationScope": "artifact_and_order_match_only",
+    "bankAuthoritativeApiVerified": false
   },
-  "secretMaterialStoredHere": false,
-  "paymentAuthorizedByThisPlan": false,
-  "moneyMovementPerformedByThisPlan": false,
+  "truth": {
+    "payerClass": "founder_test",
+    "relatedParty": true,
+    "founderOriginated": true,
+    "canonicalCustomerSettlementPromoted": false,
+    "customerRevenueCountable": false,
+    "independentCustomerDemandProven": false,
+    "bankSecretsStoredInGit": false,
+    "receiptImageStoredInGit": false
+  },
   "legacyCircleCiBlockingForThisCanary": false,
-  "legacyCircleCiState": "EXECUTOR_INCIDENT_NON_CANONICAL_FOR_FOUNDER_CANARY",
-  "currentState": "READY_FOR_FOUNDER_PAYMENT",
-  "founderAction": "TRANSFER_ONLY",
-  "nextAutomaticStep": "WAIT_FOR_AUTHORITATIVE_SETTLEMENT_EVIDENCE",
-  "founderReservedStep": "REAL_PAYMENT_OR_REFUND_MONEY_MOVEMENT"
+  "currentState": "TECHNICAL_SETTLEMENT_PROOF",
+  "terminalState": "DONE_EVIDENCED",
+  "founderAction": "NONE",
+  "nextAutomaticStep": "AWAIT_INDEPENDENT_CUSTOMER_FOR_REVENUE_PROVEN"
 }

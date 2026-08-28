@@ -1,0 +1,20 @@
+{
+  "schema": "daube.commerce-resource-farm-bridge-rescue.v1",
+  "ok": true,
+  "requestId": "farmbridge-20260829-0126",
+  "sourceRevision": "7bf4e2bca1b6b11f3cb54026b290996bcd126848",
+  "verificationProfile": "resource-farm-integration-v1",
+  "executor": "github-public-hosted-ubuntu",
+  "runnerOs": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "privateSourcePublished": false,
+  "secretsReceived": false,
+  "productionMutationPerformed": false,
+  "checks": [
+    "typescript-5.8.3-strict",
+    "resource-farm-integration-node-tests"
+  ],
+  "files": {
+    "src/resource-farm-integration.ts": "sha256:d5fa8db5b3d197878ac68e89dfb91c1635b27361d446afe40939431926777e34",
+    "tests/resource-farm-integration.test.mjs": "sha256:2273a17993a042c6991c24b48e313cc32319e1da0414fb9140a8c5b06367fa1d"
+  }
+}

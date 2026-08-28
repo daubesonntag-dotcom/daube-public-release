@@ -13,6 +13,7 @@ if (!Number.isInteger(expectedSupabase) || expectedSupabase < 1 || expectedSupab
 if (!Number.isInteger(requested) || requested < 250_000) fail('requested_work_invalid');
 
 const plan = readJson(path.join(evidenceDir, 'plan.json'));
+const ecology = readJson(path.join(evidenceDir, 'ecology.json'));
 const github = fs.readdirSync(evidenceDir)
   .filter((name) => /^github-\d+\.json$/.test(name))
   .sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0))
@@ -28,9 +29,24 @@ const all = [...github, ...supabase];
 if (!all.every((r) => r.paidSpendAuthorized === false)) fail('paid_spend_forbidden');
 if (!all.every((r) => r.privateAssetsUsed === false)) fail('private_assets_forbidden');
 
+const ecologySystems = Array.isArray(ecology?.systems) ? ecology.systems : [];
+const ecologyAdmitted = Boolean(
+  plan?.ecologyGate?.admitted === true &&
+  ecology?.schema === 'daube.resource-farm-ecology-runtime.v1' &&
+  ecology?.status === 'GREEN' &&
+  Number(ecology?.score) >= 95 &&
+  ecology?.control?.actuatorAdmitted === true &&
+  ecology?.guardrails?.paidSpendAuthorized === false &&
+  ecology?.guardrails?.automaticPrivilegeExpansion === false &&
+  ecology?.guardrails?.newOAuthRequired === false &&
+  ecologySystems.length === 10 &&
+  ecologySystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95)
+);
+if (!ecologyAdmitted) fail('ecology_admission_missing_or_blocked');
+
 const total = all.reduce((sum, r) => sum + Number(r.workUnits || 0), 0);
 const families = [...new Set(all.map((r) => r.providerFamily))].sort();
-const admitted = families.length === 2 && total >= requested;
+const admitted = ecologyAdmitted && families.length === 2 && total >= requested;
 const feedbackSeen = Boolean(plan?.feedback?.previousReceiptSeen);
 
 const receipt = {
@@ -50,6 +66,19 @@ const receipt = {
     supabaseReplicas: plan.supabaseReplicas,
     capacityWorkUnits: plan.capacityWorkUnits,
   },
+  ecologyAdmission: {
+    enforced: true,
+    admitted: ecologyAdmitted,
+    status: ecology.status,
+    score: Number(ecology.score),
+    minimumScore: 95,
+    systemCount: ecologySystems.length,
+    allSystemsGreen: ecologySystems.every((system) => system?.status === 'GREEN' && Number(system?.score) >= 95),
+    paidSpendAuthorized: ecology.guardrails.paidSpendAuthorized,
+    automaticPrivilegeExpansion: ecology.guardrails.automaticPrivilegeExpansion,
+    newOAuthRequired: ecology.guardrails.newOAuthRequired,
+    observedAt: ecology.observedAt ?? null,
+  },
   feedback: plan.feedback ?? {},
   feedbackClosedLoopObserved: admitted && feedbackSeen,
   providerExecutionDispatchClosedLoopProven: admitted && feedbackSeen,
@@ -57,7 +86,7 @@ const receipt = {
   providerCapacityProvisioningClosedLoopProven: false,
   paidSpendAuthorized: false,
   privateAssetsUsed: false,
-  truthBoundary: 'Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.',
+  truthBoundary: 'Execution dispatch is proven across admitted ephemeral providers and requires Ecology GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.',
   observedAt: new Date().toISOString(),
 };
 

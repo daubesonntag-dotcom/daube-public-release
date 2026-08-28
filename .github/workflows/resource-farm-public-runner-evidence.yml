@@ -17,51 +17,77 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: resource-farm-public-runner-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  prove-public-runner:
+  parallel-producers:
+    name: producer-${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
-      - name: CPU compute receipt
+      - name: CPU production receipt
         shell: bash
+        env:
+          FARM_SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import hashlib, json, os, platform, time
-          started=time.time()
+          shard=int(os.environ['FARM_SHARD'])
+          work_units=250000
+          started=time.perf_counter()
           digest=hashlib.sha256()
-          for i in range(250000):
-              digest.update(f'daube-farm-{i}'.encode())
+          for i in range(work_units):
+              digest.update(f'daube-farm-{shard}-{i}'.encode())
+          elapsed=max(time.perf_counter()-started, 1e-9)
           receipt={
-            'schema':'daube.resource-farm-ci-compute-receipt.v1',
+            'schema':'daube.resource-farm-parallel-producer-receipt.v2',
             'resourceClasses':['compute','ci-build'],
             'backend':'github-hosted-linux-cpu',
+            'shard':shard,
             'runnerOS':platform.system(),
             'arch':platform.machine(),
             'cpuCount':os.cpu_count(),
+            'workUnits':work_units,
+            'workUnitsPerSecond':round(work_units/elapsed,2),
+            'latencyMs':round(elapsed*1000,2),
             'sha256':digest.hexdigest(),
-            'latencyMs':round((time.time()-started)*1000,2),
             'paidSpendAuthorized':False,
             'privateAssetsUsed':False,
           }
           print(json.dumps(receipt, sort_keys=True))
           assert receipt['runnerOS']=='Linux'
           assert receipt['cpuCount'] and receipt['cpuCount'] >= 1
+          assert receipt['workUnitsPerSecond'] > 0
           PY
 
-      - name: Compiler and executable receipt
+      - name: Compiler production receipt
         shell: bash
+        env:
+          FARM_SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
           cat >/tmp/farm_canary.c <<'C'
           #include <stdio.h>
-          int main(void){ unsigned long x=2166136261u; for(unsigned long i=0;i<100000;i++){x^=i;x*=16777619u;} printf("FARM_COMPILED_OK:%lu\n",x); return 0; }
+          #include <stdlib.h>
+          int main(int argc, char **argv){ unsigned long s=(argc>1)?strtoul(argv[1],0,10):0; unsigned long x=2166136261u+s; for(unsigned long i=0;i<100000;i++){x^=(i+s);x*=16777619u;} printf("FARM_COMPILED_OK:%lu:%lu\n",s,x); return 0; }
           C
           gcc -O2 /tmp/farm_canary.c -o /tmp/farm_canary
-          /tmp/farm_canary | tee /tmp/farm_compiler_receipt.txt
-          grep -q '^FARM_COMPILED_OK:' /tmp/farm_compiler_receipt.txt
+          /tmp/farm_canary "$FARM_SHARD" | tee /tmp/farm_compiler_receipt.txt
+          grep -q "^FARM_COMPILED_OK:${FARM_SHARD}:" /tmp/farm_compiler_receipt.txt
 
-      - name: Headless browser receipt
+  browser-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Headless browser production receipt
         shell: bash
         run: |
           set -euo pipefail
@@ -69,9 +95,9 @@ jobs:
           test -n "$CHROME"
           cat >/tmp/farm-browser.html <<'HTML'
           <!doctype html><html><body><div id="result">boot</div><script>
-          const values=new Uint32Array(4096); for(let i=0;i<values.length;i++) values[i]=(i*2654435761)>>>0;
+          const values=new Uint32Array(16384); for(let i=0;i<values.length;i++) values[i]=(i*2654435761)>>>0;
           let x=0; for(const v of values) x=(x^v)>>>0;
-          document.getElementById('result').textContent='FARM_BROWSER_OK:'+navigator.userAgent+':'+x;
+          document.getElementById('result').textContent='FARM_BROWSER_OK:'+navigator.userAgent+':'+values.length+':'+x;
           </script></body></html>
           HTML
           python3 -m http.server 8765 --directory /tmp >/tmp/farm-http.log 2>&1 &
@@ -81,3 +107,33 @@ jobs:
           "$CHROME" --headless --no-sandbox --disable-gpu --dump-dom http://127.0.0.1:8765/farm-browser.html | tee /tmp/farm-browser-receipt.html
           grep -q 'FARM_BROWSER_OK:' /tmp/farm-browser-receipt.html
           echo "browser_binary=$CHROME"
+
+  harvest-summary:
+    if: always()
+    needs: [parallel-producers, browser-canary]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Assert herd health and declared production
+        shell: bash
+        env:
+          PRODUCERS_RESULT: ${{ needs.parallel-producers.result }}
+          BROWSER_RESULT: ${{ needs.browser-canary.result }}
+        run: |
+          set -euo pipefail
+          test "$PRODUCERS_RESULT" = success
+          test "$BROWSER_RESULT" = success
+          python3 - <<'PY'
+          import json, os
+          receipt={
+            'schema':'daube.resource-farm-harvest-summary.v2',
+            'parallelProducerReplicas':4,
+            'declaredCpuWorkUnits':1000000,
+            'browserWorkUnits':16384,
+            'producerResult':os.environ['PRODUCERS_RESULT'],
+            'browserResult':os.environ['BROWSER_RESULT'],
+            'paidSpendAuthorized':False,
+            'privateAssetsUsed':False,
+          }
+          print(json.dumps(receipt, sort_keys=True))
+          PY

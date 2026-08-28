@@ -1,36 +1,62 @@
 (() => {
   const API = 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-storefront-api';
   const ORDER_KEY = 'daube-storefront-order-v2';
+  const CURRENCY_KEY = 'daube-storefront-display-currency-v1';
+  const USD_REFERENCE_VND = 26100;
   let catalog = [];
   let selected = null;
+  let displayCurrency = (() => {
+    try {
+      return localStorage.getItem(CURRENCY_KEY) === 'VND' ? 'VND' : 'USD';
+    } catch {
+      return 'USD';
+    }
+  })();
 
   const $ = (id) => document.getElementById(id);
   const text = (value) => String(value ?? '').trim();
-  const money = (amount) => `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(amount || 0))} VND`;
+
+  function moneyVnd(amount) {
+    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Number(amount || 0))} VND`;
+  }
+
+  function moneyUsdEquivalent(amountVnd) {
+    const value = Number(amountVnd || 0) / USD_REFERENCE_VND;
+    const digits = value >= 50 ? 0 : value >= 10 ? 1 : 2;
+    return `US$${new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits,
+    }).format(value)}`;
+  }
+
+  function displayMoney(product) {
+    const amount = Number(product?.price?.amountMinor || 0);
+    return displayCurrency === 'VND' ? moneyVnd(amount) : moneyUsdEquivalent(amount);
+  }
 
   const COLLECTIONS = [
     {
       id: 'infrastructure',
       title: 'Infrastructure & Operations',
-      description: 'Architecture, orchestration and integration services for organizations that need complex systems to work together clearly.',
+      description: 'Architecture, orchestration and integration for teams that need complex systems to become simpler to run.',
       matches: (product) => ['farm-orchestration-audit-v1', 'farm-orchestration-build-v1', 'resource-ecosystem-integration-v1'].includes(product.slug),
     },
     {
       id: 'business',
       title: 'Business Tools & Growth',
-      description: 'Practical tools and specialist support for planning, reporting, pricing, shop operations and discoverability.',
+      description: 'Focused tools and specialist support for planning, reporting, pricing, launch operations and discoverability.',
       matches: (product) => ['money-map-salary-budget', 'office-followup-report-pack', 'micro-shop-launch-system', 'shop-profit-pricing-calculator', 'managed-seo-diagnostic'].includes(product.slug),
     },
     {
       id: 'gifting',
       title: 'Gifting & Personal Services',
-      description: 'Guided creative support for messages, meaningful gifts, urgent occasions and shared gifting decisions.',
+      description: 'Creative support for messages, meaningful gifts, urgent occasions and group decisions.',
       matches: (product) => product.slug.startsWith('gift-') || product.slug === 'group-gift-planner',
     },
     {
       id: 'experimental',
       title: 'Experimental Studio',
-      description: 'Deliberately unconventional service formats for difficult decisions, unfinished work, wasted capacity and problems that benefit from a different angle.',
+      description: 'Unconventional service formats for difficult decisions, unfinished work, wasted capacity and problems that need a different angle.',
       matches: (product) => product.slug.startsWith('paradox-'),
     },
   ];
@@ -94,10 +120,6 @@
   function renderCollectionHeading(grid, collection) {
     const heading = document.createElement('header');
     heading.className = 'catalogGroupHeading';
-    heading.style.gridColumn = '1 / -1';
-    heading.style.padding = '34px 8px 18px';
-    heading.style.background = '#f5f2e9';
-    heading.style.borderTop = '1px solid rgba(37,39,34,.12)';
 
     const kicker = document.createElement('p');
     kicker.className = 'storeKicker';
@@ -105,10 +127,6 @@
 
     const description = document.createElement('p');
     description.textContent = collection.description;
-    description.style.maxWidth = '760px';
-    description.style.margin = '0';
-    description.style.lineHeight = '1.65';
-    description.style.color = '#5a6057';
 
     heading.append(kicker, description);
     grid.append(heading);
@@ -127,12 +145,16 @@
     title.textContent = product.name;
 
     const copy = document.createElement('p');
-    copy.textContent = product.subtitle || product.description || 'A practical D’AUBE product or service.';
+    copy.textContent = product.subtitle || product.description || 'A focused D’AUBE product or service.';
 
     const bottom = document.createElement('div');
     bottom.className = 'catalogBottom';
     const price = document.createElement('strong');
-    price.textContent = money(product.price?.amountMinor);
+    price.textContent = displayMoney(product);
+    price.title = displayCurrency === 'USD'
+      ? `USD display equivalent using a reference rate of ${moneyVnd(USD_REFERENCE_VND)} per US$1. Local bank settlement remains in VND.`
+      : 'Exact local catalog amount in VND.';
+
     const link = document.createElement('a');
     link.href = productLink(product);
     link.textContent = 'View details →';
@@ -146,7 +168,7 @@
     const grid = $('catalog-grid');
     if (!grid) return;
     if (!catalog.length) {
-      grid.innerHTML = '<p class="errorState">No offers are available right now. Please check again shortly.</p>';
+      grid.innerHTML = '<p class="errorState">The catalog is temporarily unavailable. Please try again shortly.</p>';
       return;
     }
 
@@ -167,14 +189,15 @@
     if (remaining.length) {
       renderCollectionHeading(grid, {
         title: 'More from D’AUBE',
-        description: 'Additional approved offers that do not yet belong to a dedicated collection.',
+        description: 'Additional approved offers awaiting a dedicated collection.',
       });
       remaining.forEach((product) => renderProductCard(grid, product, 'other'));
     }
   }
 
-  function chooseProduct(slug, { scroll = false } = {}) {
+  function chooseProduct(slug, { scroll = false, updateUrl = true } = {}) {
     selected = catalog.find((item) => item.slug === slug)
+      || selected
       || catalog.find((item) => item.featured)
       || catalog[0]
       || null;
@@ -187,12 +210,17 @@
     $('product-name').textContent = selected.name;
     $('product-subtitle').textContent = selected.subtitle || '';
     $('product-description').textContent = selected.description || '';
-    $('product-price').textContent = money(selected.price?.amountMinor);
-    $('product-meta').textContent = `${offerType(selected)} · One-time price`;
+    $('product-price').textContent = displayMoney(selected);
+    $('product-currency-note').textContent = displayCurrency === 'USD'
+      ? 'USD display equivalent · local settlement in VND'
+      : 'Exact local catalog amount';
+    $('product-meta').textContent = `${offerType(selected)} · One-time offer`;
 
-    const url = new URL(location.href);
-    url.searchParams.set('product', selected.slug);
-    history.replaceState({}, '', `${url.pathname}?${url.searchParams.toString()}`);
+    if (updateUrl) {
+      const url = new URL(location.href);
+      url.searchParams.set('product', selected.slug);
+      history.replaceState({}, '', `${url.pathname}?${url.searchParams.toString()}`);
+    }
 
     if (scroll) {
       section.scrollIntoView({
@@ -200,6 +228,24 @@
         block: 'start',
       });
     }
+  }
+
+  function applyCurrency(nextCurrency) {
+    displayCurrency = nextCurrency === 'VND' ? 'VND' : 'USD';
+    try { localStorage.setItem(CURRENCY_KEY, displayCurrency); } catch {}
+
+    const usd = $('currency-usd');
+    const vnd = $('currency-vnd');
+    if (usd && vnd) {
+      const usdActive = displayCurrency === 'USD';
+      usd.classList.toggle('isActive', usdActive);
+      vnd.classList.toggle('isActive', !usdActive);
+      usd.setAttribute('aria-pressed', String(usdActive));
+      vnd.setAttribute('aria-pressed', String(!usdActive));
+    }
+
+    renderCatalog();
+    if (selected) chooseProduct(selected.slug, { updateUrl: false });
   }
 
   async function copyValue(value, button) {
@@ -239,7 +285,7 @@
 
     panel.hidden = false;
     $('payment-title').textContent = `Order ${receipt.order.publicCode}`;
-    $('payment-summary').textContent = `Pay exactly ${money(receipt.payment.amountVnd)} using transfer reference ${receipt.payment.reference || receipt.order.publicCode}. Before confirming the transfer, verify the beneficiary shown in your banking app.`;
+    $('payment-summary').textContent = `Local settlement amount: ${moneyVnd(receipt.payment.amountVnd)}. Use transfer reference ${receipt.payment.reference || receipt.order.publicCode} and verify the beneficiary in your banking app before confirming.`;
 
     const qrHost = $('payment-qr');
     qrHost.replaceChildren();
@@ -252,7 +298,7 @@
 
       const image = document.createElement('img');
       image.src = qrDataUrl;
-      image.alt = `VietQR for order ${receipt.order.publicCode}, amount ${money(receipt.payment.amountVnd)}`;
+      image.alt = `Local bank QR for order ${receipt.order.publicCode}, amount ${moneyVnd(receipt.payment.amountVnd)}`;
       image.width = 420;
       image.height = 420;
       image.decoding = 'async';
@@ -260,13 +306,13 @@
       const copy = document.createElement('div');
       copy.className = 'paymentQrCopy';
       const badge = document.createElement('strong');
-      badge.textContent = 'DIRECT VIETQR · VND';
+      badge.textContent = 'LOCAL BANK TRANSFER · VIETQR';
       const steps = document.createElement('ol');
       [
         'Open a banking app that supports VietQR.',
         'Scan the code and verify the beneficiary.',
-        `Confirm the exact amount ${money(receipt.payment.amountVnd)} and transfer reference ${receipt.payment.reference}.`,
-        'After payment, return to Order status. D’AUBE updates the order after bank verification.',
+        `Confirm the exact amount ${moneyVnd(receipt.payment.amountVnd)} and transfer reference ${receipt.payment.reference}.`,
+        'Return to Order status after payment. D’AUBE updates the order only after bank verification.',
       ].forEach((value) => {
         const li = document.createElement('li');
         li.textContent = value;
@@ -285,7 +331,7 @@
     paymentDetail(details, 'Bank', text(receipt.payment.bankName));
     paymentDetail(details, 'Account number', text(receipt.payment.accountNumber), { copy: true });
     paymentDetail(details, 'Beneficiary', text(receipt.payment.beneficiaryName));
-    paymentDetail(details, 'Amount', money(receipt.payment.amountVnd));
+    paymentDetail(details, 'Settlement amount', moneyVnd(receipt.payment.amountVnd));
     paymentDetail(details, 'Transfer reference', text(receipt.payment.reference || receipt.order.publicCode), { copy: true });
     paymentDetail(details, 'Payment status', 'Awaiting verification');
 
@@ -298,11 +344,14 @@
   async function loadCatalog() {
     const payload = await api('/products');
     catalog = Array.isArray(payload.products) ? payload.products : [];
-    renderCatalog();
+    applyCurrency(displayCurrency);
     const requested = new URLSearchParams(location.search).get('product');
     chooseProduct(requested || catalog.find((item) => item.featured)?.slug || catalog[0]?.slug || '');
     document.querySelector('.storeShell')?.setAttribute('data-storefront-state', 'ready');
   }
+
+  $('currency-usd')?.addEventListener('click', () => applyCurrency('USD'));
+  $('currency-vnd')?.addEventListener('click', () => applyCurrency('VND'));
 
   $('catalog-grid')?.addEventListener('click', (event) => {
     const anchor = event.target.closest('a');
@@ -321,7 +370,7 @@
     error.hidden = true;
 
     if (!selected) {
-      error.textContent = 'Please select an offer before creating an order.';
+      error.textContent = 'Please select an offer before continuing.';
       error.hidden = false;
       return;
     }
@@ -339,7 +388,7 @@
 
     const submit = $('order-submit');
     submit.disabled = true;
-    submit.textContent = 'Preparing your order…';
+    submit.textContent = 'Preparing local payment…';
 
     try {
       const idempotencyKey = `web-${crypto.randomUUID()}`;
@@ -371,14 +420,14 @@
         email_invalid: 'Please check the email address and try again.',
         phone_invalid: 'Please check the phone number and try again.',
         rate_limited: 'Too many requests were made in a short period. Please try again in a few minutes.',
-        payment_rail_unavailable: 'VND checkout is temporarily unavailable. No payment has been created.',
-        direct_vietqr_bank_unmapped: 'VietQR is temporarily unavailable for the receiving bank. No payment has been created.',
+        payment_rail_unavailable: 'Local checkout is temporarily unavailable. No payment has been created.',
+        direct_vietqr_bank_unmapped: 'Local bank QR is temporarily unavailable. No payment has been created.',
       };
       error.textContent = messages[code] || 'We could not create this order right now. No payment has been created.';
       error.hidden = false;
     } finally {
       submit.disabled = false;
-      submit.textContent = 'Create order & get VietQR';
+      submit.textContent = 'Continue to local bank payment';
     }
   });
 
@@ -407,16 +456,17 @@
         }),
       });
       const order = payload.order;
-      const amount = order.payment_amount_vnd ? ` · ${money(order.payment_amount_vnd)}` : '';
+      const amount = order.payment_amount_vnd ? ` · settlement ${moneyVnd(order.payment_amount_vnd)}` : '';
       target.textContent = `${order.public_code} · ${orderStateLabel(order.status)} · ${paymentStateLabel(order.payment_state)}${amount}`;
     } catch {
-      target.textContent = 'We could not find an order matching that code and contact information.';
+      target.textContent = 'No matching order was found for that code and contact information.';
     }
   });
 
+  applyCurrency(displayCurrency);
   loadCatalog().catch(() => {
     const grid = $('catalog-grid');
-    if (grid) grid.innerHTML = '<p class="errorState">We could not load the store right now. Please try again shortly.</p>';
+    if (grid) grid.innerHTML = '<p class="errorState">The store is temporarily unavailable. Please try again shortly.</p>';
     document.querySelector('.storeShell')?.setAttribute('data-storefront-state', 'degraded');
   });
 })();

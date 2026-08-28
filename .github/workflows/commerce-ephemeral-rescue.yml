@@ -22,7 +22,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f release/commerce-rescue/request.json
+          if [[ ! -f release/commerce-rescue/request.json ]]; then
+            echo 'pending=false' >> "$GITHUB_OUTPUT"
+            {
+              echo '## Commerce rescue'
+              echo 'NO_PENDING_RESCUE_REQUEST'
+              echo '- Cleanup / post-completion push detected; no private source was requested.'
+              echo '- No encryption identity, payload wait, decryption, verification or mutation was attempted.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           request_id="$(jq -r '.requestId' release/commerce-rescue/request.json)"
           expected_sha="$(jq -r '.expectedSha' release/commerce-rescue/request.json)"
           profile="$(jq -r '.verificationProfile' release/commerce-rescue/request.json)"
@@ -32,11 +42,13 @@ jobs:
             first-dawn-hardening|workers-builds-recovery-contract) ;;
             *) echo '::error::unsupported rescue verification profile'; exit 70 ;;
           esac
+          echo 'pending=true' >> "$GITHUB_OUTPUT"
           echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
           echo "profile=$profile" >> "$GITHUB_OUTPUT"
 
       - name: Generate one-run encryption identity
+        if: steps.request.outputs.pending == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,6 +73,7 @@ jobs:
           echo "RECIPIENT_READY ${REQUEST_ID}"
 
       - name: Await encrypted exact-SHA payload
+        if: steps.request.outputs.pending == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -83,6 +96,7 @@ jobs:
           [[ "$found" == "1" ]] || { echo '::error::encrypted payload not received'; exit 71; }
 
       - name: Decrypt and verify private commerce bundle
+        if: steps.request.outputs.pending == 'true'
         shell: bash
         env:
           EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
@@ -120,6 +134,7 @@ jobs:
           esac
 
       - name: Emit sanitized execution receipt
+        if: steps.request.outputs.pending == 'true'
         shell: bash
         env:
           REQUEST_ID: ${{ steps.request.outputs.request_id }}
@@ -171,6 +186,7 @@ jobs:
           PY
 
       - uses: actions/upload-artifact@v4
+        if: steps.request.outputs.pending == 'true'
         with:
           name: commerce-ephemeral-rescue-${{ steps.request.outputs.request_id }}
           path: /tmp/commerce-rescue-receipt.json
@@ -178,7 +194,7 @@ jobs:
           retention-days: 7
 
       - name: Publish sanitized receipt to release channel
-        if: success()
+        if: ${{ steps.request.outputs.pending == 'true' && success() }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -193,3 +209,11 @@ jobs:
             -f message="ci(rescue): publish sanitized receipt ${REQUEST_ID}" \
             -f content="$body_b64" \
             -f branch="$GITHUB_REF_NAME" >/dev/null
+
+      - name: Destroy ephemeral rescue material
+        if: ${{ always() && steps.request.outputs.pending == 'true' }}
+        shell: bash
+        run: |
+          rm -rf /tmp/commerce-rescue /tmp/commerce-bundle.tar.gz /tmp/payload.cms \
+            /tmp/payload-text.b64 /tmp/github-content.b64 /tmp/rescue-private.pem \
+            /tmp/rescue-cert.pem /tmp/commerce-rescue-receipt.json /tmp/rescue-checks.json

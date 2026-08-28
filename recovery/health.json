@@ -1,17 +1,31 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "ok": true,
   "ready": true,
   "canonical": false,
   "publicRecovery": true,
   "deploymentTarget": "github-public-repo-recovery-artifact",
-  "controlPlaneRevision": "2e74f16493d737d842d7719460e9e2b67fd9772e",
-  "siteBaseRevision": "db3cd86a470bd9c6a32cf239ca16698037753f38",
+  "releaseRevision": "754e4f26bf19de2763abebeed783cdf300444d26",
+  "qualityEvidenceRevision": "b931c3770fd5b2358ec8700f09ebbe21a98905ad",
+  "qualityScore": 100,
+  "qualityThreshold": 95,
+  "qualityStatus": "GREEN",
+  "browserEvidence": {
+    "ok": true,
+    "runId": 33219245951,
+    "artifactId": 9704541441,
+    "artifactDigest": "sha256:1d4939ce87d0bd2884626294c1647a104d423398bc8c25852b489d54139f10d2",
+    "desktop": "1440x900 PASS",
+    "mobileReducedMotion": "390x844 PASS"
+  },
   "checks": {
     "sourceRevisionBound": true,
     "staticArtifact": true,
     "noSecretDependency": true,
-    "noDnsMutation": true
+    "noDnsMutation": true,
+    "accessibilityBrowserChecked": true,
+    "reducedMotionChecked": true,
+    "truthBoundaryPreserved": true
   },
-  "truthBoundary": "This artifact is a temporary public recovery surface. Its existence does not prove GitHub Pages enablement, daubesonntag.com DNS cutover, sovereign VM activation, or canonical production representation."
+  "truthBoundary": "This is an evidence-backed public recovery surface. GREEN proves the bounded recovery source, interaction, browser and visual-system contract. It does not prove daubesonntag.com canonical apex cutover, Cloudflare credential availability, commercial conversion, sovereign VM activation, or final sovereign production admission."
 }

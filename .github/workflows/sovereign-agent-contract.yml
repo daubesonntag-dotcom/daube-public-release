@@ -28,6 +28,32 @@ jobs:
           set -euo pipefail
           python3 -m py_compile farm/sovereign-agent/direct-agent.py
           bash -n farm/sovereign-agent/install.sh
+          bash -n farm/sovereign-agent/install-termux.sh
+      - name: Runtime-kind contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import importlib.util, os
+          from pathlib import Path
+          path=Path('farm/sovereign-agent/direct-agent.py')
+          spec=importlib.util.spec_from_file_location('agent_kind',path)
+          agent=importlib.util.module_from_spec(spec); spec.loader.exec_module(agent)
+          old_prefix=os.environ.get('PREFIX'); old_termux=os.environ.get('TERMUX_VERSION')
+          try:
+            os.environ['PREFIX']='/data/data/com.termux/files/usr'
+            os.environ.pop('TERMUX_VERSION',None)
+            assert agent.runtime_kind()=='android-termux'
+            os.environ['PREFIX']='/usr'
+            os.environ.pop('TERMUX_VERSION',None)
+            assert agent.runtime_kind()=='linux-host'
+          finally:
+            if old_prefix is None: os.environ.pop('PREFIX',None)
+            else: os.environ['PREFIX']=old_prefix
+            if old_termux is None: os.environ.pop('TERMUX_VERSION',None)
+            else: os.environ['TERMUX_VERSION']=old_termux
+          print('runtime-kind contracts: PASS')
+          PY
       - name: Anti-cloud classification contracts
         shell: bash
         run: |

@@ -22,6 +22,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # Editing the workflow itself must never restart an older outstanding
+          # request. A push-run becomes executable only when request.json changed;
+          # workflow_dispatch remains the explicit retry path.
+          if [[ "$GITHUB_EVENT_NAME" == 'push' ]]; then
+            request_changed="$(jq -r '
+              [(.commits[]? | ((.added // []) + (.modified // []) + (.removed // [])))[]?]
+              | any(. == "release/commerce-rescue/request.json")
+            ' "$GITHUB_EVENT_PATH")"
+            if [[ "$request_changed" != 'true' ]]; then
+              echo 'pending=false' >> "$GITHUB_OUTPUT"
+              {
+                echo '## Commerce rescue'
+                echo 'NO_REQUEST_EVENT'
+                echo '- Workflow-definition or unrelated push detected; an older request was not restarted.'
+                echo '- No encryption identity, payload wait, decryption, verification or mutation was attempted.'
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
           if [[ ! -f release/commerce-rescue/request.json ]]; then
             echo 'pending=false' >> "$GITHUB_OUTPUT"
             {
@@ -64,12 +85,18 @@ jobs:
           cert_b64="$(base64 -w0 /tmp/rescue-cert.pem)"
           body_b64="$(printf '%s' "$cert_b64" | base64 -w0)"
           key_path="release/commerce-rescue/${REQUEST_ID}/recipient-cert.b64"
-          gh api --method PUT \
-            -H 'Accept: application/vnd.github+json' \
+          existing_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${key_path}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/contents/${key_path}" \
             -f message="ci(rescue): publish ephemeral recipient ${REQUEST_ID}" \
             -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME" >/dev/null
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$existing_sha" ]]; then
+            args+=(-f sha="$existing_sha")
+          fi
+          gh api "${args[@]}" >/dev/null
           echo "RECIPIENT_READY ${REQUEST_ID}"
 
       - name: Await encrypted exact-SHA payload
@@ -203,12 +230,44 @@ jobs:
           set -euo pipefail
           receipt_path="release/commerce-rescue/${REQUEST_ID}/receipt.json"
           body_b64="$(base64 -w0 /tmp/commerce-rescue-receipt.json)"
-          gh api --method PUT \
-            -H 'Accept: application/vnd.github+json' \
+          existing_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${receipt_path}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
             "repos/${GITHUB_REPOSITORY}/contents/${receipt_path}" \
             -f message="ci(rescue): publish sanitized receipt ${REQUEST_ID}" \
             -f content="$body_b64" \
-            -f branch="$GITHUB_REF_NAME" >/dev/null
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$existing_sha" ]]; then
+            args+=(-f sha="$existing_sha")
+          fi
+          gh api "${args[@]}" >/dev/null
+
+      - name: Retire completed rescue request
+        if: ${{ steps.request.outputs.pending == 'true' && success() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+        run: |
+          set -euo pipefail
+          for path in \
+            "release/commerce-rescue/${REQUEST_ID}/payload.cms.b64" \
+            "release/commerce-rescue/${REQUEST_ID}/recipient-cert.b64" \
+            "release/commerce-rescue/request.json"; do
+            sha="$(gh api -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/contents/${path}?ref=${GITHUB_REF_NAME}" \
+              --jq '.sha' 2>/dev/null || true)"
+            if [[ -n "$sha" ]]; then
+              gh api --method DELETE \
+                -H 'Accept: application/vnd.github+json' \
+                "repos/${GITHUB_REPOSITORY}/contents/${path}" \
+                -f message="ci(rescue): retire completed request ${REQUEST_ID}" \
+                -f sha="$sha" \
+                -f branch="$GITHUB_REF_NAME" >/dev/null
+            fi
+          done
+          echo 'RESCUE_REQUEST_RETIRED' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Destroy ephemeral rescue material
         if: ${{ always() && steps.request.outputs.pending == 'true' }}

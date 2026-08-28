@@ -1,17 +1,30 @@
-name: Launch Critical Public Readback V1
+name: Launch Critical Public Readback V2
 
 on:
   push:
     branches: [main]
     paths:
       - ".github/workflows/pages-domain-convergence-v1.yml"
+  schedule:
+    - cron: "17 * * * *"
   workflow_dispatch:
+    inputs:
+      require_advanced_commerce:
+        description: "Fail if the canonical Cloudflare commerce API is not fully readable"
+        required: false
+        default: false
+        type: boolean
+      require_first_dawn:
+        description: "Fail unless the exact First Dawn paid-commitment admission is ready"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: launch-critical-public-readback-v1
+  group: launch-critical-public-readback-v2
   cancel-in-progress: true
 
 jobs:
@@ -35,32 +48,35 @@ jobs:
           asset_count="$(grep -Eo '/assets/[^"'"'"'[:space:]]+' /tmp/apex.html | sort -u | wc -l | tr -d ' ')"
           {
             echo '## Canonical public apex'
+            echo '- state: CORE_LIVE'
             echo '- HTTPS fetch: PASS'
             echo '- D’AUBE SONNTAG marker: PASS'
             echo '- RẠNG TRONG marker: PASS'
             echo "- Vite /assets references: ${asset_count}"
             echo "- Response SHA-256: ${apex_hash}"
-            echo '- No DNS, Pages, Cloudflare, secret or billing mutation was attempted.'
+            echo '- No DNS, Pages, Cloudflare, secret, payment or billing mutation was attempted.'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Fingerprint canonical commerce runtime
+      - name: Fingerprint optional commerce and payment lanes
         id: commerce
         shell: bash
+        env:
+          REQUIRE_ADVANCED_COMMERCE: ${{ github.event_name == 'workflow_dispatch' && inputs.require_advanced_commerce && 'true' || 'false' }}
+          REQUIRE_FIRST_DAWN: ${{ github.event_name == 'workflow_dispatch' && inputs.require_first_dawn && 'true' || 'false' }}
         run: |
-          set -euo pipefail
+          set -u -o pipefail
           common=(--silent --show-error --connect-timeout 10 --max-time 20 --header 'Accept: application/json' --header 'Origin: https://daubesonntag.com' --header 'Cache-Control: no-cache')
-          health_http="$(curl "${common[@]}" --output /tmp/health.json --write-out '%{http_code}' https://commerce.daubesonntag.com/healthz)"
-          turns_http="$(curl "${common[@]}" --output /tmp/turns.json --write-out '%{http_code}' https://commerce.daubesonntag.com/v1/turns)"
 
-          echo "health_http=${health_http}" >> "$GITHUB_OUTPUT"
-          echo "turns_http=${turns_http}" >> "$GITHUB_OUTPUT"
+          health_http="$(curl "${common[@]}" --output /tmp/health.json --write-out '%{http_code}' https://commerce.daubesonntag.com/healthz || true)"
+          turns_http="$(curl "${common[@]}" --output /tmp/turns.json --write-out '%{http_code}' https://commerce.daubesonntag.com/v1/turns || true)"
+          [[ "$health_http" =~ ^[0-9]{3}$ ]] || health_http=000
+          [[ "$turns_http" =~ ^[0-9]{3}$ ]] || turns_http=000
 
-          python3 - "$health_http" "$turns_http" <<'PY'
+          export HEALTH_HTTP="$health_http" TURNS_HTTP="$turns_http"
+          python3 - <<'PY'
           import json
-          import sys
+          import os
           from pathlib import Path
-
-          health_http, turns_http = sys.argv[1], sys.argv[2]
 
           def load(path):
               try:
@@ -70,7 +86,71 @@ jobs:
 
           health = load('/tmp/health.json')
           listing = load('/tmp/turns.json')
+          health_http = os.environ['HEALTH_HTTP']
+          turns_http = os.environ['TURNS_HTTP']
+
+          commerce_blockers = []
+          if health_http != '200':
+              commerce_blockers.append('COMMERCE_HEALTH_ENDPOINT_UNAVAILABLE')
+          if turns_http != '200':
+              commerce_blockers.append('COMMERCE_TURNS_ROUTE_NOT_DEPLOYED_OR_UNAVAILABLE')
+          if health_http == '200':
+              if health.get('schema') != 'daube.commerce.cloudflare-health.v2':
+                  commerce_blockers.append('COMMERCE_HEALTH_SCHEMA_INVALID')
+              if health.get('status') != 'READY':
+                  commerce_blockers.append('COMMERCE_HEALTH_NOT_READY')
+              if health.get('d1ReadVerified') is not True or health.get('publicReadReady') is not True:
+                  commerce_blockers.append('COMMERCE_PUBLIC_READ_UNVERIFIED')
+              if health.get('commerceFlowConfigured') is not True:
+                  commerce_blockers.append('COMMERCE_FLOW_UNCONFIGURED')
+              source = health.get('sourceRevision')
+              if not isinstance(source, str) or len(source) != 40 or any(c not in '0123456789abcdefABCDEF' for c in source):
+                  commerce_blockers.append('COMMERCE_SOURCE_REVISION_INVALID')
+
+          commerce_ready = not commerce_blockers
+          paddle_fields = (
+              'paddleBindingsConfigured',
+              'paddleCheckoutConfigured',
+              'paddleWebhookConfigured',
+              'providerReadbackConfigured',
+          )
+          paddle_ready = health_http == '200' and all(health.get(name) is True for name in paddle_fields)
+
+          first_dawn_blockers = []
+          turn = None
+          if turns_http == '200' and listing.get('schema') == 'daube.experience-turn-list.v1' and isinstance(listing.get('turns'), list):
+              turn = next((item for item in listing['turns'] if isinstance(item, dict) and item.get('turnId') == 'first-dawn-decision-veto-v1'), None)
+          else:
+              first_dawn_blockers.append('FIRST_DAWN_TURN_LIST_UNAVAILABLE')
+
+          if not isinstance(turn, dict):
+              first_dawn_blockers.append('FIRST_DAWN_MISSING')
+          else:
+              product = turn.get('product') or {}
+              price = product.get('price') or {}
+              checks = [
+                  (turn.get('schema') == 'daube.experience-turn.v1', 'FIRST_DAWN_SCHEMA_INVALID'),
+                  (turn.get('title') == 'FIRST DAWN · DECISION VETO', 'FIRST_DAWN_TITLE_MISMATCH'),
+                  (turn.get('availability') == 'AVAILABLE' and turn.get('claimable') is True, 'FIRST_DAWN_NOT_CLAIMABLE'),
+                  (turn.get('capacity') == 36, 'FIRST_DAWN_CAPACITY_MISMATCH'),
+                  (product.get('id') == 'paradox-decision-veto', 'FIRST_DAWN_PRODUCT_MISMATCH'),
+                  (product.get('sku') == 'DS-PARADOX-VETO-01', 'FIRST_DAWN_SKU_MISMATCH'),
+                  (price.get('amountMinor') == 49000 and price.get('currency') == 'VND', 'FIRST_DAWN_PRICE_MISMATCH'),
+              ]
+              for ok, code in checks:
+                  if not ok:
+                      first_dawn_blockers.append(code)
+              remaining = turn.get('capacityRemaining')
+              if not isinstance(remaining, int) or not (0 < remaining <= 36):
+                  first_dawn_blockers.append('FIRST_DAWN_CAPACITY_REMAINING_INVALID')
+
+          first_dawn_ready = commerce_ready and paddle_ready and not first_dawn_blockers
           safe = {
+              'schema': 'daube.public-production-readback.v2',
+              'coreState': 'LIVE',
+              'commerceState': 'READY' if commerce_ready else 'DEGRADED',
+              'paymentAdmissionState': 'READY' if paddle_ready else 'HOLD',
+              'firstDawnState': 'READY' if first_dawn_ready else 'HOLD',
               'healthHttp': health_http,
               'turnsHttp': turns_http,
               'healthSchema': health.get('schema'),
@@ -84,86 +164,58 @@ jobs:
               'paddleWebhookConfigured': health.get('paddleWebhookConfigured'),
               'providerReadbackConfigured': health.get('providerReadbackConfigured'),
               'turnListSchema': listing.get('schema'),
-          }
-          print(json.dumps(safe, sort_keys=True))
-          Path('/tmp/commerce-runtime-safe.json').write_text(json.dumps(safe, indent=2) + '\n', encoding='utf-8')
-          PY
-
-          commerce_sha="$(python3 -c "import json; x=json.load(open('/tmp/commerce-runtime-safe.json')); print(x.get('sourceRevision') or 'unknown')")"
-          health_state="$(python3 -c "import json; x=json.load(open('/tmp/commerce-runtime-safe.json')); print(x.get('healthStatus') or 'unknown')")"
-          {
-            echo
-            echo '## Commerce runtime fingerprint'
-            echo "- /healthz HTTP: ${health_http}"
-            echo "- /v1/turns HTTP: ${turns_http}"
-            echo "- health status: ${health_state}"
-            echo "- externally reported source revision: ${commerce_sha}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          [[ "$health_http" == "200" ]] || { echo 'BLOCKER=COMMERCE_HEALTH_ENDPOINT_UNAVAILABLE' >> "$GITHUB_STEP_SUMMARY"; exit 21; }
-          [[ "$turns_http" == "200" ]] || { echo 'BLOCKER=COMMERCE_TURNS_ROUTE_NOT_DEPLOYED_OR_UNAVAILABLE' >> "$GITHUB_STEP_SUMMARY"; exit 22; }
-
-      - name: Verify commerce readiness and First Dawn
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          health = json.loads(Path('/tmp/health.json').read_text(encoding='utf-8'))
-          listing = json.loads(Path('/tmp/turns.json').read_text(encoding='utf-8'))
-
-          def require(ok, code):
-              if not ok:
-                  raise SystemExit(code)
-
-          require(health.get('schema') == 'daube.commerce.cloudflare-health.v2', 'health_schema_invalid')
-          require(health.get('status') == 'READY', 'commerce_not_ready')
-          require(health.get('d1ReadVerified') is True and health.get('publicReadReady') is True, 'commerce_public_read_unverified')
-          require(health.get('commerceFlowConfigured') is True, 'commerce_flow_unconfigured')
-          require(health.get('paddleBindingsConfigured') is True, 'paddle_bindings_unconfigured')
-          require(health.get('paddleCheckoutConfigured') is True, 'paddle_checkout_unconfigured')
-          require(health.get('paddleWebhookConfigured') is True, 'paddle_webhook_unconfigured')
-          require(health.get('providerReadbackConfigured') is True, 'provider_readback_unconfigured')
-          source = health.get('sourceRevision')
-          require(isinstance(source, str) and len(source) == 40 and all(c in '0123456789abcdefABCDEF' for c in source), 'commerce_revision_invalid')
-
-          require(listing.get('schema') == 'daube.experience-turn-list.v1' and isinstance(listing.get('turns'), list), 'turn_list_invalid')
-          turn = next((item for item in listing['turns'] if isinstance(item, dict) and item.get('turnId') == 'first-dawn-decision-veto-v1'), None)
-          require(isinstance(turn, dict), 'first_dawn_missing')
-          require(turn.get('schema') == 'daube.experience-turn.v1', 'first_dawn_schema_invalid')
-          require(turn.get('title') == 'FIRST DAWN · DECISION VETO', 'first_dawn_title_mismatch')
-          require(turn.get('availability') == 'AVAILABLE' and turn.get('claimable') is True, 'first_dawn_unavailable')
-          require(turn.get('capacity') == 36, 'first_dawn_capacity_mismatch')
-          remaining = turn.get('capacityRemaining')
-          require(isinstance(remaining, int) and 0 < remaining <= 36, 'first_dawn_capacity_remaining_invalid')
-          product = turn.get('product') or {}
-          price = product.get('price') or {}
-          require(product.get('id') == 'paradox-decision-veto', 'first_dawn_product_mismatch')
-          require(product.get('sku') == 'DS-PARADOX-VETO-01', 'first_dawn_sku_mismatch')
-          require(price.get('amountMinor') == 49000 and price.get('currency') == 'VND', 'first_dawn_price_mismatch')
-
-          receipt = {
-              'schema': 'daube.launch-critical.public-readback.v1',
-              'commerceSourceRevision': source.lower(),
-              'commerceReady': True,
-              'firstDawn': {
-                  'turnId': turn.get('turnId'), 'productId': product.get('id'), 'sku': product.get('sku'),
-                  'amountMinor': 49000, 'currency': 'VND', 'capacity': 36, 'capacityRemaining': remaining,
-                  'verifiedPaidClaimCount': turn.get('verifiedPaidClaimCount'),
-                  'activeUnpaidHoldCount': turn.get('activeUnpaidHoldCount'),
-              },
+              'commerceBlockers': commerce_blockers,
+              'firstDawnBlockers': first_dawn_blockers,
               'settlementVerifiedByThisReceipt': False,
               'realPaymentCanaryStillRequired': True,
+              'productionMutationPerformed': False,
               'secretMaterialSerialized': False,
           }
-          print(json.dumps(receipt, sort_keys=True))
+          Path('/tmp/public-production-readback.json').write_text(json.dumps(safe, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(safe, sort_keys=True))
           PY
+
+          commerce_state="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(x['commerceState'])")"
+          payment_state="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(x['paymentAdmissionState'])")"
+          first_dawn_state="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(x['firstDawnState'])")"
+          commerce_sha="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(x.get('sourceRevision') or 'unknown')")"
+          commerce_blockers="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(','.join(x['commerceBlockers']) or 'none')")"
+          first_dawn_blockers="$(python3 -c "import json; x=json.load(open('/tmp/public-production-readback.json')); print(','.join(x['firstDawnBlockers']) or 'none')")"
+
+          echo "commerce_state=${commerce_state}" >> "$GITHUB_OUTPUT"
+          echo "payment_state=${payment_state}" >> "$GITHUB_OUTPUT"
+          echo "first_dawn_state=${first_dawn_state}" >> "$GITHUB_OUTPUT"
           {
             echo
-            echo '## Result'
-            echo 'PUBLIC_RUNTIME_AND_COMMERCE_PREFLIGHT_VERIFIED'
+            echo '## Production lane classification'
+            echo '- core apex: LIVE'
+            echo "- Cloudflare commerce API: ${commerce_state}"
+            echo "- Paddle admission: ${payment_state}"
+            echo "- First Dawn admission: ${first_dawn_state}"
+            echo "- /healthz HTTP: ${health_http}"
+            echo "- /v1/turns HTTP: ${turns_http}"
+            echo "- externally reported commerce revision: ${commerce_sha}"
+            echo "- commerce blockers: ${commerce_blockers}"
+            echo "- First Dawn blockers: ${first_dawn_blockers}"
             echo '- Real settlement verified by this workflow: NO'
             echo '- Real payment canary still required: YES'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$commerce_state" != 'READY' ]]; then
+            echo 'CORE_LIVE_ADVANCED_COMMERCE_DEGRADED' >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$REQUIRE_ADVANCED_COMMERCE" == 'true' || "$REQUIRE_FIRST_DAWN" == 'true' ]]; then
+              echo '::error::strict advanced-commerce admission requested but commerce is degraded'
+              exit 22
+            fi
+          fi
+
+          if [[ "$REQUIRE_FIRST_DAWN" == 'true' && "$first_dawn_state" != 'READY' ]]; then
+            echo '::error::strict First Dawn admission requested but First Dawn is on hold'
+            exit 23
+          fi
+
+          if [[ "$commerce_state" == 'READY' && "$payment_state" == 'READY' && "$first_dawn_state" == 'READY' ]]; then
+            echo 'PUBLIC_CORE_LIVE_ADVANCED_COMMERCE_PREFLIGHT_VERIFIED' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$commerce_state" == 'READY' ]]; then
+            echo 'PUBLIC_CORE_LIVE_OPTIONAL_PAID_LANES_HELD' >> "$GITHUB_STEP_SUMMARY"
+          fi

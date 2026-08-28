@@ -1,0 +1,244 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - docker.io
+  - fail2ban
+  - git
+  - jq
+  - nginx
+  - python3
+  - rsync
+  - ufw
+  - unattended-upgrades
+
+users:
+  - default
+  - name: daube
+    system: true
+    shell: /usr/sbin/nologin
+    home: /var/lib/daube
+    create_home: true
+
+timezone: Asia/Ho_Chi_Minh
+
+write_files:
+  - path: /etc/daube-resource-farm.json
+    permissions: '0644'
+    content: |
+      {
+        "schema": "daube.free-host-bootstrap.v2",
+        "providerFamily": "oracle-cloud",
+        "sovereignLocal": false,
+        "paidSpendAuthorized": false,
+        "productionAuthority": "bounded-origin",
+        "publicReleaseRepo": "${public_release_repo}",
+        "publicReleaseBranch": "${public_release_branch}"
+      }
+
+  - path: /etc/ssh/sshd_config.d/90-daube-hardening.conf
+    permissions: '0644'
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      ChallengeResponseAuthentication no
+      PubkeyAuthentication yes
+      X11Forwarding no
+      AllowTcpForwarding no
+      PermitTunnel no
+      MaxAuthTries 3
+      LoginGraceTime 30
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+
+  - path: /etc/fail2ban/jail.d/sshd.local
+    permissions: '0644'
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 4
+      findtime = 10m
+      bantime = 1h
+
+  - path: /etc/sysctl.d/90-daube-hardening.conf
+    permissions: '0644'
+    content: |
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      net.ipv4.conf.default.send_redirects = 0
+      net.ipv4.conf.all.accept_source_route = 0
+      net.ipv4.conf.default.accept_source_route = 0
+      net.ipv4.tcp_syncookies = 1
+      kernel.kptr_restrict = 2
+      kernel.dmesg_restrict = 1
+      fs.protected_hardlinks = 1
+      fs.protected_symlinks = 1
+
+  - path: /opt/daube-host/health.py
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env python3
+      import hashlib, json, os, platform, time
+      from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+      BOOT = time.time()
+      class Handler(BaseHTTPRequestHandler):
+          def do_GET(self):
+              if self.path != '/healthz':
+                  self.send_response(404); self.end_headers(); return
+              release = 'UNKNOWN'
+              try:
+                  with open('/srv/daube/public-release/.git/refs/heads/${public_release_branch}', encoding='utf-8') as f:
+                      release = f.read().strip()[:40]
+              except Exception:
+                  pass
+              payload = {
+                  'schema': 'daube.free-host-health.v2', 'status': 'LIVE',
+                  'providerFamily': 'oracle-cloud', 'sovereignLocal': False,
+                  'paidSpendAuthorized': False, 'productionAuthority': 'bounded-origin',
+                  'arch': platform.machine(), 'kernel': platform.release(),
+                  'cpuLogical': os.cpu_count(), 'bootAgeSeconds': int(time.time() - BOOT),
+                  'hostDigest': hashlib.sha256(platform.node().encode()).hexdigest(),
+                  'releaseRef': release, 'observedAtUnix': int(time.time()),
+              }
+              body = json.dumps(payload, sort_keys=True).encode()
+              self.send_response(200)
+              self.send_header('Content-Type', 'application/json')
+              self.send_header('Cache-Control', 'no-store')
+              self.send_header('X-Content-Type-Options', 'nosniff')
+              self.send_header('Content-Length', str(len(body)))
+              self.end_headers(); self.wfile.write(body)
+          def log_message(self, fmt, *args): return
+      ThreadingHTTPServer(('127.0.0.1', 8790), Handler).serve_forever()
+
+  - path: /etc/systemd/system/daube-host-health.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=D'AUBE Core Cloud host health service
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=simple
+      User=daube
+      Group=daube
+      ExecStart=/usr/bin/python3 /opt/daube-host/health.py
+      Restart=always
+      RestartSec=5
+      NoNewPrivileges=true
+      PrivateTmp=true
+      ProtectSystem=strict
+      ProtectHome=true
+      ProtectKernelTunables=true
+      ProtectKernelModules=true
+      ProtectControlGroups=true
+      RestrictSUIDSGID=true
+      LockPersonality=true
+      MemoryDenyWriteExecute=true
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /usr/local/sbin/daube-release-refresh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      repo='${public_release_repo}'
+      branch='${public_release_branch}'
+      target='/srv/daube/public-release'
+      mkdir -p /srv/daube
+      if [[ ! -d "$target/.git" ]]; then
+        rm -rf "$target"; git clone --depth=1 --branch "$branch" "$repo" "$target"
+      else
+        git -C "$target" fetch --depth=1 origin "$branch"
+        git -C "$target" reset --hard "origin/$branch"
+        git -C "$target" clean -fdx
+      fi
+      test -s "$target/index.html"
+      chown -R root:www-data "$target"
+      find "$target" -type d -exec chmod 0755 {} +
+      find "$target" -type f -exec chmod 0644 {} +
+      nginx -t; systemctl reload nginx
+
+  - path: /etc/systemd/system/daube-release-refresh.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Refresh D'AUBE public release mirror
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/daube-release-refresh
+      Nice=10
+      IOSchedulingClass=best-effort
+      IOSchedulingPriority=7
+      NoNewPrivileges=true
+      PrivateTmp=true
+
+  - path: /etc/systemd/system/daube-release-refresh.timer
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Periodically refresh D'AUBE public release mirror
+      [Timer]
+      OnBootSec=2min
+      OnUnitActiveSec=10min
+      RandomizedDelaySec=30s
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
+
+  - path: /etc/nginx/sites-available/daube-origin
+    permissions: '0644'
+    content: |
+      server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        server_name _;
+        root /srv/daube/public-release;
+        index index.html;
+        server_tokens off;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+        location = /healthz {
+          proxy_pass http://127.0.0.1:8790/healthz;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          access_log off;
+        }
+        location ~ ^/(\.git|\.github|scripts|tests?|governance|gradle|supabase)(/|$) { deny all; return 404; }
+        location ~ /\.(?!well-known).* { deny all; return 404; }
+        location / { try_files $uri $uri/ /index.html; }
+      }
+
+runcmd:
+  - [ mkdir, -p, /srv/daube/public-release ]
+  - [ systemctl, daemon-reload ]
+  - [ systemctl, enable, --now, docker.service ]
+  - [ systemctl, enable, --now, fail2ban.service ]
+  - [ systemctl, enable, --now, unattended-upgrades.service ]
+  - [ systemctl, enable, --now, daube-host-health.service ]
+  - [ sh, -lc, "rm -f /etc/nginx/sites-enabled/default && ln -sfn /etc/nginx/sites-available/daube-origin /etc/nginx/sites-enabled/daube-origin" ]
+  - [ sh, -lc, "ufw --force reset" ]
+  - [ sh, -lc, "ufw default deny incoming" ]
+  - [ sh, -lc, "ufw default allow outgoing" ]
+  - [ sh, -lc, "ufw allow from '${admin_cidr}' to any port 22 proto tcp" ]
+  - [ sh, -lc, "ufw allow 80/tcp && ufw allow 443/tcp" ]
+  - [ sh, -lc, "ufw --force enable" ]
+  - [ sysctl, --system ]
+  - [ systemctl, restart, ssh.service ]
+  - [ /usr/local/sbin/daube-release-refresh ]
+  - [ systemctl, enable, --now, daube-release-refresh.timer ]
+  - [ sh, -lc, "curl --fail --silent --show-error --max-time 5 http://127.0.0.1/healthz | jq -e '.status == \"LIVE\" and .sovereignLocal == false and .paidSpendAuthorized == false'" ]
+  - [ sh, -lc, "curl --fail --silent --show-error --max-time 5 http://127.0.0.1/ | grep -qi '<html'" ]
+
+final_message: "D'AUBE Oracle Always Free bounded commercial origin bootstrap complete. Canonical DNS/TLS promotion still requires external edge binding and a fresh runtime canary."

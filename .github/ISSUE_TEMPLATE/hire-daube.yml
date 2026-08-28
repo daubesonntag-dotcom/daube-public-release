@@ -1,0 +1,107 @@
+name: "Hire D’AUBE / Request a fit review"
+description: "Describe one public-safe business or workflow problem. This is not a purchase or promise of acceptance."
+title: "[Hire D’AUBE] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with one concrete problem. Do not post passwords, OTPs, API keys, private keys, recovery codes, government-ID data, bank/card details, private customer data, confidential contracts, or unrestricted admin access.
+
+  - type: dropdown
+    id: request_type
+    attributes:
+      label: What kind of help are you looking for?
+      options:
+        - Workflow / automation problem
+        - Managed SEO / discoverability fit review
+        - Digital workflow kit / reusable template
+        - Micro-audit / prioritized diagnosis
+        - Other bounded digital work
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem is happening today?
+      description: Describe observable symptoms or repetitive work, not confidential data.
+      placeholder: "Example: We manually copy orders from a form into a spreadsheet and then retype status updates into chat."
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What would a useful outcome look like?
+      placeholder: "Example: Reduce duplicate typing and make order status easier to reconcile."
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_process
+    attributes:
+      label: How does the process work now?
+      description: A short step-by-step description is enough.
+    validations:
+      required: true
+
+  - type: input
+    id: public_reference
+    attributes:
+      label: Public website/page/reference (optional)
+      description: Only share something already public or that you are authorized to disclose.
+      placeholder: "https://example.com"
+
+  - type: dropdown
+    id: timeline
+    attributes:
+      label: Timing
+      options:
+        - Flexible / exploring
+        - Soon, but no fixed deadline
+        - There is a real deadline (explain below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: budget_signal
+    attributes:
+      label: Budget readiness
+      description: You do not need to disclose an amount publicly.
+      options:
+        - I need a quote before I can decide
+        - I have a budget but prefer not to post it publicly
+        - Budget is already approved
+        - I am only exploring right now
+    validations:
+      required: true
+
+  - type: dropdown
+    id: authority
+    attributes:
+      label: Your role in the decision
+      options:
+        - I am researching
+        - I can influence the decision
+        - I am the decision maker
+        - I am authorized to buy
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Important constraints or exclusions (optional)
+      placeholder: "Example: Must not require giving away account passwords; must work with our existing spreadsheet."
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Public-safety and follow-up acknowledgement
+      options:
+        - label: I confirm I have not intentionally posted secrets, credentials, government-ID data, bank/card details, or private customer data.
+          required: true
+        - label: I consent to D’AUBE replying to this issue about fit and next steps.
+          required: true
+        - label: I understand this request is not a contract, purchase, guarantee, invoice, or proof of revenue.
+          required: true

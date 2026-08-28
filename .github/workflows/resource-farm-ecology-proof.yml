@@ -1,0 +1,83 @@
+name: Resource Farm Ecology Proof
+
+on:
+  push:
+    paths:
+      - 'farm/ecology/contract.json'
+      - '.github/workflows/resource-farm-ecology-proof.yml'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resource-farm-ecology-proof-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Probe live ecology controller
+        run: |
+          set -euo pipefail
+          endpoint="$(jq -r '.endpoint' farm/ecology/contract.json)"
+          curl --fail --silent --show-error --max-time 20 \
+            -H 'accept: application/json' -H 'cache-control: no-store' \
+            "$endpoint" -o /tmp/ecology.json
+          jq -e '
+            .schema == "daube.resource-farm-ecology-runtime.v1" and
+            .status == "GREEN" and
+            .score >= 95 and
+            .minimumGreenScore == 95 and
+            .control.actuatorAdmitted == true and
+            .guardrails.paidSpendAuthorized == false and
+            .guardrails.automaticPrivilegeExpansion == false and
+            .guardrails.newOAuthRequired == false and
+            (.systems | length) == 10 and
+            ([.systems[] | (.status == "GREEN" and .score >= 95)] | all) and
+            ([.checks[]] | all)
+          ' /tmp/ecology.json >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resource-farm-ecology-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/ecology.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish immutable + latest ecology receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          body_b64="$(base64 -w0 /tmp/ecology.json)"
+          history="farm/ecology/receipts/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          gh api --method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${history}" \
+            -f message="farm(ecology): record run ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME" >/dev/null
+
+          latest='farm/ecology/latest-receipt.json'
+          latest_sha="$(gh api -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}?ref=${GITHUB_REF_NAME}" \
+            --jq '.sha' 2>/dev/null || true)"
+          args=(--method PUT -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/contents/${latest}" \
+            -f message="farm(ecology): advance latest receipt" \
+            -f content="$body_b64" \
+            -f branch="$GITHUB_REF_NAME")
+          if [[ -n "$latest_sha" ]]; then args+=(-f sha="$latest_sha"); fi
+          gh api "${args[@]}" >/dev/null
+
+      - name: Report GREEN board
+        run: |
+          jq '{status,score,minimumGreenScore,evidenceKind,actuationMode,systems:[.systems[]|{name,status,score}],vitalSigns,control,guardrails,observedAt}' /tmp/ecology.json >> "$GITHUB_STEP_SUMMARY"

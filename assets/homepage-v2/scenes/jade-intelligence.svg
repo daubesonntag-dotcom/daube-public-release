@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
-<defs><radialGradient id="bg"><stop stop-color="#0d3931"/><stop offset=".55" stop-color="#05231d"/><stop offset="1" stop-color="#020c0a"/></radialGradient><linearGradient id="j1" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#98e2d0"/><stop offset=".42" stop-color="#1e7865"/><stop offset="1" stop-color="#08372f"/></linearGradient><linearGradient id="j2"><stop stop-color="#d4fff4"/><stop offset="1" stop-color="#2c8e77"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="18"/></filter></defs>
-<rect width="1600" height="900" fill="url(#bg)"/>
-<g fill="none" stroke="#89bdae" stroke-opacity=".26"><circle cx="800" cy="450" r="320"/><circle cx="800" cy="450" r="250"/><circle cx="800" cy="450" r="405"/><path d="M310 450h980M800 20v860"/><path d="M455 105 1145 795M1145 105 455 795"/></g>
-<ellipse cx="800" cy="690" rx="390" ry="64" fill="#67c5ad" opacity=".18" filter="url(#glow)"/>
-<polygon points="480,560 620,250 910,170 1160,395 1010,670 690,720" fill="url(#j1)" stroke="#b4f6e4" stroke-opacity=".45" stroke-width="5"/>
-<polygon points="620,250 780,480 910,170 1160,395" fill="url(#j2)" opacity=".62"/><polygon points="480,560 780,480 690,720" fill="#0a493e" opacity=".82"/><polygon points="780,480 1010,670 690,720" fill="#2b8f79" opacity=".86"/>
-<g fill="#b8eee0" opacity=".75"><circle cx="320" cy="450" r="5"/><circle cx="1280" cy="450" r="5"/><circle cx="800" cy="45" r="5"/></g>
-</svg>

@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "program_id": "DAUBE-MONEY-FIRST-ENTERPRISE-V1",
+  "packet_id": "MF-006",
+  "authority": "daubesonntag-dotcom/daube-public-release",
+  "truth_boundary": "Public proof communicates evidence already produced by canonical systems. It does not manufacture production, customer, payment or revenue status.",
+  "proof_classes": [
+    {"id":"DEMO","meaning":"Demonstration or prototype evidence only; not proof of production use or customer payment."},
+    {"id":"IMPLEMENTED","meaning":"Code/configuration exists with traceable implementation evidence; deployment is not implied."},
+    {"id":"DEPLOYED_HEALTHY","meaning":"Deployment and health evidence exist for the stated environment/time window."},
+    {"id":"CUSTOMER_DELIVERY","meaning":"A delivery occurred under an applicable customer/commercial basis; private details remain redacted or consent-controlled."},
+    {"id":"REVENUE_VERIFIED","meaning":"Externally settled and reconciled commercial evidence exists; public disclosure still requires privacy/contract permission."}
+  ],
+  "required_public_fields": ["claim_id", "proof_class", "capability_or_offer_id", "evidence_summary", "evidence_date", "scope_or_environment", "limitations", "rights_and_disclosure_basis"],
+  "money_first_offers": ["DAUBE-AUTOMATION-SPRINT-V1", "DAUBE-DIGITAL-WORKFLOW-KIT-V1"],
+  "rules": [
+    "Never publish secrets, private customer data, unrestricted internal logs or unsupported financial claims.",
+    "A demo must be labeled as a demo.",
+    "A merged change does not imply deployed or healthy state.",
+    "A checkout, invoice or test payment does not imply verified revenue.",
+    "Culture/IP proof should expose provenance or attribution summaries where commercially relevant and permitted."
+  ]
+}

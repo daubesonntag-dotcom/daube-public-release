@@ -1,0 +1,13 @@
+{
+  "schema": "daube.resource-farm-provider-actuator-request.v1",
+  "requestId": "provider-actuator-gen-a-20260829",
+  "mode": "zero-spend-cross-provider",
+  "backlogWorkUnits": 2000000,
+  "targetDrainSeconds": 120,
+  "minGitHubReplicas": 2,
+  "maxGitHubReplicas": 8,
+  "maxSupabaseReplicas": 4,
+  "requireProviderFamilies": 2,
+  "paidSpendAuthorized": false,
+  "privateAssetsUsed": false
+}

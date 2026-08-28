@@ -1,7 +1,7 @@
 {
   "schema": "daube.resource-farm-provider-actuator-receipt.v1",
   "status": "ADMITTED",
-  "requestId": "provider-actuator-gen-b-20260829",
+  "requestId": "provider-actuator-gen-c-20260829",
   "requestedWorkUnits": 750000,
   "totalEvidenceWorkUnits": 1000000,
   "providerFamilies": [
@@ -21,8 +21,8 @@
   "feedback": {
     "previousReceiptSeen": true,
     "previousHealthy": true,
-    "previousRequestId": "provider-actuator-gen-a3-20260829",
-    "previousTotalEvidenceWorkUnits": 2000000
+    "previousRequestId": "provider-actuator-gen-b-20260829",
+    "previousTotalEvidenceWorkUnits": 1000000
   },
   "feedbackClosedLoopObserved": true,
   "providerExecutionDispatchClosedLoopProven": true,
@@ -31,5 +31,5 @@
   "paidSpendAuthorized": false,
   "privateAssetsUsed": false,
   "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
-  "observedAt": "2026-08-28T19:06:46.344Z"
+  "observedAt": "2026-08-28T19:13:27.121Z"
 }

@@ -2,6 +2,17 @@
 
 Public install, update and static presentation boundary for the D’AUBE ecosystem.
 
+## NEW — D’AUBE Work Arcade public beta
+
+**Rent the work. Build the world. Leave a mark.**
+
+D’AUBE Work Arcade is a Reverse Work Simulation where people can rent unusual work experiences, set their own KPI/deadline, build inside 36 evolving Worlds, submit evidence, earn Proof Capsules and explore World Forge / Compute Commons / Reciprocal Evolution.
+
+- [Try the live Work Arcade beta](https://d-aube-work-arcade-xs0pd2.v2.appdeploy.ai/?utm_source=github&utm_medium=owned-repository&utm_campaign=work-arcade-public-beta-20260828&utm_content=public-release-readme)
+- [Read the Work Arcade public campaign brief](campaigns/work-arcade/README.md)
+
+Current beta truth: real charge **OFF**, real cash payout **OFF**, displayed prices are simulation-only, and production admission cannot be purchased. The purpose of this public beta is to test whether people actually want to **rent a job / boss / World Plot / mystery / restoration experience** before D’AUBE enables any real commercial flow.
+
 ## Current public commercial entry
 
 D’AUBE is currently validating **Managed SEO Operator** for Vietnamese small shops and solo sellers.

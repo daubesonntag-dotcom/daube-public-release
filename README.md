@@ -24,6 +24,18 @@ The entry point is intentionally narrow: one public URL, one concrete goal and o
 
 A fit-check request is **not** a payment or revenue event. D’AUBE recognizes cash only after externally settled payment evidence is matched.
 
+## Talent & public contribution
+
+D’AUBE now maintains a public, zero-application-fee **Talent Pool** so people can signal skills and portfolio evidence before recurring payroll or a funded Mission exists.
+
+- [Join / understand the Talent Pool](talent/README.md)
+- [See the current funded Mission truth](talent/MISSIONS.md)
+- [Read contribution guidelines](CONTRIBUTING.md)
+
+Joining the pool is not an employment offer or promise of paid work. A paid Mission is not represented as executable until scope, acceptance criteria, payout cap and a funding/payment basis are verified. D’AUBE does not ask candidates to perform production work for free while waiting for funding.
+
+Public/community issues may invite genuinely optional documentation, testing, accessibility, UX or other Commons contributions. These are kept separate from paid commercial delivery. Public issues must not contain government-ID numbers, bank details, passwords, API keys, private keys, recovery codes or private customer data.
+
 ## Repository authority
 
 This repository publishes intentionally public static artifacts only. It does **not** own private runtime logic, credentials, production infrastructure, Founder root governance, or the canonical customer website.

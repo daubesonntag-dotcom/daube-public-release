@@ -1,0 +1,74 @@
+name: Sovereign Edge Pairing
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Approve or revoke this physical-edge key"
+        required: true
+        type: choice
+        options:
+          - approve
+          - revoke
+        default: approve
+      public_key_sha256:
+        description: "64-character Ed25519 public-key SHA-256 printed by the physical device"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sovereign-edge-pair-${{ inputs.public_key_sha256 }}
+  cancel-in-progress: false
+
+jobs:
+  pair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Validate fingerprint input
+        shell: bash
+        env:
+          FINGERPRINT: ${{ inputs.public_key_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$FINGERPRINT" =~ ^[a-f0-9]{64}$ ]]
+
+      - name: Obtain repository-scoped GitHub OIDC token
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=daube-sovereign-host-pairing")"
+          token="$(jq -r '.value // empty' <<<"$response")"
+          test -n "$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Apply founder pairing decision
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          ACTION: ${{ inputs.action }}
+          FINGERPRINT: ${{ inputs.public_key_sha256 }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg action "$ACTION" --arg fingerprint "$FINGERPRINT" '{action:$action,publicKeySha256:$fingerprint}')"
+          code="$(curl --silent --show-error \
+            --output /tmp/response.json \
+            --write-out '%{http_code}' \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-sovereign-host-pairing')"
+          cat /tmp/response.json | jq '{status,code,hostId,runtimeKind,publicKeySha256,pairingRequestId,bindingId,nextGate}'
+          [[ "$code" == "201" ]]
+          if [[ "$ACTION" == "approve" ]]; then
+            jq -e '.status == "APPROVED"' /tmp/response.json >/dev/null
+          else
+            jq -e '.status == "REVOKED"' /tmp/response.json >/dev/null
+          fi

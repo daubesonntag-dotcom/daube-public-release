@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # D'AUBE Sovereign Edge — Android/Termux one-tap installer.
-# The default agent is pinned to an immutable, previously published revision.
-AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-8f63749f39e89e6b58dda0ac61293f33eefe0d54}"
+# The default agent is pinned to an immutable, patched revision.
+AGENT_REVISION="${DAUBE_SOVEREIGN_AGENT_REVISION:-f2590cd8e4ba935a56e391062d7138cad703a228}"
 SOURCE_URL="${DAUBE_SOVEREIGN_AGENT_URL:-https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${AGENT_REVISION}/farm/sovereign-agent/direct-agent.py}"
 PAIRING_URL="https://github.com/daubesonntag-dotcom/daube-public-release/actions/workflows/sovereign-edge-pair.yml"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
@@ -22,6 +22,15 @@ esac
 printf '\nD’AUBE Sovereign Edge — Android setup\n'
 printf '%s\n' '-------------------------------------'
 printf 'Agent revision: %s\n\n' "$AGENT_REVISION"
+
+# Some Termux builds can start with the apt cache directories absent. Create
+# only directories inside Termux's own app sandbox; this avoids pkgcache.bin
+# errors without requesting storage/root permissions.
+APP_ROOT="${PREFIX%/files/usr}"
+mkdir -p \
+  "$APP_ROOT/cache/apt" \
+  "$PREFIX/var/cache/apt/archives/partial" \
+  "$PREFIX/var/lib/apt/lists/partial" 2>/dev/null || true
 
 pkg install -y python openssl curl coreutils >/dev/null
 

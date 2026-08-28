@@ -1,0 +1,52 @@
+name: D'AUBE Recovery Dawn Clarity Visual Evidence
+
+on:
+  push:
+    branches:
+      - feat/recovery-dawn-clarity-v2-20260829
+    paths:
+      - 'recovery/index.html'
+      - 'scripts/verify-recovery-dawn.mjs'
+      - 'scripts/recovery-quality-score.mjs'
+      - '.github/workflows/recovery-dawn-clarity-visual.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-dawn-clarity-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start local immutable surface preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4179 --bind 127.0.0.1 >/tmp/recovery-http.log 2>&1 &
+          echo $! >/tmp/recovery-http.pid
+          for _ in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:4179/recovery/ >/dev/null && exit 0
+            sleep .2
+          done
+          exit 1
+      - name: Verify desktop mobile accessibility and render evidence
+        run: node scripts/verify-recovery-dawn.mjs
+      - name: Enforce recovery quality score >= 95
+        run: node scripts/recovery-quality-score.mjs
+      - name: Upload recovery visual and scoring evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-dawn-clarity-visual-evidence
+          path: artifacts/recovery-dawn/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Stop preview
+        if: always()
+        run: kill "$(cat /tmp/recovery-http.pid)" 2>/dev/null || true

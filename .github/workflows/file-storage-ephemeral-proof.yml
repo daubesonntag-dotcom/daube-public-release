@@ -1,0 +1,103 @@
+name: file-storage-ephemeral-proof
+
+on:
+  push:
+    paths:
+      - .github/workflows/file-storage-ephemeral-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: file-storage-ephemeral-proof
+  cancel-in-progress: false
+
+jobs:
+  sftp-sshfs:
+    name: sftp sshfs mount/read-write/unmount
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Prove bounded file-storage semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          export_dir="$(mktemp -d /tmp/daube-sftp-export.XXXXXX)"
+          mount_dir="$(mktemp -d /tmp/daube-sftp-mount.XXXXXX)"
+          key_dir="$(mktemp -d /tmp/daube-sftp-key.XXXXXX)"
+          sshd_dir="$(mktemp -d /tmp/daube-sshd.XXXXXX)"
+          mounted=0
+          cleanup() {
+            if [[ "$mounted" == 1 ]]; then fusermount3 -u "$mount_dir" 2>/dev/null || sudo umount "$mount_dir" 2>/dev/null || true; fi
+            if [[ -f "$sshd_dir/sshd.pid" ]]; then sudo kill "$(cat "$sshd_dir/sshd.pid")" 2>/dev/null || true; fi
+            rm -rf "$export_dir" "$mount_dir" "$key_dir" "$sshd_dir"
+          }
+          trap cleanup EXIT
+
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-server sshfs >/dev/null
+          sudo mkdir -p /run/sshd
+          sudo modprobe fuse 2>/dev/null || true
+          test -e /dev/fuse
+
+          ssh-keygen -q -t ed25519 -N '' -f "$key_dir/id_ed25519"
+          chmod 700 "$key_dir"
+          chmod 600 "$key_dir/id_ed25519"
+          chmod 644 "$key_dir/id_ed25519.pub"
+          runner_user="$(id -un)"
+          home_dir="$(getent passwd "$runner_user" | cut -d: -f6)"
+          authorized="$key_dir/authorized_keys"
+          cp "$key_dir/id_ed25519.pub" "$authorized"
+          chmod 600 "$authorized"
+
+          cat > "$sshd_dir/sshd_config" <<EOF
+          Port 2222
+          ListenAddress 127.0.0.1
+          HostKey /etc/ssh/ssh_host_ed25519_key
+          PidFile $sshd_dir/sshd.pid
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          AuthorizedKeysFile $authorized
+          AllowUsers $runner_user
+          PermitRootLogin no
+          UsePAM no
+          Subsystem sftp internal-sftp
+          LogLevel ERROR
+          EOF
+
+          sudo /usr/sbin/sshd -f "$sshd_dir/sshd_config"
+          for _ in $(seq 1 20); do
+            ssh -p 2222 -i "$key_dir/id_ed25519" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$runner_user"@127.0.0.1 true >/dev/null 2>&1 && break
+            sleep 1
+          done
+          ssh -p 2222 -i "$key_dir/id_ed25519" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$runner_user"@127.0.0.1 true
+
+          sshfs "$runner_user"@127.0.0.1:"$export_dir" "$mount_dir" \
+            -p 2222 \
+            -o IdentityFile="$key_dir/id_ed25519" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null
+          mounted=1
+
+          payload='D-AUBE-FILE-STORAGE-CANARY-2026-08-29'
+          printf '%s\n' "$payload" > "$mount_dir/canary.txt"
+          expected="$(printf '%s\n' "$payload" | sha256sum | awk '{print $1}')"
+          remote_hash="$(sha256sum "$export_dir/canary.txt" | awk '{print $1}')"
+          test "$remote_hash" = "$expected"
+
+          fusermount3 -u "$mount_dir"
+          mounted=0
+          sshfs "$runner_user"@127.0.0.1:"$export_dir" "$mount_dir" \
+            -p 2222 \
+            -o IdentityFile="$key_dir/id_ed25519" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null
+          mounted=1
+          reread="$(sha256sum "$mount_dir/canary.txt" | awk '{print $1}')"
+          test "$reread" = "$expected"
+          fusermount3 -u "$mount_dir"
+          mounted=0
+
+          printf 'DAUBE_FILE_STORAGE_EPHEMERAL_PASS protocol=sftp transport=sshfs mount=true write=true read=true checksum=true unmount=true remount=true sha256=%s paid_spend_authorized=false oauth_required=false\n' "$expected"

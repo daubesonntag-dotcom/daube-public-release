@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'recovery/index.html'
       - 'pay/**'
       - 'storefront/**'
       - 'pricing/**'
@@ -15,8 +16,9 @@ on:
       - 'assets/storefront-v2.js'
       - 'assets/storefront-v2.css'
       - 'assets/storefront-mobile-v3.css'
-      - 'assets/mobile-first-flagship-v3.css'
-      - 'assets/mobile-first-flagship-v3.js'
+      - 'scripts/build-canonical-dawn-pages.mjs'
+      - 'scripts/verify-canonical-dawn.mjs'
+      - 'scripts/canonical-dawn-quality-score.mjs'
       - '.github/workflows/payment-domain-recovery-pages.yml'
   workflow_dispatch:
 
@@ -35,13 +37,38 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - name: Checkout exact recovery revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Project verified Dawn source into canonical root
+        run: node scripts/build-canonical-dawn-pages.mjs
+
+      - name: Start local canonical preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4181 --bind 127.0.0.1 >/tmp/canonical-http.log 2>&1 &
+          echo $! >/tmp/canonical-http.pid
+          for _ in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:4181/ >/dev/null && exit 0
+            sleep .2
+          done
+          exit 1
+
+      - name: Verify canonical desktop mobile accessibility and routes
+        run: node scripts/verify-canonical-dawn.mjs
+
+      - name: Enforce canonical quality score >= 95
+        run: node scripts/canonical-dawn-quality-score.mjs
+
+      - name: Stop local canonical preview
+        if: always()
+        run: kill "$(cat /tmp/canonical-http.pid)" 2>/dev/null || true
 
       - name: Verify payment and storefront artifacts before publication
         shell: bash
@@ -57,11 +84,17 @@ jobs:
           test -s privacy/index.html
           test -s refund/index.html
           test -s contact/index.html
+          grep -Fq 'data-canonical-projection="dawn-clarity-pages-v1"' index.html
+          grep -Fq 'Một hiện diện đủ rõ' index.html
+          grep -Fq 'Rõ trước. Đẹp sau.' index.html
+          grep -Fq '/storefront/' index.html
+          grep -Fq '/pay/' index.html
+          ! grep -Fq 'founder-visual-lock/01-hero-dawn.webp' index.html
+          ! grep -Fq 'PHYSICAL CGI' index.html
           grep -Fq 'Workflow Kit — Single' pay/index.html
           grep -Fq 'US$15' pay/index.html
           grep -Fq 'US$39' pay/index.html
           grep -Fq 'US$95' pay/index.html
-          grep -Fq '/pay/' index.html
           grep -Fq 'No silent FX' storefront/index.html
           grep -Fq 'VND CATALOG' storefront/index.html
           grep -Fq 'Native USD workflow kits' storefront/index.html
@@ -92,12 +125,12 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify canonical apex, storefront bridge and native-price review routes
+      - name: Verify canonical apex, Dawn Clarity, storefront bridge and native-price review routes
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 18); do
-            root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/ || true)"
+            root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' "https://daubesonntag.com/?dawn-pages=${GITHUB_SHA}" || true)"
             storefront_code="$(curl --silent --show-error --location --output /tmp/storefront.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/storefront/ || true)"
             storejs_code="$(curl --silent --show-error --location --output /tmp/storefront.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' 'https://daubesonntag.com/assets/storefront-v2.js?v=truthful-currency-20260829' || true)"
             pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
@@ -107,8 +140,14 @@ jobs:
             refund_code="$(curl --silent --show-error --location --output /tmp/refund.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/refund/ || true)"
             contact_code="$(curl --silent --show-error --location --output /tmp/contact.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/contact/ || true)"
             if [[ "$root_code" == 200 && "$storefront_code" == 200 && "$storejs_code" == 200 && "$pay_code" == 200 && "$pricing_code" == 200 && "$terms_code" == 200 && "$privacy_code" == 200 && "$refund_code" == 200 && "$contact_code" == 200 ]] \
+              && grep -Fq 'data-canonical-projection="dawn-clarity-pages-v1"' /tmp/root.html \
+              && grep -Fq 'Một hiện diện đủ rõ' /tmp/root.html \
+              && grep -Fq 'Rõ trước. Đẹp sau.' /tmp/root.html \
               && grep -Fq 'Meaning,' /tmp/root.html \
               && grep -Fq '/storefront/' /tmp/root.html \
+              && grep -Fq '/pay/' /tmp/root.html \
+              && ! grep -Fq 'founder-visual-lock/01-hero-dawn.webp' /tmp/root.html \
+              && ! grep -Fq 'PHYSICAL CGI' /tmp/root.html \
               && grep -Fq 'No silent FX' /tmp/storefront.html \
               && grep -Fq 'VND CATALOG' /tmp/storefront.html \
               && grep -Fq 'Native USD workflow kits' /tmp/storefront.html \
@@ -130,8 +169,10 @@ jobs:
               && grep -Fq 'Privacy' /tmp/pay.html \
               && grep -Fq 'Refund' /tmp/pay.html; then
               {
-                echo '## D’AUBE payment surface verified'
-                echo '- canonical apex: 200'
+                echo '## D’AUBE canonical Dawn + payment surface verified'
+                echo '- canonical apex: 200 · Dawn Clarity projection PASS'
+                echo '- rejected CGI hero: ABSENT'
+                echo '- canonical pre-publication score: >=95 PASS'
                 echo '- /storefront/: 200 · native VND catalog + no-silent-FX boundary PASS'
                 echo '- storefront JS: 200 · no hard-coded browser FX + local QR renderer PASS'
                 echo '- public beneficiary identity: not serialized/published; banking-app verification copy PASS'
@@ -143,5 +184,14 @@ jobs:
             fi
             sleep 3
           done
-          echo '::error::Canonical D’AUBE payment surface did not converge after Pages deployment.'
+          echo '::error::Canonical D’AUBE Dawn/payment surface did not converge after Pages deployment.'
           exit 1
+
+      - name: Upload canonical Dawn verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: canonical-dawn-pages-evidence
+          path: artifacts/canonical-dawn/
+          if-no-files-found: error
+          retention-days: 7

@@ -22,8 +22,9 @@ concurrency:
 
 env:
   ACCOUNT_EDGE_REQUEST: release/account-edge-direct-deploy.json
-  ACCOUNT_EDGE_URL: https://commerce.daubesonntag.com/account
-  ACCOUNT_EDGE_HEALTH_URL: https://commerce.daubesonntag.com/account/healthz
+  ACCOUNT_EDGE_HOST: account.daubesonntag.com
+  ACCOUNT_EDGE_URL: https://account.daubesonntag.com/account
+  ACCOUNT_EDGE_HEALTH_URL: https://account.daubesonntag.com/account/healthz
   COMMERCE_HEALTH_URL: https://commerce.daubesonntag.com/healthz
   SUPABASE_URL: https://wilqsqndjgckqxbjptxm.supabase.co
   SUPABASE_PUBLISHABLE_KEY: sb_publishable_ynfcB4JbyYhNhkPkPBc4wg_3ZPF0gl6
@@ -39,10 +40,10 @@ jobs:
         run: |
           set -euo pipefail
           jq -e '
-            .schema == "daube.account-edge-direct-deploy.v1" and
+            .schema == "daube.account-edge-direct-deploy.v2" and
             .repository == "daubesonntag-dotcom/daube-public-release" and
             .workerName == "daube-account-edge" and
-            .routePattern == "commerce.daubesonntag.com/account*" and
+            .customDomain == "account.daubesonntag.com" and
             .zoneName == "daubesonntag.com" and
             .mutationApproved == true and
             .zeroSpendOnly == true and
@@ -73,7 +74,6 @@ jobs:
           fetch-depth: 2
 
       - name: Enforce exact-main admission
-        id: admission
         shell: bash
         run: |
           set -euo pipefail
@@ -81,7 +81,6 @@ jobs:
           [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]]
           [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
           jq -e '.mutationApproved == true and .zeroSpendOnly == true and .sourcePolicy == "event-head"' "$ACCOUNT_EDGE_REQUEST" >/dev/null
-          echo "release_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
           echo "EXACT_MAIN_ADMISSION_GREEN ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify existing Cloudflare credential
@@ -90,14 +89,13 @@ jobs:
           set -euo pipefail
           [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || { echo '::error::cloudflare_api_token_missing'; exit 41; }
           code="$(curl -sS -o /tmp/cf-token.json -w '%{http_code}' \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H 'Accept: application/json' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
             https://api.cloudflare.com/client/v4/user/tokens/verify || true)"
           [[ "$code" == 200 ]] || { echo "::error::cloudflare_token_verify_http_${code}"; exit 42; }
           jq -e '.success == true and .result.status == "active"' /tmp/cf-token.json >/dev/null || { echo '::error::cloudflare_token_not_active'; exit 43; }
           echo 'CLOUDFLARE_CREDENTIAL_ACTIVE' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Discover canonical account and route authority
+      - name: Discover canonical account, zone and custom-domain state
         id: cf
         shell: bash
         run: |
@@ -123,12 +121,28 @@ jobs:
           ZONE_ID="$(jq -r '.result[]? | select(.name == "daubesonntag.com") | .id // empty' /tmp/cf-zones.json | head -n1)"
           [[ -n "$ZONE_ID" ]] || { echo '::error::daubesonntag_zone_not_found'; exit 46; }
 
-          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
-            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/workers/routes" >/tmp/account-routes-before.json || { echo '::error::cloudflare_routes_read_failed'; exit 47; }
-          jq -e '.success == true' /tmp/account-routes-before.json >/dev/null
+          domains_code="$(curl -sS -o /tmp/account-domains-before.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains?hostname=${ACCOUNT_EDGE_HOST}" || true)"
+          [[ "$domains_code" == 200 ]] || { echo "::error::workers_domains_read_http_${domains_code}"; exit 47; }
+          jq -e '.success == true' /tmp/account-domains-before.json >/dev/null
+          existing_service="$(jq -r --arg host "$ACCOUNT_EDGE_HOST" '.result[]? | select(.hostname == $host) | .service // empty' /tmp/account-domains-before.json | head -n1)"
+          if [[ -n "$existing_service" && "$existing_service" != 'daube-account-edge' ]]; then
+            echo "::error::account_custom_domain_owned_by_other_service_${existing_service}"
+            exit 48
+          fi
+
+          deployments_code="$(curl -sS -o /tmp/account-deployments-before.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/scripts/daube-account-edge/deployments" || true)"
+          if [[ "$deployments_code" != 200 && "$deployments_code" != 404 ]]; then
+            echo "::warning::account_previous_deployments_snapshot_http_${deployments_code}"
+          fi
+
           echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
           echo "zone_id=$ZONE_ID" >> "$GITHUB_OUTPUT"
-          echo "CLOUDFLARE_ROUTE_AUTHORITY_GREEN account=${ACCOUNT_ID} zone=${ZONE_ID}" >> "$GITHUB_STEP_SUMMARY"
+          echo "existing_service=$existing_service" >> "$GITHUB_OUTPUT"
+          echo "CUSTOM_DOMAIN_ADMISSION_GREEN account=${ACCOUNT_ID} zone=${ZONE_ID} existing=${existing_service:-none}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Render exact-SHA Worker configuration
         shell: bash
@@ -136,15 +150,14 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           import json, os
-          request=json.load(open(os.environ['ACCOUNT_EDGE_REQUEST'], encoding='utf-8'))
+          req=json.load(open(os.environ['ACCOUNT_EDGE_REQUEST'],encoding='utf-8'))
           cfg={
             '$schema':'node_modules/wrangler/config-schema.json',
-            'name':request['workerName'],
+            'name':req['workerName'],
             'main':'./worker.mjs',
             'compatibility_date':'2026-08-29',
             'workers_dev':False,
             'preview_urls':False,
-            'routes':[{'pattern':request['routePattern'],'zone_name':request['zoneName']}],
             'vars':{
               'DAUBE_RELEASE_SHA':os.environ['GITHUB_SHA'],
               'DAUBE_SUPABASE_URL':os.environ['SUPABASE_URL'],
@@ -155,19 +168,15 @@ jobs:
             json.dump(cfg,f,indent=2,ensure_ascii=False); f.write('\n')
           PY
           jq -e --arg sha "$GITHUB_SHA" '
-            .name == "daube-account-edge" and
-            .main == "./worker.mjs" and
-            .workers_dev == false and
-            .preview_urls == false and
-            .routes == [{"pattern":"commerce.daubesonntag.com/account*","zone_name":"daubesonntag.com"}] and
-            .vars.DAUBE_RELEASE_SHA == $sha and
+            .name == "daube-account-edge" and .main == "./worker.mjs" and
+            .workers_dev == false and .preview_urls == false and
+            (has("routes") | not) and .vars.DAUBE_RELEASE_SHA == $sha and
             .vars.DAUBE_SUPABASE_URL == "https://wilqsqndjgckqxbjptxm.supabase.co" and
             (.vars.DAUBE_SUPABASE_PUBLISHABLE_KEY | startswith("sb_publishable_"))
           ' account-edge/wrangler.generated.jsonc >/dev/null
           ! grep -Eqi 'sb_secret_|service[_-]?role|SUPABASE_SERVICE' account-edge/wrangler.generated.jsonc
 
-      - name: Direct deploy Account Edge with Wrangler
-        id: wrangler
+      - name: Direct upload Account Edge Worker
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
@@ -176,52 +185,69 @@ jobs:
           npx --yes wrangler@4.115.0 deploy --config account-edge/wrangler.generated.jsonc 2>&1 | tee /tmp/wrangler-deploy.log
           grep -E 'Uploaded|Deployed|Current Version ID|Version ID' /tmp/wrangler-deploy.log | tail -n 20 >> "$GITHUB_STEP_SUMMARY" || true
 
+      - name: Attach dedicated Account custom domain
+        id: domain
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          ZONE_ID: ${{ steps.cf.outputs.zone_id }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg hostname "$ACCOUNT_EDGE_HOST" --arg service 'daube-account-edge' --arg zone_id "$ZONE_ID" '{hostname:$hostname,service:$service,zone_id:$zone_id,zone_name:"daubesonntag.com"}')"
+          code="$(curl -sS -o /tmp/account-domain-attach.json -w '%{http_code}' -X PUT \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains" || true)"
+          [[ "$code" == 200 ]] || { echo "::error::account_custom_domain_attach_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/account-domain-attach.json 2>/dev/null || true; exit 49; }
+          jq -e --arg host "$ACCOUNT_EDGE_HOST" '.success == true and .result.hostname == $host and .result.service == "daube-account-edge"' /tmp/account-domain-attach.json >/dev/null || { echo '::error::account_custom_domain_attach_contract_failed'; exit 50; }
+          echo "domain_id=$(jq -r '.result.id' /tmp/account-domain-attach.json)" >> "$GITHUB_OUTPUT"
+          echo "ACCOUNT_CUSTOM_DOMAIN_ATTACHED ${ACCOUNT_EDGE_HOST}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Verify exact-SHA Account production externally
         id: readback
         shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
         run: |
           set -euo pipefail
+          domains_code="$(curl -sS -o /tmp/account-domains-after.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/workers/domains?hostname=${ACCOUNT_EDGE_HOST}" || true)"
+          [[ "$domains_code" == 200 ]] || { echo "::error::account_domain_readback_http_${domains_code}"; exit 51; }
+          jq -e --arg host "$ACCOUNT_EDGE_HOST" '.result[]? | select(.hostname == $host and .service == "daube-account-edge")' /tmp/account-domains-after.json >/dev/null || { echo '::error::account_domain_binding_readback_failed'; exit 52; }
+
           ok=0
           code=''
-          for attempt in $(seq 1 18); do
+          for attempt in $(seq 1 30); do
             code="$(curl -sS -o /tmp/account-health.json -w '%{http_code}' \
               -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
               "${ACCOUNT_EDGE_HEALTH_URL}?receipt=${GITHUB_SHA}" || true)"
             if [[ "$code" == 200 ]] && jq -e --arg sha "$GITHUB_SHA" '
-              .schema == "daube.account-edge.health.v1" and
-              .status == "READY" and
-              .sourceRevision == $sha and
-              .trustZone == "public-account" and
-              .supabasePublishableOnly == true and
-              .serviceRoleCredentialPresent == false and
-              .founderStaffAuthorityPresent == false and
-              .cookieSessionHttpOnly == true and
-              .profileAuthorization == "supabase-user-jwt-rls" and
-              .routeScope == "/account*"
-            ' /tmp/account-health.json >/dev/null 2>&1; then
-              ok=1
-              break
-            fi
+              .schema == "daube.account-edge.health.v1" and .status == "READY" and
+              .sourceRevision == $sha and .trustZone == "public-account" and
+              .supabasePublishableOnly == true and .serviceRoleCredentialPresent == false and
+              .founderStaffAuthorityPresent == false and .cookieSessionHttpOnly == true and
+              .profileAuthorization == "supabase-user-jwt-rls" and .routeScope == "/account*"
+            ' /tmp/account-health.json >/dev/null 2>&1; then ok=1; break; fi
             sleep 5
           done
-          [[ "$ok" == 1 ]] || { echo "::error::account_edge_exact_sha_readback_failed_http_${code}"; cat /tmp/account-health.json 2>/dev/null || true; exit 48; }
+          [[ "$ok" == 1 ]] || { echo "::error::account_edge_exact_sha_readback_failed_http_${code}"; cat /tmp/account-health.json 2>/dev/null || true; exit 53; }
 
           page_code="$(curl -sS -o /tmp/account-page.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$ACCOUNT_EDGE_URL?receipt=${GITHUB_SHA}" || true)"
-          [[ "$page_code" == 200 ]] || { echo "::error::account_page_http_${page_code}"; exit 49; }
-          grep -Fq 'D’AUBE Account' /tmp/account-page.html || { echo '::error::account_page_marker_missing'; exit 50; }
-          grep -Fq 'PUBLIC ACCOUNT' /tmp/account-page.html || { echo '::error::account_trust_zone_marker_missing'; exit 51; }
+          [[ "$page_code" == 200 ]] || { echo "::error::account_page_http_${page_code}"; exit 54; }
+          grep -Fq 'D’AUBE Account' /tmp/account-page.html || { echo '::error::account_page_marker_missing'; exit 55; }
+          grep -Fq 'PUBLIC ACCOUNT' /tmp/account-page.html || { echo '::error::account_trust_zone_marker_missing'; exit 56; }
 
           session_code="$(curl -sS -o /tmp/account-session.json -w '%{http_code}' -H 'Accept: application/json' "$ACCOUNT_EDGE_URL/api/session" || true)"
-          [[ "$session_code" == 401 ]] || { echo "::error::anonymous_session_http_${session_code}"; exit 52; }
-          jq -e '.ok == false and .error == "signed_out"' /tmp/account-session.json >/dev/null || { echo '::error::anonymous_session_contract_failed'; exit 53; }
+          [[ "$session_code" == 401 ]] || { echo "::error::anonymous_session_http_${session_code}"; exit 57; }
+          jq -e '.ok == false and .error == "signed_out"' /tmp/account-session.json >/dev/null || { echo '::error::anonymous_session_contract_failed'; exit 58; }
 
           root_code="$(curl -sS -o /tmp/commerce-root-health.json -w '%{http_code}' -H 'Accept: application/json' -H 'Cache-Control: no-cache' "$COMMERCE_HEALTH_URL" || true)"
-          [[ "$root_code" == 200 ]] || { echo "::error::commerce_root_regression_http_${root_code}"; exit 54; }
-          jq -e '.status == "READY" or .status == "DEGRADED"' /tmp/commerce-root-health.json >/dev/null || { echo '::error::commerce_root_health_contract_failed'; exit 55; }
+          [[ "$root_code" == 200 ]] || { echo "::error::commerce_root_regression_http_${root_code}"; exit 59; }
+          jq -e '.status == "READY" or .status == "DEGRADED"' /tmp/commerce-root-health.json >/dev/null || { echo '::error::commerce_root_health_contract_failed'; exit 60; }
 
           echo 'readback_ok=true' >> "$GITHUB_OUTPUT"
           echo "ACCOUNT_EDGE_EXACT_SHA_GREEN ${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
-          echo "ACCOUNT_PAGE_GREEN ${ACCOUNT_EDGE_URL}" >> "$GITHUB_STEP_SUMMARY"
+          echo "ACCOUNT_CUSTOM_DOMAIN_GREEN ${ACCOUNT_EDGE_URL}" >> "$GITHUB_STEP_SUMMARY"
           echo "COMMERCE_ROOT_NON_REGRESSION_GREEN ${COMMERCE_HEALTH_URL}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Emit machine-readable deployment receipt
@@ -230,6 +256,7 @@ jobs:
         env:
           CF_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
           CF_ZONE_ID: ${{ steps.cf.outputs.zone_id }}
+          CF_DOMAIN_ID: ${{ steps.domain.outputs.domain_id }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -237,26 +264,24 @@ jobs:
           health=json.load(open('/tmp/account-health.json',encoding='utf-8'))
           root=json.load(open('/tmp/commerce-root-health.json',encoding='utf-8'))
           receipt={
-            'schema':'daube.account-edge-production-receipt.v1',
+            'schema':'daube.account-edge-production-receipt.v2',
             'repository':'daubesonntag-dotcom/daube-public-release',
             'releaseSha':os.environ['GITHUB_SHA'],
             'workflowRunId':os.environ['GITHUB_RUN_ID'],
             'worker':'daube-account-edge',
-            'runtime':'cloudflare-workers-direct-wrangler',
+            'runtime':'cloudflare-workers-direct-wrangler-custom-domain',
             'cloudflareAccountId':os.environ['CF_ACCOUNT_ID'],
             'cloudflareZoneId':os.environ['CF_ZONE_ID'],
-            'route':'commerce.daubesonntag.com/account*',
-            'domain':'https://commerce.daubesonntag.com/account',
+            'cloudflareDomainId':os.environ.get('CF_DOMAIN_ID') or None,
+            'customDomain':'account.daubesonntag.com',
+            'url':'https://account.daubesonntag.com/account',
             'supabaseProjectRef':'wilqsqndjgckqxbjptxm',
-            'tests':['node-account-edge-contract','static-secret-authority-scan','external-exact-sha-health','anonymous-session-negative-canary','commerce-root-non-regression'],
-            'security':{
-              'trustZone':'public-account','serviceRoleCredentialPresent':False,'founderStaffAuthorityPresent':False,
-              'httpOnlySecureCookies':True,'authorization':'supabase-user-jwt-rls'
-            },
+            'tests':['node-account-edge-contract','static-secret-authority-scan','custom-domain-binding-readback','external-exact-sha-health','anonymous-session-negative-canary','commerce-root-non-regression'],
+            'security':{'trustZone':'public-account','serviceRoleCredentialPresent':False,'founderStaffAuthorityPresent':False,'httpOnlySecureCookies':True,'authorization':'supabase-user-jwt-rls'},
             'externalReadback':health,
             'broaderCommerceSourceRevision':root.get('sourceRevision'),
             'broaderCommerceStatus':root.get('status'),
-            'rollbackReference':'pre-deploy Cloudflare route snapshot artifact account-routes-before.json',
+            'rollbackReference':'account-deployments-before.json + account-domains-before.json artifacts',
             'verifiedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),
           }
           with open('/tmp/account-edge-production-receipt.json','w',encoding='utf-8') as f:
@@ -270,7 +295,10 @@ jobs:
           name: account-edge-production-${{ github.sha }}
           path: |
             /tmp/account-edge-production-receipt.json
-            /tmp/account-routes-before.json
+            /tmp/account-domains-before.json
+            /tmp/account-domains-after.json
+            /tmp/account-deployments-before.json
+            /tmp/account-domain-attach.json
             /tmp/account-health.json
             /tmp/account-session.json
             /tmp/commerce-root-health.json

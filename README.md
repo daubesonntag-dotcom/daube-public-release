@@ -10,6 +10,7 @@ D’AUBE is looking for the first **20 independent volunteer testers/viewers** t
 
 - [Join the open tester/viewer call — issue #176](https://github.com/daubesonntag-dotcom/daube-public-release/issues/176)
 - [Read the volunteer testing guide](community/VOLUNTEER_TESTING.md)
+- [Share the call without rewriting it](community/VOLUNTEER_SHARE_KIT.md)
 - Use **Issues → New issue → Volunteer Tester / Viewer report** for a structured report.
 
 No purchase, positive review, positive rating, test-for-test exchange, OAuth, or private-system access is required. A genuine independent report may count as external usability/viewer evidence for the behavior observed; it is **not** customer payment, settlement, production, shipment, revenue, or commercial acceptance evidence.

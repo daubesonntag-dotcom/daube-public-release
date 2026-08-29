@@ -2,6 +2,18 @@
 
 Public install, update and static presentation boundary for the D’AUBE ecosystem.
 
+## BREAK THE DAWN — independent testers & viewers wanted
+
+**Find the crack before the sunrise.**
+
+D’AUBE is looking for the first **20 independent volunteer testers/viewers** to spend roughly **5–15 minutes** on a public D’AUBE surface and report where they hesitate, get confused, almost leave, encounter mobile/accessibility friction, or hit a reproducible blocker.
+
+- [Join the open tester/viewer call — issue #176](https://github.com/daubesonntag-dotcom/daube-public-release/issues/176)
+- [Read the volunteer testing guide](community/VOLUNTEER_TESTING.md)
+- Use **Issues → New issue → Volunteer Tester / Viewer report** for a structured report.
+
+No purchase, positive review, positive rating, test-for-test exchange, OAuth, or private-system access is required. A genuine independent report may count as external usability/viewer evidence for the behavior observed; it is **not** customer payment, settlement, production, shipment, revenue, or commercial acceptance evidence.
+
 ## NEW — D’AUBE Work Arcade public beta
 
 **Rent the work. Build the world. Leave a mark.**

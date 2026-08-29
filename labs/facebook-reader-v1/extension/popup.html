@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>D’AUBE Facebook Reader</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-width: 360px; background: Canvas; color: CanvasText; }
+    main { padding: 14px; display: grid; gap: 10px; }
+    h1 { font-size: 16px; margin: 0; }
+    p { margin: 0; line-height: 1.4; }
+    .muted { opacity: .7; font-size: 12px; }
+    button { font: inherit; padding: 9px 12px; border-radius: 10px; cursor: pointer; }
+    textarea { width: 100%; min-height: 180px; box-sizing: border-box; resize: vertical; font: 11px/1.35 ui-monospace, monospace; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>D’AUBE Facebook Reader</h1>
+    <p class="muted">Explicit active-tab capture only. No cookie, password, OTP or session-token access.</p>
+    <button id="capture" type="button">Capture current Facebook tab</button>
+    <p id="status" class="muted">Ready.</p>
+    <textarea id="preview" readonly aria-label="Captured research envelope"></textarea>
+    <div class="row">
+      <button id="copy" type="button" disabled>Copy envelope</button>
+      <button id="queue" type="button" disabled>Queue source URL in D’AUBE Radar</button>
+    </div>
+    <p class="muted">The queue action sends only the source URL to D’AUBE. Captured body text is never placed in the URL.</p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

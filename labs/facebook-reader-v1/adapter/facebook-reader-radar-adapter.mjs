@@ -27,6 +27,13 @@ const TRACKING_QUERY_KEYS = new Set([
 function sha256(value) { return createHash('sha256').update(value).digest('hex'); }
 function boundedString(value, maxLength) { return typeof value === 'string' ? value.slice(0, maxLength) : ''; }
 function isFacebookHost(hostname) { return /(^|\.)facebook\.com$/i.test(hostname) || hostname.toLowerCase() === 'fb.watch'; }
+function hasSensitiveQueryKey(parsed) {
+  for (const key of parsed.searchParams.keys()) {
+    const lower = key.toLowerCase();
+    if (SENSITIVE_QUERY_KEYS.has(lower) || /(?:token|secret|password|credential|session|signature|auth)/i.test(lower)) return true;
+  }
+  return false;
+}
 
 function parseHttpsFacebookUrl(value, label) {
   let parsed;
@@ -34,6 +41,7 @@ function parseHttpsFacebookUrl(value, label) {
   if (parsed.protocol !== 'https:') throw new Error(`${label} must use HTTPS`);
   if (!isFacebookHost(parsed.hostname)) throw new Error(`${label} must be a Facebook URL`);
   if (parsed.username || parsed.password) throw new Error(`${label} must not contain URL credentials`);
+  if (hasSensitiveQueryKey(parsed)) throw new Error(`${label} must not contain sensitive query parameters`);
   return parsed;
 }
 
@@ -64,10 +72,7 @@ function sanitizePublicRelatedUrl(value) {
   try {
     const parsed = new URL(value);
     if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) return null;
-    for (const key of parsed.searchParams.keys()) {
-      const lower = key.toLowerCase();
-      if (SENSITIVE_QUERY_KEYS.has(lower) || /(?:token|secret|password|credential|session|signature|auth)/i.test(lower)) return null;
-    }
+    if (hasSensitiveQueryKey(parsed)) return null;
     for (const key of [...parsed.searchParams.keys()]) {
       const lower = key.toLowerCase();
       if (TRACKING_QUERY_KEYS.has(lower) || lower.startsWith('utm_')) parsed.searchParams.delete(key);
@@ -119,7 +124,8 @@ function collectRepoCandidates(envelope) {
     if (typeof block !== 'string') continue;
     let match;
     while ((match = githubUrlRegex.exec(block)) !== null) {
-      const repo = normalizeRepo(match[1], match[2]);
+      const visibleRepoName = match[2].replace(/\.+$/u, '');
+      const repo = normalizeRepo(match[1], visibleRepoName);
       add(repo, 'visible-text-github-url', repo ? `https://github.com/${repo}` : null);
     }
   }

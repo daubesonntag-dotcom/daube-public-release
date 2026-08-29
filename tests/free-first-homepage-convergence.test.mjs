@@ -54,7 +54,7 @@ test('normal Pages remains manual mirror while recovery is narrow, truthful and 
   assert.match(pagesWorkflow, /ci\/github-pages: mirror/);
   assert.match(recoveryWorkflow, /Payment Domain Recovery Pages/);
   assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
-  assert.match(recoveryWorkflow, /Verify canonical apex, storefront bridge and Paddle review routes/);
+  assert.match(recoveryWorkflow, /Verify canonical apex, Dawn Clarity, storefront bridge and native-price review routes/);
 
   assert.match(storefront, /No silent FX/);
   assert.match(storefront, /VND CATALOG/);

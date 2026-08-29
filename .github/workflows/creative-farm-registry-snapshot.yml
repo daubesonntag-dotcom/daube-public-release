@@ -1,0 +1,35 @@
+name: Creative Farm Registry Snapshot Gate
+
+on:
+  push:
+    branches:
+      - 'ci/creative-farm-smoke-v1-20260829'
+    paths:
+      - 'release/creative-farm-registry-snapshot.v1.json'
+      - 'scripts/creative-farm-registry-snapshot-score.mjs'
+      - '.github/workflows/creative-farm-registry-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-registry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Checkout exact public evidence revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Validate sealed Studio Runtime registry snapshot
+        run: node scripts/creative-farm-registry-snapshot-score.mjs
+      - name: Upload creative registry evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: creative-farm-registry-evidence
+          path: artifacts/creative-farm-registry/quality-score.json
+          if-no-files-found: error
+          retention-days: 7

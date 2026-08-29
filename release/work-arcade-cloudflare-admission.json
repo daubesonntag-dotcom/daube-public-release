@@ -1,0 +1,13 @@
+{
+  "schema": "daube.work-arcade-cloudflare-admission.v1",
+  "repository": "daubesonntag-dotcom/daube-work-arcade",
+  "expectedSha": "d9b4a0684c217dde83f3971fe668f6f6c2e1eebc",
+  "sourceVisibility": "private",
+  "provider": "cloudflare-workers-builds",
+  "pythonVersion": "3.12",
+  "nodeVersion": "22",
+  "controlPlaneMutationApproved": true,
+  "deploymentMutationApproved": false,
+  "zeroSpendRequired": true,
+  "purpose": "External exact-main portable admission only: private checkout -> pinned dependency install -> full run_all_admission.py -> provider/run evidence; no Worker deploy"
+}

@@ -1,0 +1,112 @@
+name: Volunteer Tester / Viewer report
+description: Give public-safe, independent usability/viewer feedback on D’AUBE. No purchase or positive review required.
+title: "[Break the Dawn] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing D’AUBE.
+
+        **We want honest friction, not praise.** A useful report tells us where you hesitated, got confused, nearly left, or found something broken.
+
+        This is a voluntary public-surface testing lane. It is not a customer order, payment, settlement, employment offer, paid Mission, shipment, or commercial acceptance record.
+
+        Read: `community/VOLUNTEER_TESTING.md`
+
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Test lane
+      options:
+        - 5-minute Viewer
+        - Mobile Friction Hunt
+        - Accessibility Pass
+        - Commerce Journey Observer — no purchase required
+        - Technical Public-Surface Tester
+        - Other public-safe viewer feedback
+    validations:
+      required: true
+
+  - type: input
+    id: surface
+    attributes:
+      label: Public surface tested
+      description: Public URL, page name, or public repository path. Do not paste private/internal URLs.
+      placeholder: https://... or repo/path
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Device / OS / browser
+      description: Enough detail to reproduce the observation when relevant.
+      placeholder: Android 16 · Chrome 140 / iPhone · Safari / Windows · Firefox
+    validations:
+      required: true
+
+  - type: textarea
+    id: task
+    attributes:
+      label: What did you try to do?
+      placeholder: I tried to understand the offer, find the next action, complete a public form, navigate by keyboard, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: friction
+    attributes:
+      label: Where did you hesitate, get confused, or almost leave?
+      description: This is the most valuable field. Be specific and candid.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected vs actual behavior
+      placeholder: |
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Cosmetic — noticeable but does not slow me down
+        - Friction — makes the journey harder or less trustworthy
+        - Blocker — prevents the intended public task
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Public-safe reproduction / evidence
+      description: Steps, screenshots, or recordings are welcome only when they contain no private or sensitive data.
+      placeholder: 1. Open ... 2. Tap ... 3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: one_change
+    attributes:
+      label: If you could change one thing, what would it be?
+      description: Optional. A short answer is enough.
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Safety and truth boundary
+      options:
+        - label: I tested only public surfaces and did not bypass access controls or target private infrastructure.
+          required: true
+        - label: I have not included passwords, API keys, government-ID data, banking data, customer secrets, or other private information.
+          required: true
+        - label: I understand no purchase, positive review, positive rating, or commercial commitment is required for this volunteer test.
+          required: true
+        - label: I understand this report may count as external usability/viewer evidence only; it is not payment, settlement, production, shipping, revenue, or customer commercial acceptance evidence.
+          required: true

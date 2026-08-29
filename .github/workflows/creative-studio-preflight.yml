@@ -9,6 +9,7 @@ on:
       - 'creative-studio/**'
       - 'assets/creative-studio-v1.js'
       - 'scripts/creative-studio-quality-score.mjs'
+      - 'sitemap.xml'
       - '.github/workflows/creative-studio-preflight.yml'
   workflow_dispatch:
 
@@ -57,6 +58,7 @@ jobs:
           grep -Fq 'idempotency-key' /tmp/creative.js
           grep -Fq 'result.paymentCreated !== false' /tmp/creative.js
           grep -Fq 'result.revenueCountable !== false' /tmp/creative.js
+          grep -Fq 'https://daubesonntag.com/creative-studio/' sitemap.xml
           ! grep -Eiq '(service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_|webhook_secret|sk_live_)' /tmp/creative.html /tmp/creative.js
 
       - name: Verify live lead runtime admits Creative Production

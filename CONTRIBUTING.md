@@ -6,6 +6,14 @@ This public repository accepts **public-safe feedback, documentation improvement
 
 ## Choose the right lane
 
+### 0. Volunteer Tester / Viewer — BREAK THE DAWN
+
+Use [`community/VOLUNTEER_TESTING.md`](community/VOLUNTEER_TESTING.md) and the **Volunteer Tester / Viewer report** issue form when you want to spend roughly 5–15 minutes giving candid feedback on a public D’AUBE surface.
+
+Useful signals include first-impression confusion, mobile friction, accessibility observations, public commerce-journey confusion, and reproducible public bugs. No purchase, positive review or positive rating is required.
+
+A genuine independent report may be treated as external usability/viewer evidence for the specific behavior observed. It is **not** payment, settlement, physical production, shipment, revenue, customer commercial acceptance or proof of a positive review.
+
 ### 1. Talent Pool
 
 Use [`talent/README.md`](talent/README.md) and the **Talent Pool** issue form when you want D’AUBE to know about your skills, portfolio and availability for possible future work.

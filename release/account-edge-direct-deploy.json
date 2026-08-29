@@ -1,13 +1,13 @@
 {
-  "schema": "daube.account-edge-direct-deploy.v1",
+  "schema": "daube.account-edge-direct-deploy.v2",
   "repository": "daubesonntag-dotcom/daube-public-release",
   "workerName": "daube-account-edge",
-  "routePattern": "commerce.daubesonntag.com/account*",
+  "customDomain": "account.daubesonntag.com",
   "zoneName": "daubesonntag.com",
   "mutationApproved": true,
   "zeroSpendOnly": true,
   "sourcePolicy": "event-head",
   "supabaseProjectRef": "wilqsqndjgckqxbjptxm",
   "trustZone": "public-account",
-  "purpose": "Isolated public-account overlay: direct Cloudflare deploy without Vercel, Cloudflare Git integration, service-role credentials, Founder authority, or Staff authority. Production success requires exact GITHUB_SHA external readback."
+  "purpose": "Isolated public-account Worker on a dedicated Cloudflare Custom Domain. Uses Workers Scripts authority only; no Workers Routes permission, Vercel, Cloudflare Git integration, service-role credentials, Founder authority, or Staff authority. Production success requires exact GITHUB_SHA external readback."
 }

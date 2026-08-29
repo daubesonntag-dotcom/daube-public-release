@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "authority": "daubesonntag-dotcom/daube-public-release",
+  "purpose": "Expose a compact public rights/provenance summary without publishing private contracts, customer data or unsupported cultural-authenticity claims.",
+  "allowed_rights_bases": [
+    "DAUBE_ORIGINAL",
+    "COMMISSIONED_WITH_COMMERCIAL_RIGHTS",
+    "LICENSED_FOR_STATED_USE",
+    "PUBLIC_DOMAIN_OR_OPEN_LICENSE",
+    "CUSTOMER_OWNED_FOR_CUSTOMER_DELIVERY_ONLY"
+  ],
+  "public_fields": [
+    "asset_or_claim_id",
+    "rights_basis_class",
+    "creator_or_source_attribution_when_required",
+    "commercial_use_scope",
+    "provenance_summary",
+    "limitations"
+  ],
+  "never_publish": [
+    "private_contract_terms",
+    "personal_identity_data_without_basis",
+    "customer_confidential_source_material",
+    "secrets_or_credentials",
+    "unsupported_traditional_or_cultural_authenticity_claims"
+  ],
+  "cultural_material_rule": "State whether material is original D’AUBE interpretation, commissioned, licensed, sourced under an open/public-domain basis, or only research/reference. Do not imply community endorsement, traditional authority or geographic authenticity without evidence.",
+  "truth_boundary": "Attribution is evidence about source and rights, not a certification of cultural authenticity, product quality, production status or commercial success."
+}

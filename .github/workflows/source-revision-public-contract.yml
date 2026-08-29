@@ -1,0 +1,24 @@
+name: Source revision public contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'labs/source-revision-v1/**'
+      - '.github/workflows/source-revision-public-contract.yml'
+  pull_request:
+    paths:
+      - 'labs/source-revision-v1/**'
+      - '.github/workflows/source-revision-public-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run source revision public contract
+        run: node --test labs/source-revision-v1/source-revision-artifact.test.mjs

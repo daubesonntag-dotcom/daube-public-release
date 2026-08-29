@@ -9,9 +9,13 @@ Public install, update and static presentation boundary for the D’AUBE ecosyst
 D’AUBE is looking for the first **20 independent volunteer testers/viewers** to spend roughly **5–15 minutes** on a public D’AUBE surface and report where they hesitate, get confused, almost leave, encounter mobile/accessibility friction, or hit a reproducible blocker.
 
 - [Join the open tester/viewer call — issue #176](https://github.com/daubesonntag-dotcom/daube-public-release/issues/176)
+- **[5-minute Facebook Reader test — Chrome / Chromium / Android — issue #190](https://github.com/daubesonntag-dotcom/daube-public-release/issues/190)**
+- [Open the zero-secret Facebook Reader validation lab](https://d-aube-facebook-reader-lab-w75u19.v2.appdeploy.ai/)
 - [Read the volunteer testing guide](community/VOLUNTEER_TESTING.md)
 - [Share the call without rewriting it](community/VOLUNTEER_SHARE_KIT.md)
 - Use **Issues → New issue → Volunteer Tester / Viewer report** for a structured report.
+
+The Facebook Reader test asks for one bounded observation only: either capture an authorized Facebook tab with the public least-privilege extension fixture, or install the validation PWA on Android and check whether **D’AUBE Reader Lab** appears in the system share sheet. Do not paste private Facebook content, screenshots containing private material, cookies, passwords, OTPs or session tokens into public issues. A failed/blocked result is useful evidence and no positive feedback is required.
 
 No purchase, positive review, positive rating, test-for-test exchange, OAuth, or private-system access is required. A genuine independent report may count as external usability/viewer evidence for the behavior observed; it is **not** customer payment, settlement, production, shipment, revenue, or commercial acceptance evidence.
 

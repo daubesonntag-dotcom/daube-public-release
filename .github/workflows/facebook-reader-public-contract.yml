@@ -1,0 +1,33 @@
+name: Facebook Reader public contract
+
+on:
+  push:
+    paths:
+      - 'labs/facebook-reader-v1/**'
+      - '.github/workflows/facebook-reader-public-contract.yml'
+  pull_request:
+    paths:
+      - 'labs/facebook-reader-v1/**'
+      - '.github/workflows/facebook-reader-public-contract.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: facebook-reader-public-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify no secret context is required
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "${CLOUDFLARE_API_TOKEN:-}"
+          echo 'ZERO_SECRET_PUBLIC_FIXTURE'
+      - name: Run Facebook Reader public contract
+        run: node --test labs/facebook-reader-v1/tests/facebook-reader-public-contract.test.mjs

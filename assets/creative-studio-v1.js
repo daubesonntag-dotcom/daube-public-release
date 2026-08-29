@@ -3,6 +3,7 @@
 
   const OFFER_ID = 'DAUBE-CREATIVE-PRODUCTION-V1';
   const ENDPOINT = 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-money-first-lead';
+  const VOLUNTEER_QA_URL = 'https://github.com/daubesonntag-dotcom/daube-public-release/issues/181';
   const form = document.getElementById('creativeStudioForm');
   const status = document.getElementById('formStatus');
   if (!form || !status) return;
@@ -16,6 +17,21 @@
     status.dataset.state = state;
   };
   const hasSecret = (text) => /(password|passwd|api[ _-]?key|private[ _-]?key|secret[ _-]?key|recovery[ _-]?code|one[ _-]?time[ _-]?password|\botp\b|\bcvv\b|bearer\s+[A-Za-z0-9._-]{8,}|sk-[A-Za-z0-9]{10,})/i.test(text);
+
+  const truthBand = document.querySelector('.band > div:last-child');
+  if (truthBand && !document.querySelector('[data-volunteer-qa]')) {
+    const wrap = document.createElement('p');
+    const link = document.createElement('a');
+    link.className = 'button';
+    link.href = VOLUNTEER_QA_URL;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.dataset.volunteerQa = 'true';
+    link.textContent = 'Volunteer QA / Viewer · 15–20 phút →';
+    link.setAttribute('aria-label', 'Mở lời mời volunteer QA cho D’AUBE Creative Studio trên GitHub');
+    wrap.appendChild(link);
+    truthBand.appendChild(wrap);
+  }
 
   async function telemetry(eventType) {
     try {

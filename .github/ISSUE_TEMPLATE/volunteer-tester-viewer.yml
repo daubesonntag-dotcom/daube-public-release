@@ -1,112 +1,65 @@
-name: Volunteer Tester / Viewer report
-description: Give public-safe, independent usability/viewer feedback on D’AUBE. No purchase or positive review required.
+name: 5-minute Volunteer Viewer report
+description: Report the first public-surface friction you notice. No purchase, positive review or private access required.
 title: "[Break the Dawn] "
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for testing D’AUBE.
+        Thank you for helping us find friction before launch.
 
-        **We want honest friction, not praise.** A useful report tells us where you hesitated, got confused, nearly left, or found something broken.
+        **A short negative observation is enough.** Test only a public D’AUBE surface. Stop at the first moment you feel confused, hesitant, distrustful, blocked, or ready to leave.
 
-        This is a voluntary public-surface testing lane. It is not a customer order, payment, settlement, employment offer, paid Mission, shipment, or commercial acceptance record.
+        No purchase, positive rating, OAuth, private-system access, or production work is required.
 
-        Read: `community/VOLUNTEER_TESTING.md`
-
-  - type: dropdown
-    id: lane
-    attributes:
-      label: Test lane
-      options:
-        - 5-minute Viewer
-        - Mobile Friction Hunt
-        - Accessibility Pass
-        - Commerce Journey Observer — no purchase required
-        - Technical Public-Surface Tester
-        - Other public-safe viewer feedback
-    validations:
-      required: true
+        A genuine report may count only as external usability/viewer evidence for the behavior observed. It is not customer, payment, settlement, production, shipping, revenue, or commercial-acceptance evidence.
 
   - type: input
     id: surface
     attributes:
-      label: Public surface tested
-      description: Public URL, page name, or public repository path. Do not paste private/internal URLs.
-      placeholder: https://... or repo/path
-    validations:
-      required: true
-
-  - type: input
-    id: environment
-    attributes:
-      label: Device / OS / browser
-      description: Enough detail to reproduce the observation when relevant.
-      placeholder: Android 16 · Chrome 140 / iPhone · Safari / Windows · Firefox
-    validations:
-      required: true
-
-  - type: textarea
-    id: task
-    attributes:
-      label: What did you try to do?
-      placeholder: I tried to understand the offer, find the next action, complete a public form, navigate by keyboard, etc.
+      label: What public page or surface did you open?
+      placeholder: URL or page name
     validations:
       required: true
 
   - type: textarea
     id: friction
     attributes:
-      label: Where did you hesitate, get confused, or almost leave?
-      description: This is the most valuable field. Be specific and candid.
+      label: What was the first moment you hesitated, got confused, or wanted to leave?
+      description: One or two sentences are enough. This is the most valuable field.
+      placeholder: I expected ... but when I saw/clicked ... I wasn't sure ...
     validations:
       required: true
 
-  - type: textarea
-    id: expected_actual
+  - type: input
+    id: environment
     attributes:
-      label: Expected vs actual behavior
-      placeholder: |
-        Expected: ...
-        Actual: ...
-    validations:
-      required: true
+      label: Device / browser (optional)
+      description: Add this only if it helps reproduce the problem.
+      placeholder: Android · Chrome / iPhone · Safari / Windows · Firefox
 
   - type: dropdown
     id: severity
     attributes:
-      label: Severity
+      label: How much did it affect you?
       options:
-        - Cosmetic — noticeable but does not slow me down
-        - Friction — makes the journey harder or less trustworthy
-        - Blocker — prevents the intended public task
+        - Small annoyance
+        - Friction — made me hesitate or trust it less
+        - Blocker — I could not continue
     validations:
       required: true
 
   - type: textarea
     id: evidence
     attributes:
-      label: Public-safe reproduction / evidence
-      description: Steps, screenshots, or recordings are welcome only when they contain no private or sensitive data.
-      placeholder: 1. Open ... 2. Tap ... 3. Observe ...
-    validations:
-      required: true
-
-  - type: textarea
-    id: one_change
-    attributes:
-      label: If you could change one thing, what would it be?
-      description: Optional. A short answer is enough.
+      label: Extra detail or screenshot (optional)
+      description: Public-safe reproduction steps are welcome. Do not include passwords, tokens, payment data, ID data, or private customer information.
 
   - type: checkboxes
     id: boundaries
     attributes:
-      label: Safety and truth boundary
+      label: Safety boundary
       options:
-        - label: I tested only public surfaces and did not bypass access controls or target private infrastructure.
+        - label: I tested only public surfaces and have not included secrets or sensitive/private data.
           required: true
-        - label: I have not included passwords, API keys, government-ID data, banking data, customer secrets, or other private information.
-          required: true
-        - label: I understand no purchase, positive review, positive rating, or commercial commitment is required for this volunteer test.
-          required: true
-        - label: I understand this report may count as external usability/viewer evidence only; it is not payment, settlement, production, shipping, revenue, or customer commercial acceptance evidence.
+        - label: I understand this is volunteer usability/viewer feedback; no purchase, positive review, or positive rating is required.
           required: true

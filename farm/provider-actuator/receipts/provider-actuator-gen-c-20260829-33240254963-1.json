@@ -1,0 +1,48 @@
+{
+  "schema": "daube.resource-farm-provider-actuator-receipt.v1",
+  "status": "ADMITTED",
+  "requestId": "provider-actuator-gen-c-20260829",
+  "requestedWorkUnits": 750000,
+  "totalEvidenceWorkUnits": 1000000,
+  "providerFamilies": [
+    "github-public-runner",
+    "supabase-edge"
+  ],
+  "providerFamilyCount": 2,
+  "actualReplicas": {
+    "github-public-runner": 3,
+    "supabase-edge": 1
+  },
+  "plan": {
+    "githubReplicas": 3,
+    "supabaseReplicas": 1,
+    "capacityWorkUnits": 1000000
+  },
+  "ecologyAdmission": {
+    "enforced": true,
+    "admitted": true,
+    "status": "GREEN",
+    "score": 100,
+    "minimumScore": 95,
+    "systemCount": 10,
+    "allSystemsGreen": true,
+    "paidSpendAuthorized": false,
+    "automaticPrivilegeExpansion": false,
+    "newOAuthRequired": false,
+    "observedAt": "2026-08-29T07:11:31.531Z"
+  },
+  "feedback": {
+    "previousReceiptSeen": true,
+    "previousHealthy": true,
+    "previousRequestId": "provider-actuator-gen-c-20260829",
+    "previousTotalEvidenceWorkUnits": 1000000
+  },
+  "feedbackClosedLoopObserved": true,
+  "providerExecutionDispatchClosedLoopProven": true,
+  "crossProviderExecutionActuationProven": true,
+  "providerCapacityProvisioningClosedLoopProven": false,
+  "paidSpendAuthorized": false,
+  "privateAssetsUsed": false,
+  "truthBoundary": "Execution dispatch is proven across admitted ephemeral providers and requires Ecology GREEN >=95. Arbitrary third-party VM/GPU/VPS account or capacity provisioning is not claimed.",
+  "observedAt": "2026-08-29T07:11:57.190Z"
+}

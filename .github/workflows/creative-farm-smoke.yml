@@ -6,6 +6,7 @@ on:
       - 'ci/creative-farm-smoke-v1-20260829'
     paths:
       - 'scripts/creative-farm-smoke.sh'
+      - 'scripts/creative-farm-mastering.sh'
       - 'scripts/creative-farm-smoke-score.mjs'
       - '.github/workflows/creative-farm-smoke.yml'
   workflow_dispatch:
@@ -49,6 +50,10 @@ jobs:
       - name: Grow code and media outputs
         shell: bash
         run: bash scripts/creative-farm-smoke.sh
+
+      - name: Master delivery outputs
+        shell: bash
+        run: bash scripts/creative-farm-mastering.sh
 
       - name: Enforce creative farm score >=95
         run: node scripts/creative-farm-smoke-score.mjs

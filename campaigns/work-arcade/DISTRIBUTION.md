@@ -27,9 +27,44 @@ Issue #104 — “Would you pay to rent a job instead of apply for one?”
 
 Use this issue as the first structured willingness-to-pay discussion surface.
 
+### BREAK THE DAWN tester/viewer intake — ACTIVE
+
+Issue #176 is the primary low-friction independent tester/viewer intake:
+`https://github.com/daubesonntag-dotcom/daube-public-release/issues/176`
+
+Target: first 20 independent reports across first-time viewing, mobile friction, accessibility, commerce observation and technical public-surface QA.
+
+Operating rule:
+- give a browser-accessible test target immediately;
+- ask for 5–15 minutes, not an open-ended beta commitment;
+- ask **where the person hesitated, became confused, or nearly left**;
+- do not require signup for the basic viewer pass;
+- do not ask for a positive rating/review;
+- do not use test-for-test or vote-exchange tactics;
+- a tester report is usability/viewer evidence only, never settlement/revenue/production/shipping/customer-acceptance evidence.
+
+The Work Arcade campaign brief now routes directly into #176.
+
+### Physical Pilot Interest — ACTIVE DISCOVERY
+
+Issue #177 collects public-safe interest in future packaging/unboxing/delivery testing:
+`https://github.com/daubesonntag-dotcom/daube-public-release/issues/177`
+
+Interest is not an order, customer, payment, sample promise, production receipt or shipment. It exists to build an independent future-test pool before D’AUBE has a real quoted sample lane.
+
 ## Facebook — ACTIVE
 
 Connected through Metricool.
+
+### BREAK THE DAWN tester call
+Scheduled: 2026-08-29 10:00 Asia/Saigon.
+Angle: 20 independent testers/viewers; 5–15 minute candid friction report; no purchase or positive review.
+Primary CTA: issue #176.
+
+### Physical Pilot Interest call
+Scheduled: 2026-08-30 10:00 Asia/Saigon.
+Angle: packaging/unboxing/delivery testers who are willing to critique print, cut, color, packaging and damage/recovery honestly.
+Primary CTA: issue #177.
 
 ### Launch hook
 Scheduled: 2026-08-28 15:10 Asia/Saigon.
@@ -42,6 +77,12 @@ Scheduled: 2026-08-31 10:00 Asia/Saigon.
 Angle: developer/game-dev/worldbuilder use case, World Plot and Proof Capsule.
 
 UTM content: `builder-angle`
+
+## Volunteer Compute warm-audience crossover — ACTIVE
+
+Issue #96 already owns the consent-based Compute Commons volunteer lane. A contextual crossover comment now points subscribers/past explorers to #176 without identifying or mass-pinging any individual.
+
+Rule: never reinterpret a historical compute participant as an active tester. New viewer evidence starts only when a person independently submits a new report.
 
 ## Hacker News / Show HN — HIGH PRIORITY, MANUAL ACCOUNT POST REQUIRED
 
@@ -63,6 +104,14 @@ Primary CTA: try the app and critique the model.
 
 UTM suggestion:
 `?utm_source=hackernews&utm_medium=community&utm_campaign=work-arcade-public-beta-20260828&utm_content=show-hn`
+
+## Reddit r/alphaandbetausers — HIGH PRIORITY TESTER DISCOVERY
+
+Use only a genuine beta-testing ask. Keep the request short and specific: public browser link, 5–15 minute scope, and one concrete question such as “where did you almost leave?”
+
+Do not ask for karma, reciprocal testing, positive reviews, or mass cross-post the same copy.
+
+Preferred CTA: #176 / Work Arcade direct browser test.
 
 ## Reddit r/gamedev — TECHNICAL CASE STUDY ONLY
 
@@ -91,6 +140,9 @@ Use communities that explicitly tolerate maker project sharing. Avoid repeated c
 Angle:
 `Would you pay to rent a job? I built a public beta to test the premise rather than debating it in a spreadsheet.`
 
+For the tester campaign, prefer a friction question over a launch pitch:
+`Try this for five minutes and tell me the exact moment you want to leave.`
+
 Ask for specific feedback, especially willingness-to-pay and what would make the service valuable rather than exploitative.
 
 UTM suggestion:
@@ -108,7 +160,8 @@ Discussion:
 - what is already live;
 - why charging is intentionally disabled during discovery;
 - current nine service lanes;
-- ask founders whether the experiential value proposition is coherent.
+- ask founders whether the experiential value proposition is coherent;
+- for testing, ask what moment creates abandonment rather than asking whether the site “looks good”.
 
 Primary outcome: direct conversations and pricing/value discovery, not vanity votes.
 
@@ -149,15 +202,20 @@ Rank stronger than simple clicks:
 2. Service card inspected.
 3. Simulated rent receipt created.
 4. Proof Capsule created.
-5. Feedback issue/comment submitted.
+5. Independent tester/viewer report submitted (#176).
 6. User names one service they would pay for.
 7. User gives a price/value condition.
-8. User volunteers for a restricted paid pilot after commercial gates open.
+8. User expresses physical pilot interest (#177).
+9. User volunteers for a restricted paid pilot after commercial gates open.
+
+Never collapse these into one truth state: a viewer is not a customer; an interested person is not a paid order; a simulation is not settlement; a comment is not delivery.
 
 ## KPI
 
 Early discovery KPI is **not revenue yet**.
 
+- independent tester/viewer reports: target first 20;
+- physical pilot interest signals: target first 10;
 - qualified willingness-to-pay responses: target first 10;
 - users naming a preferred service: target first 20;
 - users completing a simulated rent: target first 30;

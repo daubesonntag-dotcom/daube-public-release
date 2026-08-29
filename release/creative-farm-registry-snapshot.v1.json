@@ -1,0 +1,54 @@
+{
+  "snapshot_schema": "daube.creative-farm-registry-snapshot.v1",
+  "source": {
+    "repository": "daubesonntag-dotcom/daube-studio-runtime",
+    "revision": "9dd59c82b7a2e417342d671fbca65bc6b74e6357",
+    "path": "config/farm/creative-farm-registry.v1.json",
+    "blob_sha": "f5d0d9db4c4d0a7a1b4293ea69d7a80b470239e6",
+    "acquisition": "authenticated GitHub connector exact-revision read"
+  },
+  "registry": {
+    "schema_version": "1.0.0",
+    "registry_id": "DAUBE-CREATIVE-FARM-V1",
+    "authority": "daubesonntag-dotcom/daube-studio-runtime",
+    "orchestration_authority": "daubesonntag-dotcom/daube-forge-os",
+    "compute_authority": "daubesonntag-dotcom/daube-compute-mesh",
+    "design_authority": "daubesonntag-dotcom/daube-design-system",
+    "ci_authority": "daubesonntag-dotcom/daube-ci-platform",
+    "release_authority": "daubesonntag-dotcom/daube-public-release",
+    "quality_threshold": 95,
+    "principles": [
+      "One creative job may fan out across code, asset, motion, VFX, CGI, audio and release lanes but must converge into one evidence bundle.",
+      "Paid delivery dependency outranks reusable product assets, strategic IP and speculative experiments.",
+      "No artifact is promoted without provenance, rights state, quality evidence and known-limitations metadata.",
+      "Provider or GPU scarcity is a routable capacity condition, not permission to fabricate a successful render.",
+      "Reusable outputs graduate into shared libraries only after a bounded reuse decision."
+    ],
+    "farms": [
+      {"id":"WEB_UI_FARM","name":"Web UI Farm","outputs":["website","landing_page","campaign_microsite","storefront_surface","interactive_prototype"],"engines":["html","css","javascript","typescript","react","browser_runtime"],"compute_class":"CPU_BROWSER","minimum_evidence":["desktop_browser","mobile_browser","accessibility","responsive_overflow","artifact_hash"]},
+      {"id":"STATIC_DESIGN_FARM","name":"Static Design Farm","outputs":["poster","banner","social_card","catalog_page","campaign_key_visual"],"engines":["svg","html_css","browser_capture","image_pipeline"],"compute_class":"CPU_BROWSER","minimum_evidence":["dimensions","render_success","text_safety","artifact_hash","provenance"]},
+      {"id":"MOTION_FARM","name":"Motion Graphics Farm","outputs":["motion_poster","animated_ad","title_sequence","logo_motion","social_motion"],"engines":["ffmpeg","browser_animation","timeline_composition"],"compute_class":"CPU_MEDIA","minimum_evidence":["duration","frame_rate","dimensions","decode_probe","artifact_hash"]},
+      {"id":"ANIMATION_FARM","name":"Animation Farm","outputs":["web_animation","2d_animation","animatic","animated_explainer","scene_transition"],"engines":["css_animation","javascript_animation","ffmpeg","blender_animation"],"compute_class":"CPU_MEDIA_OR_BLENDER","minimum_evidence":["timeline_valid","reduced_motion_boundary_when_web","frame_probe","artifact_hash"]},
+      {"id":"VIDEO_FACTORY","name":"Video Edit and Mastering Factory","outputs":["campaign_video","reel","trailer","master","proxy","delivery_encode"],"engines":["ffmpeg","wan_adapter","video_generation_adapter"],"compute_class":"CPU_MEDIA_OR_GPU_VIDEO","minimum_evidence":["codec_probe","duration","audio_probe","delivery_profile","artifact_hash"]},
+      {"id":"VFX_FARM","name":"VFX and Compositing Farm","outputs":["composite","mask","matte","screen_replace","atmospheric_fx","depth_composite"],"engines":["ffmpeg_filters","blender_compositor","sam2_adapter","depth_adapter","optical_flow_adapter"],"compute_class":"CPU_MEDIA_OR_GPU_VISION","minimum_evidence":["plate_identity","layer_or_mask_identity","composite_probe","artifact_hash","known_limitations"]},
+      {"id":"CGI_3D_FARM","name":"CGI and 3D Farm","outputs":["product_render","environment_render","3d_asset","turntable","cinematic_frame","scene_package"],"engines":["blender","blender_python","material_library","lighting_presets"],"compute_class":"CPU_BLENDER_OR_GPU_BLENDER","minimum_evidence":["scene_identity","renderer","resolution","render_success","artifact_hash"]},
+      {"id":"IMAGE_GENERATION_FARM","name":"Image Generation Farm","outputs":["concept_art","product_visual","environment_concept","campaign_visual","variation_set"],"engines":["flux_adapter","image_generation_adapter"],"compute_class":"GPU_IMAGE_OR_PROVIDER","minimum_evidence":["model_or_provider_identity","seed_or_revision_context","dimensions","artifact_hash","rights_and_provenance"]},
+      {"id":"AUDIO_FARM","name":"Audio and Sound Farm","outputs":["music_asset","sound_design","voice_mix","audio_master","campaign_bed"],"engines":["ace_step_adapter","ffmpeg_audio","audio_analysis"],"compute_class":"CPU_AUDIO_OR_GPU_AUDIO","minimum_evidence":["sample_rate","channels","duration","peak_or_loudness_probe","artifact_hash"]},
+      {"id":"VISION_ANALYSIS_FARM","name":"Vision Analysis Farm","outputs":["segmentation","depth","pose","optical_flow","visual_qc_report"],"engines":["sam2_adapter","depth_adapter","pose_adapter","optical_flow_adapter"],"compute_class":"CPU_OR_GPU_VISION","minimum_evidence":["input_identity","analysis_identity","output_identity","known_limitations"]},
+      {"id":"ASSET_NURSERY","name":"Reusable Asset Nursery","outputs":["motion_preset","3d_asset","texture_or_material","sound_or_music_asset","layout_or_scene_pattern","product_visual"],"engines":["versioned_asset_registry","provenance_receipts","reuse_admission"],"compute_class":"CONTROL_PLANE","minimum_evidence":["source_identity","license_or_rights_state","version","reuse_class","consumer_boundary"]},
+      {"id":"RENDER_RELEASE_FARM","name":"Render, QC and Release Farm","outputs":["release_candidate","mastered_media","preview","thumbnail","evidence_bundle"],"engines":["ffmpeg","blender","media_qc","hashing","release_packaging"],"compute_class":"CPU_MEDIA_OR_RENDER_WORKER","minimum_evidence":["artifact_hash","qc_receipt","provenance_receipt","known_limitations","release_candidate_state"]}
+    ],
+    "routing_contract": {
+      "sequence": ["Forge","Studio Runtime","Compute Mesh","worker_or_provider","Studio Runtime QC","Forge evidence ingestion","Public Release when admitted"],
+      "capacity_states": ["READY","DEGRADED_FALLBACK","CAPACITY_WAIT","BLOCKED_EXTERNAL_AUTHORITY"],
+      "rules": [
+        "CPU/browser work uses the cheapest verified local or hosted CPU lane first.",
+        "GPU work is scheduled only to a worker or provider with fresh capability evidence.",
+        "Blender may fall back from GPU to CPU for bounded smoke tests or low-complexity renders.",
+        "A capacity wait does not downgrade software correctness and does not upgrade a render to success."
+      ]
+    },
+    "quality_model": {"max_score":100,"threshold":95,"categories":{"coverage":20,"routing":20,"quality_and_qc":20,"provenance_and_rights":20,"truth_and_reuse":20}},
+    "truth_boundary": "GREEN for this registry proves creative-farm software contracts, routing semantics and bounded smoke-test evidence only. It does not by itself prove persistent GPU capacity, provider availability, customer acceptance, rights clearance beyond recorded evidence, payment, settlement or revenue."
+  }
+}

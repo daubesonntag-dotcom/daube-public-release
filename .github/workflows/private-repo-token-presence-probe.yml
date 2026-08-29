@@ -1,0 +1,35 @@
+name: Private repo token presence probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/private-repo-token-presence-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      S_GH_PAT: ${{ secrets.GH_PAT }}
+      S_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+      S_DAUBE_GITHUB_TOKEN: ${{ secrets.DAUBE_GITHUB_TOKEN }}
+      S_PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+      S_GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      S_GITHUB_TOKEN_READ: ${{ secrets.GITHUB_TOKEN_READ }}
+      S_DAUBE_GITHUB_PAT: ${{ secrets.DAUBE_GITHUB_PAT }}
+      S_DAUBE_PRIVATE_REPO_TOKEN: ${{ secrets.DAUBE_PRIVATE_REPO_TOKEN }}
+      S_REPO_READ_TOKEN: ${{ secrets.REPO_READ_TOKEN }}
+    steps:
+      - name: Emit presence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          for n in GH_PAT GITHUB_PAT DAUBE_GITHUB_TOKEN PRIVATE_REPO_TOKEN GH_TOKEN GITHUB_TOKEN_READ DAUBE_GITHUB_PAT DAUBE_PRIVATE_REPO_TOKEN REPO_READ_TOKEN; do
+            v="S_${n}"
+            if [[ -n "${!v:-}" ]]; then p=1; else p=0; fi
+            printf '%s=%s\n' "$n" "$p"
+          done

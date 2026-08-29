@@ -4,6 +4,6 @@
   "repository": "daubesonntag-dotcom/daube-web",
   "expectedSha": "9e5b0f8b35f2de3c4402fbfcda3d4f7e645dfe83",
   "workerName": "daube-sonntag-web",
-  "mutationApproved": true,
+  "mutationApproved": false,
   "zeroSpendOnly": true
 }

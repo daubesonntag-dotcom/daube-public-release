@@ -1,0 +1,73 @@
+name: Facebook Reader production readback
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/facebook-reader-production-readback.yml'
+      - 'release/facebook-reader-production-readback.json'
+  pull_request:
+    paths:
+      - '.github/workflows/facebook-reader-production-readback.yml'
+      - 'release/facebook-reader-production-readback.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate immutable request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=release/facebook-reader-production-readback.json
+          test -f "$FILE"
+          jq -e '.schema == "daube.facebook-reader-production-readback-request.v1"' "$FILE" >/dev/null
+          jq -e '.repository == "daubesonntag-dotcom/daube-web"' "$FILE" >/dev/null
+          jq -e '.origin == "https://daubesonntag.com"' "$FILE" >/dev/null
+          jq -e '.manifestPath == "/site.webmanifest" and .sharePath == "/radar/share/"' "$FILE" >/dev/null
+          jq -e '.mutationApproved == false and .zeroSecret == true' "$FILE" >/dev/null
+          SHA="$(jq -r '.expectedSha' "$FILE")"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::expected_sha_invalid'; exit 40; }
+          echo "expected_sha=$SHA" >> "$GITHUB_OUTPUT"
+      - name: Probe production from independent public runner
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ORIGIN='https://daubesonntag.com'
+          probe() {
+            local name="$1" url="$2"
+            curl --silent --show-error --location --max-time 20 \
+              --header 'Accept: */*' --header 'Cache-Control: no-cache' \
+              --dump-header "/tmp/${name}.headers" --output "/tmp/${name}.body" \
+              --write-out '%{http_code}' "$url"
+          }
+          ROOT_STATUS="$(probe root "${ORIGIN}/" || true)"
+          MANIFEST_STATUS="$(probe manifest "${ORIGIN}/site.webmanifest?daube_readback=${EXPECTED_SHA}" || true)"
+          SHARE_STATUS="$(probe share "${ORIGIN}/radar/share/?daube_readback=${EXPECTED_SHA}" || true)"
+          printf 'root_http=%s\nmanifest_http=%s\nshare_http=%s\n' "$ROOT_STATUS" "$MANIFEST_STATUS" "$SHARE_STATUS"
+          for name in root manifest share; do
+            if [[ -f "/tmp/${name}.body" ]]; then
+              printf '%s_sha256=%s\n' "$name" "$(sha256sum "/tmp/${name}.body" | awk '{print $1}')"
+              grep -iE '^(server|cf-ray|cache-control|etag|last-modified|content-type):' "/tmp/${name}.headers" || true
+            fi
+          done
+          [[ "$ROOT_STATUS" =~ ^2 ]] || { echo '::error::production_root_unreachable'; exit 41; }
+          [[ "$MANIFEST_STATUS" == '200' ]] || { echo '::error::production_manifest_missing'; exit 42; }
+          jq -e '.share_target.action == "/radar/share/" and .share_target.method == "GET" and .share_target.params.url == "url"' /tmp/manifest.body >/dev/null || { echo '::error::production_manifest_share_target_contract_missing'; exit 43; }
+          [[ "$SHARE_STATUS" == '200' ]] || { echo '::error::production_share_intake_missing'; exit 44; }
+          grep -F 'D’AUBE Radar · Share Intake' /tmp/share.body >/dev/null || { echo '::error::production_share_intake_title_missing'; exit 45; }
+          grep -F 'daube.facebook-intake.v1' /tmp/share.body >/dev/null || { echo '::error::production_share_intake_schema_missing'; exit 46; }
+          grep -F "reader_lane: 'pwa-share'" /tmp/share.body >/dev/null || { echo '::error::production_share_intake_lane_missing'; exit 47; }
+          echo 'SURFACE_READBACK_GREEN_REVISION_UNVERIFIED'
+          echo "expected_source_revision=${EXPECTED_SHA}"
+          echo 'exact_source_revision_readback=false'
+          echo 'Production surface presence is verified, but exact-SHA production GREEN remains forbidden until a public runtime revision artifact is readable.'

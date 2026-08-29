@@ -1,10 +1,10 @@
 {
   "schema": "daube.cloudflare-workers-builds-bootstrap.v1",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "4ca97c00e08af6d1fec07efa369f1629fe9cc3bb",
+  "expectedSha": "b7d810c8203afc80daf00fb6ba60ebd7a5361cd1",
   "worker": "daube-commerce",
   "mutationApproved": true,
   "profile": "core",
-  "launchBlocking": false,
-  "purpose": "Exact-main customer-identity production admission: full verify -> D1 migrations through 0018 -> Worker deploy -> exact-SHA identity external readback"
+  "launchBlocking": true,
+  "purpose": "Sovereign D’AUBE Account exact-main production admission: full verify -> D1 migrations through 0018 -> Worker deploy -> exact-SHA health + /account external readback; no Vercel/AppDeploy canonical dependency"
 }

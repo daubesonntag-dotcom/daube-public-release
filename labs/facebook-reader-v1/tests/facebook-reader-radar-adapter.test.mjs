@@ -57,6 +57,26 @@ test('drops sensitive URLs and strips tracking from public discovery links', () 
   assert.doesNotMatch(JSON.stringify(intake), /do-not-persist|access_token/i);
 });
 
+test('rejects sensitive source queries and drops sensitive canonical candidates', () => {
+  assert.throws(
+    () => adaptFacebookReaderEnvelope(baseEnvelope({ source_url: 'https://facebook.com/posts/123?access_token=do-not-persist' })),
+    /sensitive query parameters/
+  );
+  const intake = adaptFacebookReaderEnvelope(baseEnvelope({ canonical_url: 'https://facebook.com/posts/456?session_id=do-not-persist' }));
+  assert.equal(intake.source.canonical_candidate_url, null);
+  assert.doesNotMatch(JSON.stringify(intake), /do-not-persist|session_id/i);
+});
+
+test('trims sentence punctuation from visible-text GitHub repository URLs', () => {
+  const intake = adaptFacebookReaderEnvelope(baseEnvelope({
+    github_repos: [],
+    outbound_links: [],
+    visible_text: ['Useful project: https://github.com/acme/widget. Next sentence.']
+  }));
+  assert.deepEqual(intake.candidates.map(candidate => candidate.repo), ['acme/widget']);
+  assert.deepEqual(intake.candidates[0].source_urls, ['https://github.com/acme/widget']);
+});
+
 test('fingerprints private visible text without persisting the body', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'daube-facebook-radar-public-'));
   const marker = 'PRIVATE_FACEBOOK_BODY_SHOULD_NOT_BE_PERSISTED';

@@ -1,0 +1,233 @@
+name: Work Arcade Cloudflare portable admission
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/work-arcade-cloudflare-admission.yml'
+      - 'release/work-arcade-cloudflare-admission.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  DAUBE_HOST_WORKER_NAME: daube-commerce
+  DAUBE_GITHUB_ACCOUNT_ID: '297018471'
+  DAUBE_GITHUB_ACCOUNT_NAME: daubesonntag-dotcom
+  DAUBE_GITHUB_REPO_ID: '1348794815'
+  DAUBE_GITHUB_REPO_NAME: daube-work-arcade
+
+concurrency:
+  group: work-arcade-cloudflare-portable-admission
+  cancel-in-progress: false
+
+jobs:
+  admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate exact private-source admission request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='release/work-arcade-cloudflare-admission.json'
+          test -f "$FILE"
+          SHA="$(jq -r '.expectedSha' "$FILE")"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::work_arcade_expected_sha_invalid'; exit 40; }
+          [[ "$(jq -r '.repository' "$FILE")" == 'daubesonntag-dotcom/daube-work-arcade' ]] || { echo '::error::work_arcade_repository_invalid'; exit 41; }
+          [[ "$(jq -r '.sourceVisibility' "$FILE")" == 'private' ]] || { echo '::error::work_arcade_visibility_contract_invalid'; exit 42; }
+          [[ "$(jq -r '.controlPlaneMutationApproved' "$FILE")" == 'true' ]] || { echo '::error::work_arcade_control_plane_not_approved'; exit 43; }
+          [[ "$(jq -r '.deploymentMutationApproved' "$FILE")" == 'false' ]] || { echo '::error::work_arcade_deployment_must_remain_disabled'; exit 44; }
+          [[ "$(jq -r '.zeroSpendRequired' "$FILE")" == 'true' ]] || { echo '::error::work_arcade_zero_spend_required'; exit 45; }
+          echo "expected_sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Verify protected Cloudflare credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] || { echo '::error::cloudflare_api_token_missing'; exit 46; }
+          code="$(curl -sS -o /tmp/cf-token.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.cloudflare.com/client/v4/user/tokens/verify || true)"
+          [[ "$code" == '200' ]] || { echo "::error::cloudflare_api_token_verify_http_${code}"; exit 47; }
+          jq -e '.success == true and .result.status == "active"' /tmp/cf-token.json >/dev/null || { echo '::error::cloudflare_api_token_inactive'; exit 48; }
+
+      - name: Discover Cloudflare account and build host Worker
+        id: cf
+        shell: bash
+        run: |
+          set -euo pipefail
+          api() {
+            curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' "$1"
+          }
+          api 'https://api.cloudflare.com/client/v4/accounts?per_page=50' > /tmp/cf-accounts.json || { echo '::error::cloudflare_account_discovery_failed'; exit 49; }
+          ACCOUNT_ID=''
+          WORKER_TAG=''
+          while IFS= read -r candidate; do
+            [[ -n "$candidate" ]] || continue
+            if api "https://api.cloudflare.com/client/v4/accounts/${candidate}/workers/scripts" > /tmp/cf-scripts.json 2>/dev/null; then
+              tag="$(jq -r --arg name "$DAUBE_HOST_WORKER_NAME" '.result[]? | select(.id == $name) | .tag // empty' /tmp/cf-scripts.json | head -n1)"
+              if [[ -n "$tag" ]]; then
+                ACCOUNT_ID="$candidate"
+                WORKER_TAG="$tag"
+                break
+              fi
+            fi
+          done < <(jq -r '.result[]?.id' /tmp/cf-accounts.json)
+          [[ -n "$ACCOUNT_ID" && -n "$WORKER_TAG" ]] || { echo '::error::cloudflare_build_host_worker_not_found'; exit 50; }
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "worker_tag=$WORKER_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Connect private Work Arcade repository
+        id: repo
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc \
+            --arg provider_account_id "$DAUBE_GITHUB_ACCOUNT_ID" \
+            --arg provider_account_name "$DAUBE_GITHUB_ACCOUNT_NAME" \
+            --arg repo_id "$DAUBE_GITHUB_REPO_ID" \
+            --arg repo_name "$DAUBE_GITHUB_REPO_NAME" \
+            '{provider_type:"github",provider_account_id:$provider_account_id,provider_account_name:$provider_account_name,repo_id:$repo_id,repo_name:$repo_name}')"
+          code="$(curl -sS -o /tmp/cf-repo.json -w '%{http_code}' -X PUT \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/repos/connections" || true)"
+          if [[ "$code" != '200' && "$code" != '201' ]]; then
+            echo "::error::cloudflare_work_arcade_repo_connection_http_${code}"
+            jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-repo.json 2>/dev/null || true
+            exit 51
+          fi
+          REPO_UUID="$(jq -r '.result.repo_connection_uuid // empty' /tmp/cf-repo.json)"
+          [[ -n "$REPO_UUID" ]] || { echo '::error::cloudflare_work_arcade_repo_uuid_missing'; exit 52; }
+          echo "repo_uuid=$REPO_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update verification-only Workers Builds trigger
+        id: trigger
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          WORKER_TAG: ${{ steps.cf.outputs.worker_tag }}
+          REPO_UUID: ${{ steps.repo.outputs.repo_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/tokens" > /tmp/cf-build-tokens.json || { echo '::error::cloudflare_build_token_list_failed'; exit 53; }
+          BUILD_TOKEN_UUID="$(jq -r '.result[0].build_token_uuid // empty' /tmp/cf-build-tokens.json)"
+          [[ -n "$BUILD_TOKEN_UUID" ]] || { echo '::error::cloudflare_build_token_missing'; exit 54; }
+
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/workers/${WORKER_TAG}/triggers" > /tmp/cf-triggers.json || { echo '::error::cloudflare_trigger_list_failed'; exit 55; }
+          TRIGGER_UUID="$(jq -r '.result[]? | select(.trigger_name == "D’AUBE Work Arcade portable admission") | .trigger_uuid // empty' /tmp/cf-triggers.json | head -n1)"
+
+          BUILD_COMMAND='set -euo pipefail; test "${WORKERS_CI_BRANCH:-}" = "main"; test "${WORKERS_CI_COMMIT_SHA:-}" = "${DAUBE_EXPECTED_SHA:-}"; test "$(git rev-parse HEAD)" = "${DAUBE_EXPECTED_SHA}"; test -z "$(git status --porcelain)"; python3 -c "import sys; assert sys.version_info[:2] == (3, 12), sys.version"; node -e "if (process.versions.node.split(\".\")[0] !== \"22\") process.exit(1)"; python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt; python3 tools/run_all_admission.py --provider cloudflare-workers-builds --ref "${DAUBE_EXPECTED_SHA}"; python3 -c "import json,os; r=json.load(open(\"artifacts/admission-receipt.json\",encoding=\"utf-8\")); assert r.get(\"overall_status\")==\"passed\"; assert r.get(\"ref\")==os.environ[\"DAUBE_EXPECTED_SHA\"]; assert r.get(\"provider\")==\"cloudflare-workers-builds\"; print(\"DAUBE_WORK_ARCADE_ADMISSION_PASS=\"+r[\"receipt_sha256\"])"; cat artifacts/admission-receipt.json'
+          payload="$(jq -nc \
+            --arg external_script_id "$WORKER_TAG" \
+            --arg repo_connection_uuid "$REPO_UUID" \
+            --arg build_token_uuid "$BUILD_TOKEN_UUID" \
+            --arg build_command "$BUILD_COMMAND" \
+            '{external_script_id:$external_script_id,repo_connection_uuid:$repo_connection_uuid,build_token_uuid:$build_token_uuid,trigger_name:"D’AUBE Work Arcade portable admission",build_command:$build_command,deploy_command:"echo WORK_ARCADE_ADMISSION_ONLY_NO_DEPLOY",root_directory:"/",branch_includes:["main"],branch_excludes:[],path_includes:["*"],path_excludes:[]}')"
+
+          if [[ -n "$TRIGGER_UUID" ]]; then
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X PATCH \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+              --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}" || true)"
+          else
+            code="$(curl -sS -o /tmp/cf-trigger-write.json -w '%{http_code}' -X POST \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+              --data "$payload" "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers" || true)"
+            TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          fi
+          [[ "$code" == '200' || "$code" == '201' ]] || { echo "::error::cloudflare_work_arcade_trigger_write_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-trigger-write.json 2>/dev/null || true; exit 56; }
+          [[ -n "$TRIGGER_UUID" ]] || TRIGGER_UUID="$(jq -r '.result.trigger_uuid // empty' /tmp/cf-trigger-write.json)"
+          [[ -n "$TRIGGER_UUID" ]] || { echo '::error::cloudflare_work_arcade_trigger_uuid_missing'; exit 57; }
+          echo "trigger_uuid=$TRIGGER_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Pin build runtime and exact admission SHA
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          TRIGGER_UUID: ${{ steps.trigger.outputs.trigger_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg sha "$EXPECTED_SHA" '{PYTHON_VERSION:{value:"3.12",is_secret:false},NODE_VERSION:{value:"22",is_secret:false},SKIP_DEPENDENCY_INSTALL:{value:"1",is_secret:false},DAUBE_EXPECTED_SHA:{value:$sha,is_secret:false}}')"
+          code="$(curl -sS -o /tmp/cf-trigger-env.json -w '%{http_code}' -X PATCH \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/environment_variables" || true)"
+          [[ "$code" == '200' ]] || { echo "::error::cloudflare_work_arcade_trigger_env_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-trigger-env.json 2>/dev/null || true; exit 58; }
+
+      - name: Trigger exact Work Arcade admission build
+        id: build
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          TRIGGER_UUID: ${{ steps.trigger.outputs.trigger_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -nc --arg branch main --arg commit_hash "$EXPECTED_SHA" '{branch:$branch,commit_hash:$commit_hash}')"
+          code="$(curl -sS -o /tmp/cf-build.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/triggers/${TRIGGER_UUID}/builds" || true)"
+          [[ "$code" == '200' || "$code" == '201' || "$code" == '202' ]] || { echo "::error::cloudflare_work_arcade_build_trigger_http_${code}"; jq -r '[.errors[]?.message] | join("; ")' /tmp/cf-build.json 2>/dev/null || true; exit 59; }
+          BUILD_UUID="$(jq -r '.result.build_uuid // .result.uuid // empty' /tmp/cf-build.json)"
+          [[ -n "$BUILD_UUID" ]] || { echo '::error::cloudflare_work_arcade_build_uuid_missing'; exit 60; }
+          echo "build_uuid=$BUILD_UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for portable admission outcome
+        id: outcome
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          BUILD_UUID: ${{ steps.build.outputs.build_uuid }}
+          EXPECTED_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          outcome=''
+          mkdir -p artifacts/work-arcade-cloudflare
+          for attempt in $(seq 1 84); do
+            curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+              "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/builds/${BUILD_UUID}" > /tmp/cf-build-status.json || true
+            outcome="$(jq -r '.result.build_outcome // empty' /tmp/cf-build-status.json 2>/dev/null || true)"
+            case "$outcome" in
+              success|fail|cancelled|terminated) break ;;
+            esac
+            sleep 5
+          done
+          curl -fsS -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'Accept: application/json' \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" > /tmp/cf-build-logs.json || true
+          cp /tmp/cf-build-status.json artifacts/work-arcade-cloudflare/build-status.json || true
+          cp /tmp/cf-build-logs.json artifacts/work-arcade-cloudflare/build-logs.json || true
+          jq -r '.result.lines[]?.message // .result[]?.message // empty' /tmp/cf-build-logs.json 2>/dev/null > artifacts/work-arcade-cloudflare/build-log.txt || true
+
+          pass_marker=false
+          if grep -Eq '^DAUBE_WORK_ARCADE_ADMISSION_PASS=[0-9a-f]{64}$' artifacts/work-arcade-cloudflare/build-log.txt; then pass_marker=true; fi
+          jq -nc --arg provider cloudflare-workers-builds --arg sha "$EXPECTED_SHA" --arg buildUuid "$BUILD_UUID" --arg outcome "$outcome" --argjson passMarker "$pass_marker" \
+            '{schema:"daube.work-arcade-external-admission-wrapper.v1",provider:$provider,expectedSha:$sha,buildUuid:$buildUuid,buildOutcome:$outcome,portableAdmissionPassMarker:$passMarker,deploymentMutationPerformed:false,sourcePublished:false,generatedAt:(now|todateiso8601)}' \
+            > artifacts/work-arcade-cloudflare/wrapper-receipt.json
+
+          [[ "$outcome" == 'success' ]] || { echo "::error::cloudflare_work_arcade_build_${outcome:-timeout}"; tail -n 100 artifacts/work-arcade-cloudflare/build-log.txt || true; exit 61; }
+          [[ "$pass_marker" == 'true' ]] || { echo '::error::work_arcade_portable_pass_marker_missing'; tail -n 100 artifacts/work-arcade-cloudflare/build-log.txt || true; exit 62; }
+          echo 'WORK_ARCADE_CLOUDFLARE_ADMISSION_GREEN'
+
+      - name: Preserve external admission evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-arcade-cloudflare-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/work-arcade-cloudflare
+          if-no-files-found: warn
+          retention-days: 30

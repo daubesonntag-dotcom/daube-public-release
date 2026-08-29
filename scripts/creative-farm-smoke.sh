@@ -54,33 +54,70 @@ ffmpeg -hide_banner -loglevel error -y \
 cat > "$OUT/blender-smoke.py" <<'PY'
 import bpy, math, os
 from mathutils import Vector
-out = os.environ['DAUBE_CGI_OUT']
+
+out = os.path.abspath(os.environ['DAUBE_CGI_OUT'])
+blend_out = os.path.abspath(os.environ['DAUBE_BLEND_OUT'])
 bpy.ops.wm.read_factory_settings(use_empty=True)
-scene=bpy.context.scene
-scene.render.resolution_x=512; scene.render.resolution_y=512; scene.render.resolution_percentage=100
-scene.render.image_settings.file_format='PNG'; scene.render.filepath=out
-scene.world.color=(0.015,0.04,0.025)
-bpy.ops.mesh.primitive_plane_add(size=14, location=(0,0,0)); plane=bpy.context.object
-mat=bpy.data.materials.new('Ground'); mat.diffuse_color=(0.025,0.10,0.065,1); plane.data.materials.append(mat)
-bpy.ops.mesh.primitive_cube_add(size=2.4, location=(0,0,1.2)); cube=bpy.context.object
-cube.rotation_euler=(math.radians(8),math.radians(18),math.radians(12))
-cm=bpy.data.materials.new('DawnGreen'); cm.diffuse_color=(0.04,0.55,0.26,1); cube.data.materials.append(cm)
-bpy.ops.mesh.primitive_torus_add(major_radius=2.2, minor_radius=.12, location=(0,0,2.0), rotation=(math.radians(90),0,0)); torus=bpy.context.object
-tm=bpy.data.materials.new('Ring'); tm.diffuse_color=(0.45,1.0,0.68,1); torus.data.materials.append(tm)
-bpy.ops.object.light_add(type='AREA', location=(3,-4,6)); key=bpy.context.object; key.data.energy=900; key.data.shape='DISK'; key.data.size=5
-key.rotation_euler=(math.radians(25),0,math.radians(35))
-bpy.ops.object.light_add(type='AREA', location=(-4,1,3)); fill=bpy.context.object; fill.data.energy=500; fill.data.size=4
-bpy.ops.object.camera_add(location=(7,-9,6), rotation=(math.radians(67),0,math.radians(38))); cam=bpy.context.object
-scene.camera=cam
-def look_at(obj, target=(0,0,1.4)):
-    direction=Vector(target)-obj.location
-    obj.rotation_euler=direction.to_track_quat('-Z','Y').to_euler()
-look_at(cam)
+scene = bpy.context.scene
+scene.render.engine = 'BLENDER_WORKBENCH'
+scene.render.resolution_x = 512
+scene.render.resolution_y = 512
+scene.render.resolution_percentage = 100
+scene.render.image_settings.file_format = 'PNG'
+scene.render.filepath = out
+scene.render.film_transparent = False
+scene.display.shading.light = 'STUDIO'
+scene.display.shading.studio_light = 'paint.sl'
+scene.display.shading.color_type = 'MATERIAL'
+scene.display.shading.show_shadows = True
+scene.display.shading.show_cavity = True
+scene.display.shading.cavity_type = 'WORLD'
+scene.display.shading.curvature_ridge_factor = 1.5
+scene.display.shading.curvature_valley_factor = 1.0
+
+bpy.ops.mesh.primitive_plane_add(size=14, location=(0,0,0))
+plane = bpy.context.object
+plane.name = 'D_AUBE_Ground'
+mat = bpy.data.materials.new('Ground')
+mat.diffuse_color = (0.02, 0.09, 0.055, 1)
+plane.data.materials.append(mat)
+
+bpy.ops.mesh.primitive_cube_add(size=2.4, location=(0,0,1.25))
+cube = bpy.context.object
+cube.name = 'D_AUBE_Cube'
+cube.rotation_euler = (math.radians(8), math.radians(18), math.radians(12))
+cm = bpy.data.materials.new('DawnGreen')
+cm.diffuse_color = (0.035, 0.62, 0.27, 1)
+cube.data.materials.append(cm)
+
+bpy.ops.mesh.primitive_torus_add(major_radius=2.2, minor_radius=0.12, location=(0,0,2.05), rotation=(math.radians(90),0,0))
+torus = bpy.context.object
+torus.name = 'D_AUBE_Ring'
+tm = bpy.data.materials.new('Ring')
+tm.diffuse_color = (0.40, 1.0, 0.65, 1)
+torus.data.materials.append(tm)
+
+bpy.ops.object.camera_add(location=(7,-9,6))
+cam = bpy.context.object
+cam.name = 'D_AUBE_Camera'
+scene.camera = cam
+direction = Vector((0,0,1.4)) - cam.location
+cam.rotation_euler = direction.to_track_quat('-Z','Y').to_euler()
+cam.data.lens = 52
+
+bpy.ops.wm.save_as_mainfile(filepath=blend_out)
 bpy.ops.render.render(write_still=True)
+if not os.path.exists(out) or os.path.getsize(out) < 1000:
+    raise RuntimeError(f'cgi_frame_missing_or_small:{out}')
+print(f'DAUBE_CGI_RENDER_OK path={out} bytes={os.path.getsize(out)} engine={scene.render.engine}')
 PY
 
 if ! command -v blender >/dev/null 2>&1; then echo "blender_missing" >&2; exit 22; fi
-DAUBE_CGI_OUT="$PWD/$OUT/cgi-frame.png" blender -b --python "$OUT/blender-smoke.py" >/tmp/daube-blender.log 2>&1
+DAUBE_CGI_OUT="$PWD/$OUT/cgi-frame.png" DAUBE_BLEND_OUT="$PWD/$OUT/cgi-scene.blend" blender -b --python "$OUT/blender-smoke.py" >"$OUT/blender.log" 2>&1 || {
+  cat "$OUT/blender.log" >&2
+  exit 23
+}
+test -s "$OUT/cgi-frame.png" || { cat "$OUT/blender.log" >&2; echo "cgi_frame_missing" >&2; exit 24; }
 
 (
   cd "$OUT"

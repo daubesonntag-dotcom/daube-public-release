@@ -32,7 +32,7 @@ if [[ -z "$CHROME" ]]; then echo "chrome_missing" >&2; exit 21; fi
 
 ffmpeg -hide_banner -loglevel error -y \
   -f lavfi -i "color=c=0x071d14:s=1280x720:r=30:d=2" \
-  -vf "drawtext=text='D AUBE  MOTION':fontcolor=white:fontsize=64:x='(w-text_w)/2 + 70*sin(t*3.14159)':y='(h-text_h)/2',fade=t=in:st=0:d=.35,fade=t=out:st=1.55:d=.35" \
+  -vf "drawtext=text='D AUBE  MOTION':fontcolor=white:fontsize=64:x='(w-text_w)/2 + 70*sin(t*3.14159)':y='(h-text_h)/2',fade=t=in:st=0:d=0.35,fade=t=out:st=1.55:d=0.35" \
   -c:v libx264 -pix_fmt yuv420p "$OUT/motion.mp4"
 
 ffmpeg -hide_banner -loglevel error -y \
@@ -48,7 +48,7 @@ ffmpeg -hide_banner -loglevel error -y \
 
 ffmpeg -hide_banner -loglevel error -y \
   -f lavfi -i "sine=frequency=220:sample_rate=48000:duration=2" \
-  -af "afade=t=in:st=0:d=.15,afade=t=out:st=1.7:d=.3,loudnorm=I=-18:TP=-2:LRA=7" \
+  -af "afade=t=in:st=0:d=0.15,afade=t=out:st=1.7:d=0.3,loudnorm=I=-18:TP=-2:LRA=7" \
   -c:a pcm_s16le "$OUT/audio-master.wav"
 
 cat > "$OUT/blender-smoke.py" <<'PY'

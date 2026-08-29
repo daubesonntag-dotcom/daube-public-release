@@ -1,0 +1,77 @@
+name: Work Arcade private-action admission
+
+on:
+  push:
+    branches:
+      - ops/work-arcade-private-action-admission-20260829
+    paths:
+      - '.github/workflows/work-arcade-private-action-admission.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: work-arcade-private-action-admission
+  cancel-in-progress: false
+
+jobs:
+  admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: f306588f6188558d21056204f8da8c3de31d8748
+    steps:
+      - name: Checkout public control plane
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Capture remote runner environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work-arcade-admission-evidence
+          python3 - <<'PY'
+          import json, os, platform, subprocess
+          def out(*cmd):
+              return subprocess.check_output(cmd, text=True).strip()
+          receipt = {
+              "schema": "daube.work-arcade.remote-runner-environment.v1",
+              "sourceSha": os.environ["SOURCE_SHA"],
+              "provider": "github-actions-public-private-action",
+              "os": platform.platform(),
+              "python": out("python3", "--version"),
+              "node": out("node", "--version"),
+              "runnerOs": os.environ.get("RUNNER_OS"),
+              "runnerArch": os.environ.get("RUNNER_ARCH"),
+              "githubRunId": os.environ.get("GITHUB_RUN_ID"),
+              "githubRunAttempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+          }
+          with open("work-arcade-admission-evidence/remote-runner-environment.json", "w", encoding="utf-8") as f:
+              json.dump(receipt, f, indent=2, sort_keys=True)
+              f.write("\n")
+          PY
+
+      - name: Run exact private Work Arcade admission
+        uses: daubesonntag-dotcom/daube-work-arcade/.github/actions/remote-admission@f306588f6188558d21056204f8da8c3de31d8748
+        with:
+          source-sha: f306588f6188558d21056204f8da8c3de31d8748
+          provider: github-actions-public-private-action
+
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-arcade-admission-${{ env.SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: work-arcade-admission-evidence/
+          if-no-files-found: error
+          retention-days: 30

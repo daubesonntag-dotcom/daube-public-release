@@ -11,6 +11,8 @@ body:
 
         No purchase, positive rating, OAuth, private-system access, or production work is required.
 
+        A genuine report may count only as external usability/viewer evidence for the behavior observed. It is not customer, payment, settlement, production, shipping, revenue, or commercial-acceptance evidence.
+
   - type: input
     id: surface
     attributes:

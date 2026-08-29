@@ -3,6 +3,7 @@ name: Creative Farm Smoke Factory
 on:
   push:
     branches:
+      - main
       - 'ci/creative-farm-smoke-v1-20260829'
     paths:
       - 'scripts/creative-farm-smoke.sh'

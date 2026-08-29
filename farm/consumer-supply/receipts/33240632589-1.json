@@ -1,0 +1,104 @@
+{
+  "schema": "daube.resource-farm-consumer-supply-receipt.v1",
+  "status": "GREEN",
+  "farmStatus": "LIVE",
+  "farmLiveEvidenceCount": 12,
+  "farmTotalResourceClasses": 12,
+  "lifecycleStatus": "LIVE",
+  "operatingMode": "SELF_PLAY_GUARDED",
+  "consumers": [
+    {
+      "id": "FACTORY",
+      "claim": "Digital production/factory resource supply",
+      "status": "GREEN",
+      "score": 100,
+      "minimumGreenScore": 95,
+      "requiredResourceClasses": [
+        "compute",
+        "ci-build",
+        "storage",
+        "network",
+        "browser",
+        "model-service"
+      ],
+      "missingResourceClasses": [],
+      "controls": {
+        "farmLive": true,
+        "twelveOfTwelve": true,
+        "lifecycleLive": true,
+        "selfPlayGuarded": true,
+        "providerDispatchClosedLoop": true,
+        "crossProviderActuation": true,
+        "noUnattendedPaidSpend": true,
+        "noAutomaticPrivilegeExpansion": true,
+        "failClosedOnStaleEvidence": true,
+        "requiredResourcesLive": true
+      },
+      "physicalRestaurantReadiness": null
+    },
+    {
+      "id": "COMPANY",
+      "claim": "Shared enterprise/business-unit resource supply",
+      "status": "GREEN",
+      "score": 100,
+      "minimumGreenScore": 95,
+      "requiredResourceClasses": [
+        "hosting",
+        "edge",
+        "compute",
+        "storage",
+        "database",
+        "queue-cache",
+        "network"
+      ],
+      "missingResourceClasses": [],
+      "controls": {
+        "farmLive": true,
+        "twelveOfTwelve": true,
+        "lifecycleLive": true,
+        "selfPlayGuarded": true,
+        "providerDispatchClosedLoop": true,
+        "crossProviderActuation": true,
+        "noUnattendedPaidSpend": true,
+        "noAutomaticPrivilegeExpansion": true,
+        "failClosedOnStaleEvidence": true,
+        "requiredResourcesLive": true
+      },
+      "physicalRestaurantReadiness": null
+    },
+    {
+      "id": "RESTAURANT_DIGITAL",
+      "claim": "Restaurant digital operations/orchestration resource supply",
+      "status": "GREEN",
+      "score": 100,
+      "minimumGreenScore": 95,
+      "requiredResourceClasses": [
+        "hosting",
+        "edge",
+        "storage",
+        "database",
+        "queue-cache",
+        "network"
+      ],
+      "missingResourceClasses": [],
+      "controls": {
+        "farmLive": true,
+        "twelveOfTwelve": true,
+        "lifecycleLive": true,
+        "selfPlayGuarded": true,
+        "providerDispatchClosedLoop": true,
+        "crossProviderActuation": true,
+        "noUnattendedPaidSpend": true,
+        "noAutomaticPrivilegeExpansion": true,
+        "failClosedOnStaleEvidence": true,
+        "requiredResourcesLive": true
+      },
+      "physicalRestaurantReadiness": "EXTERNAL_EVIDENCE_GATE"
+    }
+  ],
+  "minimumGreenScore": 95,
+  "paidSpendAuthorized": false,
+  "newOAuthRequired": false,
+  "physicalTruthBoundary": "GREEN proves digital infrastructure supply readiness only. Physical premises, food-safety certification, cold-chain, inventory, kitchen equipment, permits and real-world restaurant operations require separate external evidence and are not scored as software blockers.",
+  "observedAt": "2026-08-29T07:21:19.075Z"
+}

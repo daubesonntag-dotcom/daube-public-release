@@ -1,0 +1,49 @@
+{
+  "schema": "daube.public-open-weight-handoff-envelope.v1",
+  "canonicalForgeRepository": "daubesonntag-dotcom/daube-forge-os",
+  "canonicalForgeSha": "7e454bbb3f7eedb03a4330f44bc821ae924221d0",
+  "handoff": {
+    "schema": "daube.open-weight-reasoning-handoff.v1",
+    "authority": "daube-forge-os",
+    "taskId": "sovereign-open-weight-cpu-canary-v1",
+    "dataClass": "public",
+    "purpose": "prove a zero-spend replaceable open-weight CPU reasoning path without granting business action authority",
+    "model": {
+      "id": "Qwen/Qwen3-0.6B",
+      "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "license": "apache-2.0",
+      "architecture": "qwen3",
+      "parameters": 751632384
+    },
+    "inference": {
+      "prompt": "Compute 17 * 19. Reply with only the integer answer and no explanation.",
+      "expectedOutput": "323",
+      "maxNewTokens": 16,
+      "temperature": 0,
+      "exactOutputRequired": true
+    },
+    "runtime": {
+      "deviceClass": "cpu",
+      "executionSubstrate": "replaceable-public-worker",
+      "authenticationAllowed": false,
+      "privateAssetsAllowed": false,
+      "trustRemoteCode": false,
+      "implicitTokenAllowed": false
+    },
+    "spend": {
+      "maxExternalSpendUsd": 0,
+      "paidSpendAuthorized": false,
+      "paidFallbackForbidden": true
+    },
+    "truthBoundary": {
+      "workerReceiptIsAuthoritative": false,
+      "forgeVerificationRequired": true,
+      "provesFrontierQuality": false,
+      "grantsBusinessActionAuthority": false
+    }
+  },
+  "handoffDigest": "cf537efc054919a7597d7de275cf47b8352358e2ff78b135f09b664e61fb5b36",
+  "workerReceiptAuthority": "daube-public-release-worker.v1",
+  "workerReceiptAuthoritative": false,
+  "envelopeDigest": "e85f826549943961f162cc928b50254ddaee1599446b89ac150ccb0fd25c25c6"
+}

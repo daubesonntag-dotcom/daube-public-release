@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "schema_id": "DAUBE-PUBLIC-PROOF-RECORD-V1",
+  "authority": "daubesonntag-dotcom/daube-public-release",
+  "required": [
+    "claim_id",
+    "proof_class",
+    "capability_or_offer_id",
+    "evidence_summary",
+    "evidence_date",
+    "scope_or_environment",
+    "limitations",
+    "rights_and_disclosure_basis"
+  ],
+  "proof_classes": ["DEMO", "IMPLEMENTED", "DEPLOYED_HEALTHY", "CUSTOMER_DELIVERY", "REVENUE_VERIFIED"],
+  "proof_class_rules": {
+    "DEMO": ["must_not_imply_production", "must_not_imply_customer_delivery", "must_not_imply_revenue"],
+    "IMPLEMENTED": ["source_or_configuration_evidence_required", "deployment_not_implied"],
+    "DEPLOYED_HEALTHY": ["environment_required", "time_window_required", "external_or_runtime_readback_required"],
+    "CUSTOMER_DELIVERY": ["commercial_basis_required", "acceptance_or_delivery_evidence_required", "customer_privacy_or_consent_required"],
+    "REVENUE_VERIFIED": ["externally_settled_reconciled_evidence_required", "test_or_related_party_payment_forbidden", "public_disclosure_basis_required"]
+  },
+  "privacy": {
+    "forbidden_public_material": ["secrets", "private_keys", "raw_credentials", "private_customer_data", "unrestricted_internal_logs", "payment_account_kYC_identity_without_disclosure_basis"],
+    "redaction_required_when_not_public": true
+  },
+  "culture_and_rights": {
+    "provenance_summary_required_when_relevant": true,
+    "authenticity_claim_requires_evidence": true,
+    "original_licensed_commissioned_or_public_domain_basis_required": true
+  },
+  "truth_boundary": "A proof record can only classify evidence that already exists. It cannot promote a demo, merge, checkout, canary or invoice into deployment, customer delivery or verified revenue."
+}

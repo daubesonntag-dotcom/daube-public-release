@@ -32,6 +32,8 @@ jobs:
           command -v ffmpeg >/dev/null 2>&1 || need_packages+=(ffmpeg)
           command -v blender >/dev/null 2>&1 || need_packages+=(blender)
           fc-list >/dev/null 2>&1 || need_packages+=(fontconfig fonts-dejavu-core)
+          ldconfig -p | grep -Fq 'libEGL.so.1' || need_packages+=(libegl1)
+          ldconfig -p | grep -Fq 'libGL.so.1' || need_packages+=(libgl1)
           if (( ${#need_packages[@]} > 0 )); then
             sudo apt-get update -qq
             sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${need_packages[@]}"
@@ -40,6 +42,7 @@ jobs:
           command -v ffprobe
           command -v blender
           command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+          ldconfig -p | grep -F 'libEGL.so.1'
           ffmpeg -version | head -n 1
           blender --version | head -n 1
 

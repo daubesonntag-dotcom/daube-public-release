@@ -1,0 +1,54 @@
+name: Creative Farm Smoke Factory
+
+on:
+  push:
+    branches:
+      - 'ci/creative-farm-smoke-v1-20260829'
+    paths:
+      - 'scripts/creative-farm-smoke.sh'
+      - 'scripts/creative-farm-smoke-score.mjs'
+      - '.github/workflows/creative-farm-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  creative-factory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact public factory revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify and install zero-secret creative engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ffmpeg
+          command -v ffprobe
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
+          if ! command -v blender >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends blender
+          fi
+          blender --version | head -n 1
+
+      - name: Grow code and media outputs
+        shell: bash
+        run: bash scripts/creative-farm-smoke.sh
+
+      - name: Enforce creative farm score >=95
+        run: node scripts/creative-farm-smoke-score.mjs
+
+      - name: Upload creative farm evidence bundle
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: creative-farm-smoke-evidence
+          path: artifacts/creative-farm-smoke/
+          if-no-files-found: error
+          retention-days: 7

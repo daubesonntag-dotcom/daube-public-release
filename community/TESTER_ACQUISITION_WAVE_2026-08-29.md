@@ -27,25 +27,40 @@ No signup, purchase, positive review, rating, reciprocal test, OAuth, private-sy
 
 ### Facebook
 
-Status: scheduled through the connected D’AUBE Metricool channel for **2026-08-29 10:00 ICT**.
+Observed distribution state on 2026-08-29 ICT:
 
-Campaign parameters:
+- **08:45:** independent Viewer/Tester call — `PUBLISHED`;
+- **10:00:** broader `BREAK THE DAWN` call — `PUBLISHED`;
+- **12:00:** Creative Studio-specific 5-minute QA call — scheduled/pending at the latest planner readback;
+- **18:00:** separate Compute Commons volunteer-compute call — scheduled/pending; this is capacity recruitment, not tester evidence.
 
-`utm_source=facebook&utm_medium=volunteer-testing&utm_campaign=break-the-dawn-20260829&utm_content=wave-a`
+Campaign parameters remain source-separated where supported. Do not count a scheduled/published post, impression, click, reaction, or D’AUBE-authored reply as tester evidence. Count only bona fide independent reports received through the canonical intake.
 
-Do not count the scheduled/published post as tester evidence. Count only independent reports received through the canonical intake.
+### TikTok
 
-### TikTok / YouTube
+A real media-format blocker was observed on the earlier 10:00 TikTok attempt: the planner rejected the reused PNG because TikTok photo publishing did not accept `image/png` for that post.
 
-The D’AUBE Metricool brand has these networks connected, but both require appropriate media for publication. Do not create filler/reused media merely to satisfy a channel. A later visual wave should use an original D’AUBE clip or screen capture and the same canonical test flow.
+Remediation completed before the dedicated 12:15 Viewer/Tester wave:
+
+- original D’AUBE public-safe tester card created as WebP;
+- canonical asset merged to `main` at `community/assets/daube-volunteer-viewer-card.webp`;
+- PR #188 passed Founder Sovereignty and UX/UI gates and merged as `35fa992515c4586c3137f53c5f3b382f3cd4f1e4`;
+- the 12:15 TikTok post was updated from the rejected PNG to the canonical WebP;
+- Metricool re-ingested it as a `.webp` asset and returned the post to `PENDING`.
+
+This repairs distribution infrastructure only. A successful publish still is not an independent tester report.
+
+### YouTube
+
+The connected D’AUBE YouTube account remains available as a later distribution lane. Do not create filler media solely to satisfy a channel requirement. Use an original D’AUBE clip or screen capture and route all feedback back to #176.
 
 ## Wave B — community discovery
 
-These are distribution candidates, not endorsements and not evidence until an independent person actually tests and reports.
+These are researched distribution candidates, not claims that D’AUBE has posted there and not evidence until an independent person actually tests and reports.
 
 ### r/startups — Feedback Friday
 
-Use the community's current Feedback Friday thread and follow its required feedback template. Participate as a community member rather than dropping an isolated promotional link. Ask for one narrow observation, not a review or upvote.
+Fresh research on 2026-08-29 confirms the current Feedback Friday thread allows narrow UX/usability/design feedback and beta-tester requests, while requiring the community template and participation rather than isolated link-dropping.
 
 Suggested request:
 
@@ -54,6 +69,8 @@ Suggested request:
 UTM:
 
 `utm_source=reddit&utm_medium=community-feedback&utm_campaign=break-the-dawn-20260829&utm_content=startups-feedback-friday`
+
+Do not claim this lane as distributed until an authorized account actually posts in compliance with the thread rules.
 
 ### r/betatests
 
@@ -69,15 +86,17 @@ UTM:
 
 ### TestYard
 
-Candidate because it currently offers a free community route for real tester feedback. Use the free/community lane only; do not start a paid campaign without a separate authorization.
+Fresh research on 2026-08-29 confirms TestYard is live, supports Web apps, and advertises a free/no-credit-card community route for tester feedback. Use only the free/community lane; do not start a paid campaign without separate authorization.
 
 UTM:
 
 `utm_source=testyard&utm_medium=beta-testing&utm_campaign=break-the-dawn-20260829&utm_content=free-community`
 
+Do not claim D’AUBE is listed there until an authorized account actually completes the listing.
+
 ### TheBetaBounty
 
-Candidate because it currently advertises a free tier. Use only the free tier and keep the bounty focused on first-time comprehension/mobile friction; do not imply employment or guaranteed compensation.
+Candidate because it advertises a free tier. Use only the free tier and keep the request focused on first-time comprehension/mobile friction; do not imply employment or guaranteed compensation. Verify current terms again immediately before any actual listing.
 
 UTM:
 
@@ -128,6 +147,8 @@ Only count a person when an independent report exists. Minimum target mix:
 - 4 × Commerce Journey Observer
 - 3 × Technical/browser QA
 
-**Current count at publication of this manifest: 0 verified independent reports.**
+**Current verified independent report count at this update: 0.**
+
+All comments observed so far on #176 are D’AUBE-authored operational/distribution notes. Social posts, scheduled posts, clicks, impressions, reactions, bots, founder/self-tests, and synthetic personas are excluded from the independent count.
 
 This document is an acquisition/runbook artifact. It is not customer-demand, revenue, commercial acceptance, settlement, production, or independent-testing evidence by itself.

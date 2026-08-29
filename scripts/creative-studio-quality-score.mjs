@@ -12,7 +12,7 @@ const checks = [];
 const add = (id, pass, detail) => checks.push({ id, points: 5, pass: Boolean(pass), earned: pass ? 5 : 0, detail });
 
 add('canonical-route', html.includes('rel="canonical" href="https://daubesonntag.com/creative-studio/"'), 'Canonical Creative Studio route is exact.');
-add('indexable-volunteer', html.includes('index,follow') && !html.includes('noindex') && js.includes('daube-public-release/issues/181') && js.includes('data-volunteer-qa'), 'Public business line is indexable and preserves the volunteer QA/viewer funnel.');
+add('indexable-volunteer', html.includes('index,follow') && !html.includes('noindex') && js.includes('daube-public-release/issues/176') && js.includes('data-volunteer-qa') && !js.includes('daube-public-release/issues/181'), 'Public business line is indexable and points only to the canonical volunteer QA/viewer intake.');
 add('offer-html', html.includes('DAUBE-CREATIVE-PRODUCTION-V1'), 'HTML pins the Creative Production offer.');
 add('offer-js', js.includes("DAUBE-CREATIVE-PRODUCTION-V1"), 'Browser runtime pins the same offer.');
 add('verified-lanes', ['WEB / UI','MOTION','VIDEO / VFX','CGI / 3D','AUDIO'].every((m) => html.includes(m)), 'Verified creative lanes are represented.');
@@ -43,7 +43,7 @@ const receipt = {
   status: score >= 95 ? 'GREEN' : 'RED',
   failed,
   checks,
-  truthBoundary: 'GREEN proves the public Creative Studio surface, browser intake contract, human-feedback entry and static accessibility/security markers. It does not by itself prove GPU/provider capacity, actual volunteer participation, customer acceptance, payment, settlement or revenue.'
+  truthBoundary: 'GREEN proves the public Creative Studio surface, browser intake contract, canonical human-feedback entry and static accessibility/security markers. It does not by itself prove GPU/provider capacity, actual volunteer participation, customer acceptance, payment, settlement or revenue.'
 };
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'quality-score.json'), `${JSON.stringify(receipt, null, 2)}\n`);

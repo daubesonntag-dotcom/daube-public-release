@@ -72,6 +72,15 @@ Useful feedback includes:
 4. Which World would you want to build in?
 5. Would you rather receive compute credit, marketplace credit, access, a title, a cash share under a separate agreement, or something else?
 
+### 5-minute Break the Dawn test
+
+If you do not want to write a full proposal, spend five minutes in the beta and report only the moment you **hesitated, got confused, or almost left**.
+
+Open volunteer tester/viewer call:
+https://github.com/daubesonntag-dotcom/daube-public-release/issues/176
+
+No purchase or positive review is required. A tester report is usability/viewer evidence only; it is not a customer order, settlement, revenue, production, shipment, or commercial acceptance record.
+
 ### Would you actually pay?
 
 Open an **Early Renter Signal** issue. It is not an order or payment commitment; it records which service interests you, what value you would require and what price range feels reasonable.

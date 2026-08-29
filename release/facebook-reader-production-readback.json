@@ -1,0 +1,10 @@
+{
+  "schema": "daube.facebook-reader-production-readback-request.v1",
+  "repository": "daubesonntag-dotcom/daube-web",
+  "expectedSha": "dfdcd971ef1d9f49c7448e0b6ec41702e8ddfc4a",
+  "origin": "https://daubesonntag.com",
+  "manifestPath": "/site.webmanifest",
+  "sharePath": "/radar/share/",
+  "mutationApproved": false,
+  "zeroSecret": true
+}

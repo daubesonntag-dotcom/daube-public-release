@@ -1,0 +1,107 @@
+# PR-observable validation receipt for the deploy-only Oracle bundle.
+name: Oracle Resource Manager Worker V2 Validate
+
+on:
+  push:
+    branches: [oracle-free-host-worker-v2]
+    paths:
+      - 'main.tf'
+      - 'variables.tf'
+      - 'schema.yaml'
+      - 'cloud-init.yaml.tftpl'
+      - 'worker.py'
+      - '.github/workflows/oracle-resource-manager-worker-v2-validate.yml'
+  pull_request:
+    paths:
+      - 'main.tf'
+      - 'variables.tf'
+      - 'schema.yaml'
+      - 'cloud-init.yaml.tftpl'
+      - 'worker.py'
+      - '.github/workflows/oracle-resource-manager-worker-v2-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-rm-worker-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - name: Terraform Resource Manager contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform version
+          terraform fmt -check -diff main.tf variables.tf
+          terraform init -backend=false -input=false
+          terraform validate
+          grep -F 'required_version = ">= 1.5.0, < 1.6.0"' main.tf
+          grep -F 'VM.Standard.A1.Flex' main.tf
+          grep -F 'compartment_ocid' main.tf variables.tf schema.yaml
+          test -s cloud-init.yaml.tftpl
+          test -s worker.py
+          python3 -m py_compile worker.py
+
+      - name: Zero-spend and sovereignty static gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'ALWAYS_FREE_ONLY' main.tf
+          grep -F 'paid_spend_authorized' worker.py
+          grep -F 'sovereign_local' worker.py
+          grep -F 'sovereign_local       = false' main.tf
+          grep -F 'accept_oracle_always_free_capacity_risk' main.tf variables.tf schema.yaml
+          grep -F 'confirm_free_volume_headroom' main.tf variables.tf schema.yaml
+          ! grep -RniE 'paid[_ -]?fallback[[:space:]]*=[[:space:]]*true|paidSpendAuthorized[[:space:]]*:[[:space:]]*true' main.tf variables.tf schema.yaml cloud-init.yaml.tftpl worker.py
+
+      - name: Bounded worker runtime contract
+        shell: bash
+        env:
+          DAUBE_WORKER_AUTH_TOKEN: 0123456789abcdef0123456789abcdef0123456789abcdef
+          DAUBE_WORKER_RECEIPT_SECRET: abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+        run: |
+          set -euo pipefail
+          python3 worker.py >/tmp/daube-worker.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8791/v1/capabilities >/tmp/cap.json && break
+            sleep .2
+          done
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/cap.json'))
+          assert p['provider_id']=='oracle-a1-free'
+          assert p['contract_version']=='daube.compute.v1'
+          assert p['workloads']==['runtime-probe']
+          assert p['paid_spend_authorized'] is False
+          assert p['sovereign_local'] is False
+          PY
+          code=$(curl -sS -o /tmp/noauth.json -w '%{http_code}' -H 'Content-Type: application/json' --data '{}' http://127.0.0.1:8791/v1/compute/jobs)
+          test "$code" = 401
+          nonce="ci-$GITHUB_RUN_ID"
+          payload=$(python3 -c 'import json,sys; print(json.dumps({"contract_version":"daube.compute.v1","provider_target":"oracle-a1-free","accelerator":"cpu","workload":"runtime-probe","job_id":"ci-runtime-probe","input":{},"metadata":{"_daube_receipt_nonce":sys.argv[1]}}))' "$nonce")
+          curl -fsS -H "Authorization: Bearer $DAUBE_WORKER_AUTH_TOKEN" -H 'Content-Type: application/json' --data "$payload" http://127.0.0.1:8791/v1/compute/jobs >/tmp/job.json
+          python3 - <<'PY'
+          import hashlib,hmac,json,os
+          p=json.load(open('/tmp/job.json'))
+          assert p['status']=='SUCCEEDED'
+          assert p['provider_id']=='oracle-a1-free'
+          material=f"daube.compute.v1:oracle-a1-free:ci-runtime-probe:SUCCEEDED:{p['receipt_nonce']}".encode()
+          sig=hmac.new(os.environ['DAUBE_WORKER_RECEIPT_SECRET'].encode(),material,hashlib.sha256).hexdigest()
+          assert p['provider_receipt']==f'dcr1.oracle-a1-free.ci-runtime-probe.{sig}'
+          PY

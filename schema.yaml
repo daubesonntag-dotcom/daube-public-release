@@ -1,0 +1,84 @@
+locale: "en"
+
+title: "D'AUBE Oracle Always Free origin + bounded worker"
+
+variableGroups:
+  - title: "OCI destination"
+    variables: [tenancy_ocid, compartment_ocid, region]
+  - title: "Secure administrator access"
+    variables: [ssh_authorized_key, admin_cidr]
+  - title: "Always Free capacity"
+    variables: [ocpus, memory_in_gbs, boot_volume_size_in_gbs, accept_oracle_always_free_capacity_risk, confirm_free_volume_headroom]
+  - title: "D'AUBE release + worker"
+    variables: [display_name, public_release_repo, public_release_branch]
+
+variables:
+  tenancy_ocid:
+    type: string
+    required: true
+    title: "Tenancy OCID"
+    description: "Automatically prepopulated by OCI Resource Manager."
+  compartment_ocid:
+    type: oci:identity:compartment:id
+    required: true
+    title: "Compartment"
+  region:
+    type: oci:identity:region:name
+    required: true
+    title: "Home region"
+  ssh_authorized_key:
+    type: oci:core:ssh:publickey
+    required: true
+    title: "SSH public key"
+  admin_cidr:
+    type: string
+    required: true
+    title: "Restricted SSH source CIDR"
+    description: "0.0.0.0/0 is rejected by Terraform."
+  ocpus:
+    type: number
+    required: true
+    default: 2
+    minimum: 1
+    maximum: 2
+    title: "Ampere A1 OCPUs"
+  memory_in_gbs:
+    type: number
+    required: true
+    default: 12
+    minimum: 1
+    maximum: 12
+    title: "Memory (GiB)"
+  boot_volume_size_in_gbs:
+    type: number
+    required: true
+    default: 150
+    minimum: 50
+    maximum: 200
+    title: "Boot volume (GiB)"
+  accept_oracle_always_free_capacity_risk:
+    type: boolean
+    required: true
+    default: false
+    title: "I acknowledge Always Free capacity/reclamation risk"
+    description: "This acknowledgement never authorizes paid fallback."
+  confirm_free_volume_headroom:
+    type: boolean
+    required: true
+    default: false
+    title: "I confirmed remaining Always Free volume headroom"
+  display_name:
+    type: string
+    required: true
+    default: "ds-prod-core-01"
+    title: "Host display name"
+  public_release_repo:
+    type: string
+    required: true
+    default: "https://github.com/daubesonntag-dotcom/daube-public-release.git"
+    title: "Public release repository"
+  public_release_branch:
+    type: string
+    required: true
+    default: "main"
+    title: "Public release branch"

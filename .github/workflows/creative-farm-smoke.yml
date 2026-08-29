@@ -28,13 +28,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          need_packages=()
+          command -v ffmpeg >/dev/null 2>&1 || need_packages+=(ffmpeg)
+          command -v blender >/dev/null 2>&1 || need_packages+=(blender)
+          fc-list >/dev/null 2>&1 || need_packages+=(fontconfig fonts-dejavu-core)
+          if (( ${#need_packages[@]} > 0 )); then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${need_packages[@]}"
+          fi
           command -v ffmpeg
           command -v ffprobe
+          command -v blender
           command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser
-          if ! command -v blender >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends blender
-          fi
+          ffmpeg -version | head -n 1
           blender --version | head -n 1
 
       - name: Grow code and media outputs

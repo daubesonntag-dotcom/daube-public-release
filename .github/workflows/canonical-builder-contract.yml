@@ -1,0 +1,48 @@
+name: Canonical Builder Contract
+
+on:
+  push:
+    branches:
+      - main
+      - fix/canonical-build-money-contract-v3-20260829
+    paths:
+      - 'scripts/build-canonical-dawn-pages.mjs'
+      - 'automation-sprint/**'
+      - 'creative-studio/**'
+      - 'assets/automation-sprint-v2.js'
+      - 'assets/creative-studio-v1.js'
+      - '.github/workflows/canonical-builder-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-builder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Build canonical Dawn projection
+        run: node scripts/build-canonical-dawn-pages.mjs
+
+      - name: Verify generated business-line discovery and truth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s index.html
+          grep -Fq 'data-canonical-projection="dawn-clarity-pages-v1"' index.html
+          grep -Fq 'href="/creative-studio/"' index.html
+          grep -Fq 'href="/automation-sprint/"' index.html
+          grep -Fq 'href="/storefront/"' index.html
+          grep -Fq 'href="/pay/"' index.html
+          grep -Fq 'DAUBE-CREATIVE-PRODUCTION-V1' creative-studio/index.html
+          grep -Fq 'DAUBE-AUTOMATION-SPRINT-V1' automation-sprint/index.html
+          grep -Fq 'result.revenueCountable !== false' assets/creative-studio-v1.js
+          grep -Fq 'result.revenueCountable !== false' assets/automation-sprint-v2.js
+          ! grep -Eiq '(service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_|webhook_secret|sk_live_)' index.html creative-studio/index.html automation-sprint/index.html assets/creative-studio-v1.js assets/automation-sprint-v2.js

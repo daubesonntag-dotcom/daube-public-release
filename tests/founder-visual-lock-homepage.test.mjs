@@ -54,7 +54,7 @@ test("normal Pages mirror stays quarantined while a separate recovery publisher 
   assert.match(recoveryWorkflow, /branches: \[main\]/);
   assert.match(recoveryWorkflow, /pay\/index\.html/);
   assert.match(recoveryWorkflow, /https:\/\/daubesonntag\.com\/pay\//);
-  assert.match(recoveryWorkflow, /D’AUBE payment surface verified/);
+  assert.match(recoveryWorkflow, /D’AUBE canonical Dawn \+ payment surface verified/);
 });
 
 test("historical visual lock is preserved as provenance and recovery uses a later approved V3 artifact", () => {

@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-      - feat/creative-studio-public-v1-20260829
-      - fix/pages-publish-creative-studio-v1-20260829
+      - 'feat/**'
+      - 'fix/**'
     paths:
       - 'creative-studio/**'
       - 'assets/creative-studio-v1.js'

@@ -1,10 +1,10 @@
 {
   "schema": "daube.cloudflare-workers-builds-bootstrap.v1",
   "repository": "daubesonntag-dotcom/daube-commerce",
-  "expectedSha": "608c3c44df16aaa775a98ed8f1e41080cd0f8e73",
+  "expectedSha": "4ca97c00e08af6d1fec07efa369f1629fe9cc3bb",
   "worker": "daube-commerce",
   "mutationApproved": true,
   "profile": "core",
   "launchBlocking": false,
-  "purpose": "optional exact-main executor: full verify -> D1 migrations through 0014 -> Worker deploy -> exact-SHA external readback"
+  "purpose": "Exact-main customer-identity production admission: full verify -> D1 migrations through 0018 -> Worker deploy -> exact-SHA identity external readback"
 }

@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/creative-studio-public-v1-20260829
+      - fix/pages-publish-creative-studio-v1-20260829
     paths:
       - 'creative-studio/**'
       - 'assets/creative-studio-v1.js'
@@ -15,9 +16,11 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: creative-studio-preflight-${{ github.ref }}
+  group: creative-studio-pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -103,3 +106,81 @@ jobs:
       - name: Stop preview
         if: always()
         run: kill "$(cat /tmp/creative-studio-http.pid)" 2>/dev/null || true
+
+  publish-main:
+    if: github.ref == 'refs/heads/main'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout exact verified main revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Rebuild canonical Dawn root before publication
+        run: node scripts/build-canonical-dawn-pages.mjs
+
+      - name: Verify canonical root and Creative Studio publication set
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s index.html
+          test -s pay/index.html
+          test -s storefront/index.html
+          test -s creative-studio/index.html
+          test -s assets/creative-studio-v1.js
+          grep -Fq 'data-canonical-projection="dawn-clarity-pages-v1"' index.html
+          grep -Fq 'Workflow Kit — Single' pay/index.html
+          grep -Fq 'DAUBE-CREATIVE-PRODUCTION-V1' creative-studio/index.html
+          grep -Fq 'DAUBE-CREATIVE-PRODUCTION-V1' assets/creative-studio-v1.js
+          grep -Fq 'https://daubesonntag.com/creative-studio/' sitemap.xml
+          ! grep -Eiq '(service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_|webhook_secret|sk_live_)' creative-studio/index.html assets/creative-studio-v1.js
+
+      - name: Configure GitHub Pages recovery publisher
+        uses: actions/configure-pages@v6
+
+      - name: Upload verified public site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      - name: Deploy verified public site
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Verify external Creative Studio convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            root_code="$(curl --silent --show-error --location --output /tmp/root.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' "https://daubesonntag.com/?creative-studio=${GITHUB_SHA}" || true)"
+            pay_code="$(curl --silent --show-error --location --output /tmp/pay.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/pay/ || true)"
+            creative_code="$(curl --silent --show-error --location --output /tmp/creative.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/creative-studio/ || true)"
+            creative_js_code="$(curl --silent --show-error --location --output /tmp/creative.js --write-out '%{http_code}' --header 'Cache-Control: no-cache' "https://daubesonntag.com/assets/creative-studio-v1.js?v=${GITHUB_SHA}" || true)"
+            sitemap_code="$(curl --silent --show-error --location --output /tmp/sitemap.xml --write-out '%{http_code}' --header 'Cache-Control: no-cache' https://daubesonntag.com/sitemap.xml || true)"
+            if [[ "$root_code" == 200 && "$pay_code" == 200 && "$creative_code" == 200 && "$creative_js_code" == 200 && "$sitemap_code" == 200 ]] \
+              && grep -Fq 'data-canonical-projection="dawn-clarity-pages-v1"' /tmp/root.html \
+              && grep -Fq 'Workflow Kit — Single' /tmp/pay.html \
+              && grep -Fq 'DAUBE-CREATIVE-PRODUCTION-V1' /tmp/creative.html \
+              && grep -Fq 'DAUBE-CREATIVE-PRODUCTION-V1' /tmp/creative.js \
+              && grep -Fq 'https://daubesonntag.com/creative-studio/' /tmp/sitemap.xml; then
+              {
+                echo '## D’AUBE Creative Studio production verified'
+                echo '- canonical apex: 200 · canonical projection preserved'
+                echo '- /pay/: 200 · payment recovery surface preserved'
+                echo '- /creative-studio/: 200 · Creative Production marker PASS'
+                echo '- Creative Studio browser JS: 200 · offer marker PASS'
+                echo '- sitemap: 200 · Creative Studio discoverability PASS'
+                echo '- commercial truth remains fail-closed'
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo '::error::Creative Studio did not converge on the canonical apex after verified Pages deployment.'
+          exit 1

@@ -30,4 +30,4 @@ jobs:
           test -z "${CLOUDFLARE_API_TOKEN:-}"
           echo 'ZERO_SECRET_PUBLIC_FIXTURE'
       - name: Run Facebook Reader public contract
-        run: node --test labs/facebook-reader-v1/tests/facebook-reader-public-contract.test.mjs
+        run: node --test labs/facebook-reader-v1/tests/facebook-reader-public-contract.test.mjs labs/facebook-reader-v1/tests/facebook-reader-radar-adapter.test.mjs

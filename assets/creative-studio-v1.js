@@ -3,7 +3,7 @@
 
   const OFFER_ID = 'DAUBE-CREATIVE-PRODUCTION-V1';
   const ENDPOINT = 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-money-first-lead';
-  const VOLUNTEER_QA_URL = 'https://github.com/daubesonntag-dotcom/daube-public-release/issues/181';
+  const VOLUNTEER_QA_URL = 'https://github.com/daubesonntag-dotcom/daube-public-release/issues/176';
   const form = document.getElementById('creativeStudioForm');
   const status = document.getElementById('formStatus');
   if (!form || !status) return;
@@ -27,8 +27,8 @@
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     link.dataset.volunteerQa = 'true';
-    link.textContent = 'Volunteer QA / Viewer · 15–20 phút →';
-    link.setAttribute('aria-label', 'Mở lời mời volunteer QA cho D’AUBE Creative Studio trên GitHub');
+    link.textContent = 'Volunteer QA / Viewer · 5–15 phút →';
+    link.setAttribute('aria-label', 'Mở canonical volunteer QA / Viewer intake của D’AUBE trên GitHub');
     wrap.appendChild(link);
     truthBand.appendChild(wrap);
   }

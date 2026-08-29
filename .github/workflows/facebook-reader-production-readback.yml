@@ -31,7 +31,7 @@ jobs:
           jq -e '.schema == "daube.facebook-reader-production-readback-request.v1"' "$FILE" >/dev/null
           jq -e '.repository == "daubesonntag-dotcom/daube-web"' "$FILE" >/dev/null
           jq -e '.origin == "https://daubesonntag.com"' "$FILE" >/dev/null
-          jq -e '.manifestPath == "/site.webmanifest" and .sharePath == "/radar/share/"' "$FILE" >/dev/null
+          jq -e '.manifestPath == "/site.webmanifest" and .sharePath == "/radar/share/" and .revisionPath == "/__daube/revision.json"' "$FILE" >/dev/null
           jq -e '.mutationApproved == false and .zeroSecret == true' "$FILE" >/dev/null
           SHA="$(jq -r '.expectedSha' "$FILE")"
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::expected_sha_invalid'; exit 40; }
@@ -53,8 +53,9 @@ jobs:
           ROOT_STATUS="$(probe root "${ORIGIN}/" || true)"
           MANIFEST_STATUS="$(probe manifest "${ORIGIN}/site.webmanifest?daube_readback=${EXPECTED_SHA}" || true)"
           SHARE_STATUS="$(probe share "${ORIGIN}/radar/share/?daube_readback=${EXPECTED_SHA}" || true)"
-          printf 'root_http=%s\nmanifest_http=%s\nshare_http=%s\n' "$ROOT_STATUS" "$MANIFEST_STATUS" "$SHARE_STATUS"
-          for name in root manifest share; do
+          REVISION_STATUS="$(probe revision "${ORIGIN}/__daube/revision.json?daube_readback=${EXPECTED_SHA}" || true)"
+          printf 'root_http=%s\nmanifest_http=%s\nshare_http=%s\nrevision_http=%s\n' "$ROOT_STATUS" "$MANIFEST_STATUS" "$SHARE_STATUS" "$REVISION_STATUS"
+          for name in root manifest share revision; do
             if [[ -f "/tmp/${name}.body" ]]; then
               printf '%s_sha256=%s\n' "$name" "$(sha256sum "/tmp/${name}.body" | awk '{print $1}')"
               grep -iE '^(server|cf-ray|cache-control|etag|last-modified|content-type):' "/tmp/${name}.headers" || true
@@ -67,7 +68,6 @@ jobs:
           grep -F 'D’AUBE Radar · Share Intake' /tmp/share.body >/dev/null || { echo '::error::production_share_intake_title_missing'; exit 45; }
           grep -F 'daube.facebook-intake.v1' /tmp/share.body >/dev/null || { echo '::error::production_share_intake_schema_missing'; exit 46; }
           grep -F "reader_lane: 'pwa-share'" /tmp/share.body >/dev/null || { echo '::error::production_share_intake_lane_missing'; exit 47; }
-          echo 'SURFACE_READBACK_GREEN_REVISION_UNVERIFIED'
-          echo "expected_source_revision=${EXPECTED_SHA}"
-          echo 'exact_source_revision_readback=false'
-          echo 'Production surface presence is verified, but exact-SHA production GREEN remains forbidden until a public runtime revision artifact is readable.'
+          [[ "$REVISION_STATUS" == '200' ]] || { echo '::error::production_revision_artifact_missing'; exit 48; }
+          jq -e --arg sha "$EXPECTED_SHA" '.schema == "daube.web.source-revision.v1" and .repository == "daubesonntag-dotcom/daube-web" and .sourceRevision == $sha and .admissionExpectedRevision == $sha and .exactShaBound == true and .publicEvidenceOnly == true' /tmp/revision.body >/dev/null || { echo '::error::production_exact_source_revision_mismatch'; exit 49; }
+          echo "PRODUCTION_EXACT_SHA_READBACK_GREEN ${EXPECTED_SHA}"

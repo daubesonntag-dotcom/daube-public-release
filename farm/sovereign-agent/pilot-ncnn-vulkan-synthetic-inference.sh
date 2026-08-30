@@ -129,7 +129,10 @@ int main()
 }
 CPP
 
+# ncnn Android release builds disable RTTI and exceptions by default. Match the
+# upstream ABI so DataReader subclasses do not reference unavailable typeinfo.
 clang++ -O2 -std=c++17 -Wall -Wextra -Werror -Wformat=2 \
+  -fno-rtti -fno-exceptions \
   -I"$include_dir" -L"$lib_dir" "$CACHE_DIR/ncnn-vulkan-synthetic.cpp" \
   -o "$INSTALL_DIR/daube-ncnn-vulkan-synthetic-inference" -lncnn -lvulkan -ldl -lm
 export LD_LIBRARY_PATH="$lib_dir:${LD_LIBRARY_PATH:-}"

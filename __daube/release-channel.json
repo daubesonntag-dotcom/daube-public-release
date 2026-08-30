@@ -1,0 +1,12 @@
+{
+  "schema": "daube.public-release.channel-identity.v1",
+  "repository": "daubesonntag-dotcom/daube-public-release",
+  "channel": "main",
+  "purpose": "zero-runner branch-source propagation canary",
+  "parentRevision": "6af9f0fade1f616a24bfbfda5f55ff11db741b14",
+  "productionClaim": false,
+  "daubeWebSourceRevisionClaim": false,
+  "externalReadbackRequired": true,
+  "secretsSerialized": false,
+  "paidSpendAuthorized": false
+}

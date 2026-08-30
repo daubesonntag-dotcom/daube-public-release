@@ -1,4 +1,4 @@
-name: Fresh GitHub Actions Runner-Pool Probe
+name: Fresh GitHub Actions Cross-OS Probe
 
 on:
   push:
@@ -12,20 +12,33 @@ permissions:
   contents: read
 
 jobs:
-  latest:
+  ubuntu-latest:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - run: printf 'DAUBE_RUNNER_POOL=ubuntu-latest PASS\n'
 
-  slim:
+  ubuntu-slim:
     runs-on: ubuntu-slim
     timeout-minutes: 2
     steps:
       - run: printf 'DAUBE_RUNNER_POOL=ubuntu-slim PASS\n'
 
-  arm:
+  ubuntu-arm:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 2
     steps:
       - run: printf 'DAUBE_RUNNER_POOL=ubuntu-24.04-arm PASS\n'
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 2
+    steps:
+      - run: printf 'DAUBE_RUNNER_POOL=macos-latest PASS\n'
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 2
+    steps:
+      - shell: pwsh
+        run: Write-Output 'DAUBE_RUNNER_POOL=windows-latest PASS'

@@ -1,0 +1,28 @@
+{
+  "schema": "daube.phone-edge-kernel-contract.v1",
+  "kernelId": "rgba-premultiply-luma-u8-v1",
+  "workload": "image-preprocess-rgba-premultiply-luma",
+  "backend": "vulkan",
+  "input": {
+    "format": "RGBA8",
+    "maxPixelsPerDispatch": 4096,
+    "privacy": "public-inputs-only"
+  },
+  "output": {
+    "format": "RGBA8",
+    "semantics": "BT.709 integer luma replicated to RGB after alpha premultiply; original alpha retained"
+  },
+  "fusion": [
+    "alpha-premultiply",
+    "rgb-to-luma-bt709-integer"
+  ],
+  "status": "SOURCE_READY_NOT_RUNTIME_PROVEN",
+  "admission": {
+    "requiresRealDeviceCanary": true,
+    "requiresIndependentCpuReference": true,
+    "requiresThermalBoundedBenchmark": true
+  },
+  "hardZero": true,
+  "paidSpendAuthorized": false,
+  "privateAssetsAllowed": false
+}

@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-365705b5e799d58605d0605ac733d21c4fda4f51}"
+SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-96594c0b8d8242af3150ffb33c3b27d86b285ae0}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${SOURCE_REVISION}/farm/sovereign-agent"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
 BIN_DIR="$HOME/.local/bin"
@@ -121,6 +121,7 @@ printf '%s\n' '--------------------------------'
 printf 'kernelSha256: %s\n' "$kernel_sha"
 printf 'workerSha256: %s\n' "$worker_sha"
 printf 'scheduler: %s\n' "$scheduler"
+printf 'signedTelemetry: Ed25519 claim-bound v1\n'
 printf 'maxJobBytes: 16384\n'
 printf 'minBatteryPercent: 35\n'
 printf 'maxBatteryTempC (when Termux API reports it): 42\n'

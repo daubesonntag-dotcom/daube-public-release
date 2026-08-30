@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   external-readback:
@@ -22,119 +23,112 @@ jobs:
       COMMERCE_HEALTH_URL: https://commerce.daubesonntag.com/healthz
       COMMERCE_PRODUCTS_URL: https://commerce.daubesonntag.com/v1/products
     steps:
-      - name: Observe public surfaces without mutation
+      - name: Observe and publish bounded diagnostics
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           probe() {
-            local url="$1"
-            local output="$2"
-            curl --silent --show-error --location \
-              --max-time 25 \
-              --header 'Cache-Control: no-cache' \
-              --header 'Pragma: no-cache' \
-              --output "$output" \
-              --write-out '%{http_code}' \
+            local url="$1" output="$2"
+            curl --silent --show-error --location --max-time 25 \
+              --header 'Cache-Control: no-cache' --header 'Pragma: no-cache' \
+              --output "$output" --write-out '%{http_code}' \
               "${url}?daube-readback=${GITHUB_SHA}" || true
           }
 
-          root_code="$(probe "$APEX_URL" /tmp/apex.html)"
-          revision_code="$(probe "$REVISION_URL" /tmp/revision.json)"
-          health_code="$(probe "$COMMERCE_HEALTH_URL" /tmp/commerce-health.json)"
-          products_code="$(probe "$COMMERCE_PRODUCTS_URL" /tmp/commerce-products.json)"
-
-          printf 'apex_http=%s\nrevision_http=%s\ncommerce_health_http=%s\ncommerce_products_http=%s\n' \
-            "$root_code" "$revision_code" "$health_code" "$products_code"
-
-          [[ "$root_code" == 200 ]] || { echo "APEX_HTTP_NOT_200=$root_code" >&2; exit 31; }
-          grep -Fq '<title>D’AUBE SONNTAG · RẠNG TRONG</title>' /tmp/apex.html \
-            || { echo 'APEX_CANONICAL_TITLE_MISSING' >&2; exit 32; }
-          grep -Fq '/assets/' /tmp/apex.html \
-            || { echo 'APEX_VITE_ASSET_REFERENCE_MISSING' >&2; exit 33; }
-
-          [[ "$revision_code" == 200 ]] || { echo "REVISION_HTTP_NOT_200=$revision_code" >&2; exit 34; }
-          python3 - "$EXPECTED_WEB_SHA" <<'PY'
+          publish_status() {
+            local context="$1" state="$2" description="$3"
+            python3 - "$state" "$context" "${description:0:140}" <<'PY' >/tmp/status.json
           import json, sys
-          expected = sys.argv[1]
-          with open('/tmp/revision.json', encoding='utf-8') as handle:
-              data = json.load(handle)
-          checks = {
-              'schema': data.get('schema') == 'daube.web.source-revision.v1',
-              'repository': data.get('repository') == 'daubesonntag-dotcom/daube-web',
-              'sourceRevision': data.get('sourceRevision') == expected,
+          print(json.dumps({'state': sys.argv[1], 'context': sys.argv[2], 'description': sys.argv[3]}))
+          PY
+            curl --fail --silent --show-error --request POST \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              --header 'Content-Type: application/json' \
+              --data @/tmp/status.json \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" >/dev/null
           }
-          failed = [name for name, ok in checks.items() if not ok]
-          print(json.dumps({
-              'webRevision': data.get('sourceRevision'),
-              'expectedWebRevision': expected,
-              'exactRevisionMatch': not failed,
-              'failedChecks': failed,
-          }, sort_keys=True))
-          if failed:
-              raise SystemExit(35)
+
+          failed=0
+
+          apex_code="$(probe "$APEX_URL" /tmp/apex.html)"
+          title=false; assets=false
+          grep -Fq '<title>D’AUBE SONNTAG · RẠNG TRONG</title>' /tmp/apex.html 2>/dev/null && title=true
+          grep -Fq '/assets/' /tmp/apex.html 2>/dev/null && assets=true
+          if [[ "$apex_code" == 200 && "$title" == true && "$assets" == true ]]; then
+            publish_status 'readback/apex' success "HTTP 200 canonical-title=${title} vite-assets=${assets}"
+          else
+            publish_status 'readback/apex' failure "HTTP ${apex_code:-none} canonical-title=${title} vite-assets=${assets}"
+            failed=1
+          fi
+
+          revision_code="$(probe "$REVISION_URL" /tmp/revision.json)"
+          revision_diag="$(python3 - "$EXPECTED_WEB_SHA" "$revision_code" <<'PY'
+          import json, sys
+          expected, code = sys.argv[1:]
+          observed='missing'; exact=False
+          try:
+              data=json.load(open('/tmp/revision.json', encoding='utf-8'))
+              observed=str(data.get('sourceRevision') or 'missing')
+              exact=(code=='200' and data.get('schema')=='daube.web.source-revision.v1' and data.get('repository')=='daubesonntag-dotcom/daube-web' and observed==expected)
+          except Exception:
+              pass
+          print(f"{str(exact).lower()}|{observed}")
           PY
+          )"
+          revision_exact="${revision_diag%%|*}"; observed_revision="${revision_diag#*|}"
+          if [[ "$revision_exact" == true ]]; then
+            publish_status 'readback/web-revision' success "HTTP ${revision_code} exact=${EXPECTED_WEB_SHA:0:12}"
+          else
+            publish_status 'readback/web-revision' failure "HTTP ${revision_code:-none} observed=${observed_revision:0:12} expected=${EXPECTED_WEB_SHA:0:12}"
+            failed=1
+          fi
 
-          [[ "$health_code" == 200 ]] || { echo "COMMERCE_HEALTH_HTTP_NOT_200=$health_code" >&2; exit 36; }
-          python3 - <<'PY'
-          import json
-          with open('/tmp/commerce-health.json', encoding='utf-8') as handle:
-              data = json.load(handle)
-          ready = data.get('ready') is True or data.get('status') == 'READY'
-          blocked = data.get('systemBlocked') is True
-          print(json.dumps({
-              'commerceStatus': data.get('status'),
-              'commerceReady': ready,
-              'systemBlocked': data.get('systemBlocked'),
-              'revision': data.get('revision') or data.get('releaseSha') or data.get('sourceRevision'),
-          }, sort_keys=True))
-          if not ready or blocked:
-              raise SystemExit(37)
+          health_code="$(probe "$COMMERCE_HEALTH_URL" /tmp/commerce-health.json)"
+          health_diag="$(python3 - "$health_code" <<'PY'
+          import json, sys
+          code=sys.argv[1]; ready=False; status='missing'; blocked='unknown'
+          try:
+              data=json.load(open('/tmp/commerce-health.json', encoding='utf-8'))
+              status=str(data.get('status') or 'missing')
+              blocked=str(data.get('systemBlocked')).lower()
+              ready=(code=='200' and (data.get('ready') is True or status=='READY') and data.get('systemBlocked') is not True)
+          except Exception:
+              pass
+          print(f"{str(ready).lower()}|{status}|{blocked}")
           PY
+          )"
+          health_ready="${health_diag%%|*}"; health_rest="${health_diag#*|}"; health_status="${health_rest%%|*}"; health_blocked="${health_rest#*|}"
+          if [[ "$health_ready" == true ]]; then
+            publish_status 'readback/commerce-health' success "HTTP ${health_code} status=${health_status} blocked=${health_blocked}"
+          else
+            publish_status 'readback/commerce-health' failure "HTTP ${health_code:-none} status=${health_status} blocked=${health_blocked}"
+            failed=1
+          fi
 
-          [[ "$products_code" == 200 ]] || { echo "COMMERCE_PRODUCTS_HTTP_NOT_200=$products_code" >&2; exit 38; }
-          python3 - <<'PY'
-          import json
-          with open('/tmp/commerce-products.json', encoding='utf-8') as handle:
-              data = json.load(handle)
-          if isinstance(data, list):
-              count = len(data)
-          elif isinstance(data, dict):
-              products = data.get('products') or data.get('items') or data.get('data')
-              count = len(products) if isinstance(products, list) else None
-          else:
-              count = None
-          print(json.dumps({'commerceProductsJson': True, 'productCount': count}, sort_keys=True))
-          PY
+          products_code="$(probe "$COMMERCE_PRODUCTS_URL" /tmp/commerce-products.json)"
+          products_json=false
+          python3 -m json.tool /tmp/commerce-products.json >/dev/null 2>&1 && products_json=true
+          if [[ "$products_code" == 200 && "$products_json" == true ]]; then
+            publish_status 'readback/commerce-products' success "HTTP 200 json=true"
+          else
+            publish_status 'readback/commerce-products' failure "HTTP ${products_code:-none} json=${products_json}"
+            failed=1
+          fi
 
-          python3 - "$EXPECTED_WEB_SHA" "$root_code" "$revision_code" "$health_code" "$products_code" <<'PY' | tee /tmp/public-readback-receipt.json
-          import datetime, json, sys
-          expected, root, revision, health, products = sys.argv[1:]
-          print(json.dumps({
-              'schema': 'daube.public-apex-external-readback.v1',
-              'observer': 'github-public-hosted-ubuntu',
-              'mutationPerformed': False,
-              'secretsUsed': False,
-              'expectedWebRevision': expected,
-              'apexHttp': int(root),
-              'revisionHttp': int(revision),
-              'commerceHealthHttp': int(health),
-              'commerceProductsHttp': int(products),
-              'result': 'PASS',
-              'observedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-          }, indent=2, sort_keys=True))
-          PY
+          echo "apex_http=$apex_code title=$title assets=$assets"
+          echo "revision_http=$revision_code exact=$revision_exact observed=$observed_revision"
+          echo "commerce_health_http=$health_code ready=$health_ready status=$health_status blocked=$health_blocked"
+          echo "commerce_products_http=$products_code json=$products_json"
+          echo "external_mutation=false"
+          echo "external_secrets_used=false"
 
-          {
-            echo '## D’AUBE external public readback'
-            echo
-            echo "- Apex: HTTP ${root_code}"
-            echo "- Exact web revision: \`${EXPECTED_WEB_SHA}\`"
-            echo "- Revision artifact: HTTP ${revision_code} / exact match"
-            echo "- Commerce health: HTTP ${health_code} / READY"
-            echo "- Commerce products: HTTP ${products_code}"
-            echo '- Mutation: none'
-            echo '- Secrets: none'
-          } >> "$GITHUB_STEP_SUMMARY"
-
+          if [[ "$failed" -ne 0 ]]; then
+            echo 'DAUBE_PUBLIC_READBACK_NOT_ACCEPTED' >&2
+            exit 40
+          fi
           echo "DAUBE_PUBLIC_APEX_EXACT_READBACK_PASS web=${EXPECTED_WEB_SHA}"

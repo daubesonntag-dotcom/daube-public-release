@@ -47,6 +47,16 @@ def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def wire_number(value: object) -> str | None:
+    """Encode floating telemetry as decimal strings to avoid Python-vs-JS JSON number canonicalization drift."""
+    if value is None:
+        return None
+    number = float(value)
+    if not math.isfinite(number):
+        return None
+    return format(number, ".9g")
+
+
 def thermal_headroom_guard() -> dict[str, object]:
     fallback: dict[str, object] = {
         "supported": False,
@@ -123,20 +133,20 @@ def signed_telemetry(safety: dict[str, object]) -> dict[str, object]:
     return {
         "schema": "daube.phone-edge-telemetry.v1",
         "batteryPercent": safety.get("percentage"),
-        "temperatureC": safety.get("temperatureC"),
+        "temperatureC": wire_number(safety.get("temperatureC")),
         "charging": safety.get("charging"),
         "thermalHeadroomSupported": thermal.get("supported"),
         "thermalStatus": thermal.get("thermalStatus"),
         "thermalStatusCode": thermal.get("thermalStatusCode"),
-        "thermalHeadroom10s": thermal.get("headroom"),
+        "thermalHeadroom10s": wire_number(thermal.get("headroom")),
         "thermalHeadroomForecastSeconds": thermal.get("headroomForecastSeconds"),
         "observedAt": now_iso(),
         "profile": PROFILE,
         "kernelId": KERNEL_ID,
         "maxInputBytes": MAX_INPUT_BYTES,
         "minBatteryPercent": MIN_BATTERY_PERCENT,
-        "maxBatteryTemperatureC": MAX_BATTERY_TEMP_C,
-        "maxThermalHeadroom": MAX_THERMAL_HEADROOM,
+        "maxBatteryTemperatureC": wire_number(MAX_BATTERY_TEMP_C),
+        "maxThermalHeadroom": wire_number(MAX_THERMAL_HEADROOM),
         "maxThermalStatusCode": MAX_THERMAL_STATUS_CODE,
     }
 
@@ -154,7 +164,7 @@ def post_json(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
     request = urllib.request.Request(
         BROKER_URL,
         data=json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/3"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/4"},
         method="POST",
     )
     try:

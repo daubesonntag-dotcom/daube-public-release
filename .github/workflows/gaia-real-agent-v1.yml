@@ -1,6 +1,11 @@
 name: GAIA Real Agent V1
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'agent-benchmarks/gaia-real-agent-v1/**'
+      - '.github/workflows/gaia-real-agent-v1.yml'
   pull_request:
     paths:
       - 'agent-benchmarks/gaia-real-agent-v1/**'

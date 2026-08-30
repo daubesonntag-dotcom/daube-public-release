@@ -5,6 +5,7 @@ import base64
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import secrets
 import subprocess
@@ -22,11 +23,14 @@ BROKER_URL = os.environ.get(
 ).rstrip("/")
 GPU_PROOF_BIN = Path(os.environ.get("DAUBE_GPU_PROOF_BIN", str(Path.home() / ".local/bin/daube-sovereign-gpu-proof")))
 KERNEL_BIN = Path(os.environ.get("DAUBE_PHONE_GPU_KERNEL", str(HERE / "daube-vulkan-rgba-premultiply")))
+THERMAL_PROBE_BIN = Path(os.environ.get("DAUBE_PHONE_THERMAL_PROBE", str(HERE / "daube-thermal-headroom-probe")))
 PROFILE = "phone-edge-rgba-premultiply-v1"
 KERNEL_ID = "rgba-premultiply-u8-v1"
 MAX_INPUT_BYTES = 16 * 1024
 MIN_BATTERY_PERCENT = int(os.environ.get("DAUBE_PHONE_GPU_MIN_BATTERY", "35"))
 MAX_BATTERY_TEMP_C = float(os.environ.get("DAUBE_PHONE_GPU_MAX_BATTERY_TEMP_C", "42"))
+MAX_THERMAL_HEADROOM = float(os.environ.get("DAUBE_PHONE_GPU_MAX_THERMAL_HEADROOM", "0.95"))
+MAX_THERMAL_STATUS_CODE = int(os.environ.get("DAUBE_PHONE_GPU_MAX_THERMAL_STATUS_CODE", "2"))
 HTTP_TIMEOUT = 15
 
 
@@ -41,6 +45,51 @@ def load_host_agent():
 
 def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def thermal_headroom_guard() -> dict[str, object]:
+    fallback: dict[str, object] = {
+        "supported": False,
+        "thermalStatus": None,
+        "thermalStatusCode": None,
+        "headroomForecastSeconds": 10,
+        "headroom": None,
+    }
+    if not THERMAL_PROBE_BIN.exists() or not os.access(THERMAL_PROBE_BIN, os.X_OK):
+        return fallback
+    try:
+        completed = subprocess.run([str(THERMAL_PROBE_BIN)], check=False, capture_output=True, text=True, timeout=5)
+        if completed.returncode != 0:
+            return fallback
+        lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+        if not lines:
+            return fallback
+        data = json.loads(lines[-1])
+        if data.get("schema") != "daube.android-thermal-headroom.v1":
+            return fallback
+        status_code = data.get("thermalStatusCode")
+        headroom = data.get("headroom")
+        status_code = int(status_code) if status_code is not None else None
+        headroom = float(headroom) if headroom is not None else None
+        if headroom is not None and not math.isfinite(headroom):
+            headroom = None
+        result = {
+            "supported": data.get("supported") is True,
+            "thermalStatus": str(data.get("thermalStatus"))[:32] if data.get("thermalStatus") is not None else None,
+            "thermalStatusCode": status_code,
+            "headroomForecastSeconds": int(data.get("headroomForecastSeconds", 10)),
+            "headroom": headroom,
+        }
+        if result["supported"] is True:
+            if status_code is not None and status_code > MAX_THERMAL_STATUS_CODE:
+                raise RuntimeError(f"thermal_status_above_ceiling:{status_code}")
+            if headroom is not None and headroom >= MAX_THERMAL_HEADROOM:
+                raise RuntimeError(f"thermal_headroom_above_ceiling:{headroom:.3f}")
+        return result
+    except RuntimeError:
+        raise
+    except Exception:
+        return fallback
 
 
 def battery_guard() -> dict[str, object]:
@@ -65,21 +114,30 @@ def battery_guard() -> dict[str, object]:
         raise RuntimeError(f"battery_below_floor:{percentage}")
     if temperature is not None and temperature > MAX_BATTERY_TEMP_C:
         raise RuntimeError(f"battery_temperature_above_ceiling:{temperature:.1f}")
-    return {"percentage": percentage, "temperatureC": temperature, "charging": charging}
+    thermal = thermal_headroom_guard()
+    return {"percentage": percentage, "temperatureC": temperature, "charging": charging, "thermal": thermal}
 
 
 def signed_telemetry(safety: dict[str, object]) -> dict[str, object]:
+    thermal = safety.get("thermal") if isinstance(safety.get("thermal"), dict) else {}
     return {
         "schema": "daube.phone-edge-telemetry.v1",
         "batteryPercent": safety.get("percentage"),
         "temperatureC": safety.get("temperatureC"),
         "charging": safety.get("charging"),
+        "thermalHeadroomSupported": thermal.get("supported"),
+        "thermalStatus": thermal.get("thermalStatus"),
+        "thermalStatusCode": thermal.get("thermalStatusCode"),
+        "thermalHeadroom10s": thermal.get("headroom"),
+        "thermalHeadroomForecastSeconds": thermal.get("headroomForecastSeconds"),
         "observedAt": now_iso(),
         "profile": PROFILE,
         "kernelId": KERNEL_ID,
         "maxInputBytes": MAX_INPUT_BYTES,
         "minBatteryPercent": MIN_BATTERY_PERCENT,
         "maxBatteryTemperatureC": MAX_BATTERY_TEMP_C,
+        "maxThermalHeadroom": MAX_THERMAL_HEADROOM,
+        "maxThermalStatusCode": MAX_THERMAL_STATUS_CODE,
     }
 
 
@@ -96,7 +154,7 @@ def post_json(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
     request = urllib.request.Request(
         BROKER_URL,
         data=json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/2"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/3"},
         method="POST",
     )
     try:
@@ -206,7 +264,7 @@ def main() -> int:
     if status != 200 or response.get("ok") is not True:
         raise RuntimeError(f"poll_failed:{status}:{response.get('code', 'unknown')}")
     if response.get("status") == "NO_JOB":
-        print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": "NO_JOB", "safety": safety, "telemetrySigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
+        print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": "NO_JOB", "safety": safety, "telemetrySigned": True, "thermalHeadroomSigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
         return 0
     if response.get("status") != "JOB_LEASED":
         raise RuntimeError("poll_response_invalid")
@@ -248,7 +306,7 @@ def main() -> int:
             "paidSpendAuthorized": False,
         }
     final = complete_with_retry(host, public_pem, fingerprint, job_id, result)
-    print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": final.get("status"), "jobId": job_id, "resultStatus": result["status"], "safety": safety, "telemetrySigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
+    print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": final.get("status"), "jobId": job_id, "resultStatus": result["status"], "safety": safety, "telemetrySigned": True, "thermalHeadroomSigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
     return 0 if result["status"] == "SUCCEEDED" else 4
 
 

@@ -1,0 +1,51 @@
+name: D'AUBE Web Cloudflare rescue v2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daube-web-cloudflare-rescue-v2
+  cancel-in-progress: false
+
+jobs:
+  exact-sha-rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_WEB_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_WEB_DEPLOY_HOOK_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DAUBE_WORKER_NAME: daube-sonntag-web
+      DAUBE_GITHUB_ACCOUNT_ID: '297018471'
+      DAUBE_GITHUB_ACCOUNT_NAME: daubesonntag-dotcom
+      DAUBE_GITHUB_REPO_ID: '1340463576'
+      DAUBE_GITHUB_REPO_NAME: daube-web
+      DAUBE_WEB_LIVE_ORIGIN: https://daubesonntag.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate bounded request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUEST='release/cloudflare-daube-web-builds-rescue.json'
+          jq -e '
+            .schema == "daube.cloudflare-web-builds-rescue-request.v2" and
+            .repository == "daubesonntag-dotcom/daube-web" and
+            .workerName == "daube-sonntag-web" and
+            .mutationApproved == true and
+            .zeroSpendOnly == true and
+            (.expectedSha | test("^[0-9a-f]{40}$")) and
+            (.authorityPreference == ["deploy_hook", "user_scoped_api_token"]) and
+            (.requiredExternalReadback == ["/.well-known/daube-build.json", "/__daube/revision.json"])
+          ' "$REQUEST" >/dev/null
+          echo "expected_sha=$(jq -r '.expectedSha' "$REQUEST")" >> "$GITHUB_OUTPUT"
+
+      - name: Execute provider-neutral rescue
+        shell: bash
+        env:
+          DAUBE_RELEASE_SHA: ${{ steps.request.outputs.expected_sha }}
+        run: bash scripts/cloudflare/daube-web-rescue-v2.sh

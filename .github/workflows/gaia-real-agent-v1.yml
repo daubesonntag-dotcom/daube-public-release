@@ -1,0 +1,45 @@
+name: GAIA Real Agent V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agent-benchmarks/gaia-real-agent-v1/**'
+      - '.github/workflows/gaia-real-agent-v1.yml'
+  pull_request:
+    paths:
+      - 'agent-benchmarks/gaia-real-agent-v1/**'
+      - '.github/workflows/gaia-real-agent-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DAUBE_MODEL_BASE_URL: https://abalanescu-flow2.hf.space/v1
+      DAUBE_MODEL_ID: qwen
+      GAIA_LIMIT: '1'
+      GAIA_MAX_STEPS: '8'
+      GAIA_MAX_TOOL_CALLS: '6'
+      GAIA_TASK_TIMEOUT_MS: '600000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: node --check agent-benchmarks/gaia-real-agent-v1/run.mjs
+      - name: Official GAIA + real model smoke
+        working-directory: agent-benchmarks/gaia-real-agent-v1
+        run: node run.mjs
+      - name: Upload benchmark receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaia-real-agent-smoke
+          path: agent-benchmarks/gaia-real-agent-v1/gaia-live-results.json
+          if-no-files-found: warn

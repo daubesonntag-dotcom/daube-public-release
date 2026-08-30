@@ -1,0 +1,33 @@
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(set = 0, binding = 0, std430) buffer PixelBuffer {
+  uint pixels[];
+} buf;
+layout(push_constant) uniform Params {
+  uint count;
+} params;
+
+uint premul(uint c, uint a) {
+  return (c * a + 127u) / 255u;
+}
+
+// Integer BT.709 approximation after alpha premultiplication.
+// Coefficients sum to 256: R=54, G=183, B=19.
+uint luma709(uint r, uint g, uint b) {
+  return (54u * r + 183u * g + 19u * b + 128u) >> 8u;
+}
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= params.count) return;
+  uint p = buf.pixels[i];
+  uint r = p & 0xffu;
+  uint g = (p >> 8u) & 0xffu;
+  uint b = (p >> 16u) & 0xffu;
+  uint a = (p >> 24u) & 0xffu;
+  r = premul(r, a);
+  g = premul(g, a);
+  b = premul(b, a);
+  uint y = luma709(r, g, b);
+  buf.pixels[i] = y | (y << 8u) | (y << 16u) | (a << 24u);
+}

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Locate Android NDK and shader compiler
         shell: bash
         run: |
@@ -43,7 +43,7 @@ jobs:
           sha256sum "$out/daube-vulkan-rgba-premultiply" | tee "$out/daube-vulkan-rgba-premultiply.sha256"
           file "$out/daube-vulkan-rgba-premultiply"
       - name: Upload build evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sovereign-phone-edge-kernel-arm64
           path: |

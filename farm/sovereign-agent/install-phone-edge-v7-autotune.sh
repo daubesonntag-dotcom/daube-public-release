@@ -7,6 +7,7 @@ BIN_DIR="$HOME/.local/bin"
 LIB_DIR="$HOME/.local/lib/daube-sovereign-agent-v7"
 STATE_DIR="$HOME/.local/share/daube-phone-edge"
 mkdir -p "$BIN_DIR" "$LIB_DIR" "$STATE_DIR"
+export PATH="$BIN_DIR:$PATH"
 
 case "${PREFIX:-}" in *com.termux*) ;; *) echo 'ERROR: run inside Termux on Android' >&2; exit 2;; esac
 pkg install -y python curl coreutils >/dev/null
@@ -38,6 +39,7 @@ EOF
 cat > "$BIN_DIR/daube-phone-edge-v7-maintain" <<'EOF'
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
+export PATH="$HOME/.local/bin:$PATH"
 PROFILE="$HOME/.local/share/daube-phone-edge/perf-profile-v7.json"
 V5="$(command -v daube-phone-edge-v5-batch || true)"
 V6="$(command -v daube-phone-edge-v6-premultiply || true)"
@@ -66,7 +68,7 @@ chmod 0755 "$BIN_DIR/daube-phone-edge-v7-autotune" "$BIN_DIR/daube-phone-edge-au
 
 # Calibrate once now. Thermal guard fails closed; installation itself remains valid if calibration is deferred.
 set +e
-daube-phone-edge-v7-autotune
+"$BIN_DIR/daube-phone-edge-v7-autotune"
 CAL_RC=$?
 set -e
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-import hashlib, json, math, os, shutil, subprocess, sys
+import hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
 
-PROFILE=Path.home()/'.local/share/daube-phone-edge/perf-profile-v7.json'
+PROFILE=Path(os.environ.get('DAUBE_PHONE_EDGE_V7_PROFILE', str(Path.home()/'.local/share/daube-phone-edge/perf-profile-v7.json')))
 MAX_PIXELS=512*512
 
 def fail(code,msg):
-    print(json.dumps({'schema':'daube.phone-edge-v7-auto-premultiply.v1','status':'FAIL','error':msg,'paidSpendAuthorized':False,'privateAssetsUsed':False},separators=(',',':'))); raise SystemExit(code)
+    print(json.dumps({'schema':'daube.phone-edge-v7-auto-premultiply.v2','status':'FAIL','error':msg,'paidSpendAuthorized':False,'privateAssetsUsed':False},separators=(',',':'))); raise SystemExit(code)
 
 def run_json(cmd):
     p=subprocess.run(cmd,text=True,capture_output=True)
@@ -15,6 +15,7 @@ def run_json(cmd):
     for line in reversed([x.strip() for x in p.stdout.splitlines() if x.strip()]):
         try: receipt=json.loads(line); break
         except json.JSONDecodeError: pass
+    if not isinstance(receipt,dict): fail(6,'child_receipt_missing')
     return receipt
 
 def fingerprint(paths):
@@ -22,6 +23,18 @@ def fingerprint(paths):
     for p in paths:
         q=Path(p); h.update(str(q).encode()); h.update(q.read_bytes())
     return h.hexdigest()
+
+def load_profile(runtime_fp):
+    if not PROFILE.exists(): return None
+    try: p=json.loads(PROFILE.read_text(encoding='utf-8'))
+    except Exception: fail(7,'profile_invalid_json')
+    if p.get('status')!='CALIBRATED': fail(7,'profile_not_calibrated')
+    stored=p.get('runtimeFingerprint')
+    if not isinstance(stored,str) or not stored: fail(7,'profile_runtime_fingerprint_missing')
+    if stored!=runtime_fp: fail(7,'profile_runtime_fingerprint_mismatch')
+    bp=p.get('breakpointPixels')
+    if not isinstance(bp,int) or bp<=0 or bp>MAX_PIXELS: fail(7,'profile_breakpoint_invalid')
+    return p
 
 def main():
     if len(sys.argv)!=3: fail(2,'usage: auto-premultiply INPUT_RGBA8_BIN OUTPUT_RGBA8_BIN')
@@ -33,19 +46,19 @@ def main():
     if pixels>MAX_PIXELS: fail(4,'pixels_above_verified_envelope')
     v5=shutil.which('daube-phone-edge-v5-batch'); v6=shutil.which('daube-phone-edge-v6-premultiply')
     if not v5 or not v6: fail(5,'v5_or_v6_runtime_missing')
+    runtime_fp=fingerprint([v5,v6])
+    profile=load_profile(runtime_fp)
     chosen='v5'; reason='conservative_verified_fallback'; bp=None
-    if PROFILE.exists():
-        try:
-            p=json.loads(PROFILE.read_text(encoding='utf-8'))
-            if p.get('status')=='CALIBRATED' and p.get('runtimeFingerprint')==fingerprint([v5,v6]):
-                bp=p.get('breakpointPixels')
-                if isinstance(bp,int) and bp>0 and pixels>=bp: chosen='v6'; reason='calibrated_breakpoint'
-        except Exception: pass
-    if pixels==MAX_PIXELS and chosen=='v5': chosen='v6'; reason='verified_512_winner'
+    if profile is not None:
+        bp=profile['breakpointPixels']
+        if pixels>=bp: chosen='v6'; reason='calibrated_breakpoint'
+        else: reason='calibrated_below_breakpoint'
+    elif pixels==MAX_PIXELS:
+        chosen='v6'; reason='verified_512_winner'
     runtime=v6 if chosen=='v6' else v5
     child=run_json([runtime,str(inp),str(out)])
     if not out.is_file() or out.stat().st_size!=size: fail(6,'output_invalid')
-    result={'schema':'daube.phone-edge-v7-auto-premultiply.v1','status':'PASS','variant':chosen,'reason':reason,'pixels':pixels,'breakpointPixels':bp,'runtime':runtime,'childReceipt':child,'privateAssetsUsed':False,'paidSpendAuthorized':False}
+    result={'schema':'daube.phone-edge-v7-auto-premultiply.v2','status':'PASS','variant':chosen,'reason':reason,'pixels':pixels,'breakpointPixels':bp,'runtime':runtime,'runtimeFingerprint':runtime_fp,'profileFingerprint':profile.get('runtimeFingerprint') if profile else None,'profileValidated':profile is not None,'childReceipt':child,'privateAssetsUsed':False,'paidSpendAuthorized':False}
     print(json.dumps(result,separators=(',',':')))
 
 if __name__=='__main__': main()

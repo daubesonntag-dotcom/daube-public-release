@@ -34,55 +34,58 @@ cat > "$CACHE_DIR/ncnn-vulkan-synthetic.cpp" <<'CPP'
 #include <cmath>
 #include <cstdio>
 
+static int run_canary() {
+    ncnn::Net net;
+    net.opt.use_vulkan_compute = true;
+    net.opt.use_fp16_storage = false;
+    net.opt.use_fp16_packed = false;
+    net.opt.use_fp16_arithmetic = false;
+    net.set_vulkan_device(0);
+    static const char param[] =
+        "7767517\n"
+        "2 2\n"
+        "Input input 0 1 data 0=8\n"
+        "ReLU relu 1 1 data out 0=0\n";
+    if (net.load_param_mem(param) != 0) return 11;
+
+    ncnn::Mat input(8);
+    const float values[8] = {-4.f,-1.f,0.f,1.f,2.f,3.f,-2.f,5.f};
+    for (int i=0;i<8;i++) input[i]=values[i];
+    const ncnn::VulkanDevice* vkdev = ncnn::get_gpu_device(0);
+    if (!vkdev) return 12;
+    ncnn::VkBlobAllocator blob(vkdev);
+    ncnn::VkStagingAllocator staging(vkdev);
+    ncnn::Option opt = net.opt;
+    opt.blob_vkallocator = &blob;
+    opt.workspace_vkallocator = &blob;
+    opt.staging_vkallocator = &staging;
+
+    ncnn::Extractor ex = net.create_extractor();
+    ex.set_blob_vkallocator(&blob);
+    ex.set_workspace_vkallocator(&blob);
+    ex.set_staging_vkallocator(&staging);
+    ncnn::VkCompute cmd(vkdev);
+    ncnn::VkMat input_gpu;
+    cmd.record_upload(input, input_gpu, opt);
+    if (ex.input("data", input_gpu) != 0) return 13;
+    ncnn::VkMat output_gpu;
+    if (ex.extract("out", output_gpu, cmd) != 0) return 14;
+    ncnn::Mat output;
+    cmd.record_download(output_gpu, output, opt);
+    if (cmd.submit_and_wait() != 0) return 15;
+    if (output.total() != 8) return 16;
+    const float expected[8] = {0.f,0.f,0.f,1.f,2.f,3.f,0.f,5.f};
+    for (int i=0;i<8;i++) {
+        if (std::fabs(((float*)output.data)[i]-expected[i]) > 1e-6f) return 17;
+    }
+    std::printf("{\"schema\":\"daube.ncnn-vulkan-synthetic-inference.v1\",\"status\":\"PASS\",\"gpu\":\"%s\",\"explicitVkMat\":true,\"explicitVkCompute\":true,\"graph\":\"Input-ReLU\",\"valuesVerified\":true,\"inferenceExecuted\":true,\"externalModelUsed\":false,\"privateAssetsUsed\":false,\"paidSpendAuthorized\":false}\n", ncnn::get_gpu_info(0).device_name());
+    return 0;
+}
+
 int main() {
 #if NCNN_VULKAN
     if (ncnn::create_gpu_instance() != 0 || ncnn::get_gpu_count() < 1) return 10;
-    int rc = 1;
-    {
-        ncnn::Net net;
-        net.opt.use_vulkan_compute = true;
-        net.opt.use_fp16_storage = false;
-        net.opt.use_fp16_packed = false;
-        net.opt.use_fp16_arithmetic = false;
-        net.set_vulkan_device(0);
-        static const char param[] =
-            "7767517\n"
-            "2 2\n"
-            "Input input 0 1 data 0=8\n"
-            "ReLU relu 1 1 data out 0=0\n";
-        if (net.load_param_mem(param) != 0) { rc = 11; goto done; }
-
-        ncnn::Mat input(8);
-        const float values[8] = {-4.f,-1.f,0.f,1.f,2.f,3.f,-2.f,5.f};
-        for (int i=0;i<8;i++) input[i]=values[i];
-        const ncnn::VulkanDevice* vkdev = ncnn::get_gpu_device(0);
-        ncnn::VkBlobAllocator blob(vkdev);
-        ncnn::VkStagingAllocator staging(vkdev);
-        ncnn::Option opt = net.opt;
-        opt.blob_vkallocator = &blob;
-        opt.workspace_vkallocator = &blob;
-        opt.staging_vkallocator = &staging;
-
-        ncnn::Extractor ex = net.create_extractor();
-        ex.set_blob_vkallocator(&blob);
-        ex.set_workspace_vkallocator(&blob);
-        ex.set_staging_vkallocator(&staging);
-        ncnn::VkCompute cmd(vkdev);
-        ncnn::VkMat input_gpu;
-        cmd.record_upload(input, input_gpu, opt);
-        if (ex.input("data", input_gpu) != 0) { rc = 12; goto done; }
-        ncnn::VkMat output_gpu;
-        if (ex.extract("out", output_gpu, cmd) != 0) { rc = 13; goto done; }
-        ncnn::Mat output;
-        cmd.record_download(output_gpu, output, opt);
-        if (cmd.submit_and_wait() != 0) { rc = 14; goto done; }
-        if (output.total() != 8) { rc = 15; goto done; }
-        const float expected[8] = {0.f,0.f,0.f,1.f,2.f,3.f,0.f,5.f};
-        for (int i=0;i<8;i++) if (std::fabs(((float*)output.data)[i]-expected[i]) > 1e-6f) { rc = 16; goto done; }
-        std::printf("{\"schema\":\"daube.ncnn-vulkan-synthetic-inference.v1\",\"status\":\"PASS\",\"gpu\":\"%s\",\"explicitVkMat\":true,\"explicitVkCompute\":true,\"graph\":\"Input-ReLU\",\"valuesVerified\":true,\"inferenceExecuted\":true,\"externalModelUsed\":false,\"privateAssetsUsed\":false,\"paidSpendAuthorized\":false}\n", ncnn::get_gpu_info(0).device_name());
-        rc = 0;
-    done: ;
-    }
+    const int rc = run_canary();
     ncnn::destroy_gpu_instance();
     return rc;
 #else

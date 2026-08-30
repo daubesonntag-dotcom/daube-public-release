@@ -13,60 +13,86 @@ permissions:
 
 jobs:
   external-readback:
-    name: external-${{ matrix.surface }}
+    name: external-${{ matrix.check }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 9
       matrix:
-        surface: [apex, web-revision, commerce-health, commerce-products]
+        check:
+          - internet-control
+          - dns-apex
+          - dns-commerce
+          - tls-apex
+          - tls-commerce
+          - apex
+          - web-revision
+          - commerce-health
+          - commerce-products
     env:
       EXPECTED_WEB_SHA: cc3c23586bae6310fc5d7f37c30d94d8f05cce7c
     steps:
-      - name: Verify ${{ matrix.surface }}
+      - name: Verify ${{ matrix.check }}
         shell: bash
         env:
-          SURFACE: ${{ matrix.surface }}
+          CHECK: ${{ matrix.check }}
         run: |
           set -euo pipefail
-          case "$SURFACE" in
+          case "$CHECK" in
+            internet-control)
+              curl -fsS -L --max-time 20 -o /dev/null https://api.github.com/meta
+              echo 'INTERNET_CONTROL=true'
+              ;;
+            dns-apex)
+              getent ahosts daubesonntag.com >/dev/null
+              echo 'DNS_APEX=true'
+              ;;
+            dns-commerce)
+              getent ahosts commerce.daubesonntag.com >/dev/null
+              echo 'DNS_COMMERCE=true'
+              ;;
+            tls-apex)
+              code="$(curl -sS -L --max-time 20 -o /dev/null -w '%{http_code}' https://daubesonntag.com/)"
+              [[ "$code" != 000 ]]
+              echo "TLS_APEX=true HTTP=$code"
+              ;;
+            tls-commerce)
+              code="$(curl -sS -L --max-time 20 -o /dev/null -w '%{http_code}' https://commerce.daubesonntag.com/healthz)"
+              [[ "$code" != 000 ]]
+              echo "TLS_COMMERCE=true HTTP=$code"
+              ;;
             apex)
               code="$(curl -sS -L --max-time 25 -H 'Cache-Control: no-cache' -o /tmp/body -w '%{http_code}' "https://daubesonntag.com/?daube-readback=${GITHUB_SHA}" || true)"
-              [[ "$code" == 200 ]] || { echo "APEX_HTTP=$code"; exit 31; }
-              grep -Fq '<title>D’AUBE SONNTAG · RẠNG TRONG</title>' /tmp/body || { echo 'APEX_CANONICAL_TITLE=false'; exit 32; }
-              grep -Fq '/assets/' /tmp/body || { echo 'APEX_VITE_ASSETS=false'; exit 33; }
-              echo 'APEX_HTTP=200 CANONICAL_TITLE=true VITE_ASSETS=true'
+              [[ "$code" == 200 ]] || exit 31
+              grep -Fq '<title>D’AUBE SONNTAG · RẠNG TRONG</title>' /tmp/body || exit 32
+              grep -Fq '/assets/' /tmp/body || exit 33
               ;;
             web-revision)
               code="$(curl -sS -L --max-time 25 -H 'Cache-Control: no-cache' -o /tmp/body -w '%{http_code}' "https://daubesonntag.com/__daube/revision.json?daube-readback=${GITHUB_SHA}" || true)"
-              [[ "$code" == 200 ]] || { echo "WEB_REVISION_HTTP=$code"; exit 34; }
+              [[ "$code" == 200 ]] || exit 34
               python3 - "$EXPECTED_WEB_SHA" <<'PY'
           import json, sys
           expected=sys.argv[1]
           data=json.load(open('/tmp/body', encoding='utf-8'))
-          assert data.get('schema') == 'daube.web.source-revision.v1', data
-          assert data.get('repository') == 'daubesonntag-dotcom/daube-web', data
-          assert data.get('sourceRevision') == expected, {'observed': data.get('sourceRevision'), 'expected': expected}
-          print('WEB_REVISION_HTTP=200 EXACT_SHA=true sourceRevision='+expected)
+          assert data.get('schema') == 'daube.web.source-revision.v1'
+          assert data.get('repository') == 'daubesonntag-dotcom/daube-web'
+          assert data.get('sourceRevision') == expected
           PY
               ;;
             commerce-health)
               code="$(curl -sS -L --max-time 25 -H 'Cache-Control: no-cache' -o /tmp/body -w '%{http_code}' "https://commerce.daubesonntag.com/healthz?daube-readback=${GITHUB_SHA}" || true)"
-              [[ "$code" == 200 ]] || { echo "COMMERCE_HEALTH_HTTP=$code"; exit 36; }
+              [[ "$code" == 200 ]] || exit 36
               python3 - <<'PY'
           import json
           data=json.load(open('/tmp/body', encoding='utf-8'))
-          ready=data.get('ready') is True or data.get('status') == 'READY'
-          assert ready and data.get('systemBlocked') is not True, data
-          print('COMMERCE_HEALTH_HTTP=200 READY=true')
+          assert (data.get('ready') is True or data.get('status') == 'READY') and data.get('systemBlocked') is not True
           PY
               ;;
             commerce-products)
               code="$(curl -sS -L --max-time 25 -H 'Cache-Control: no-cache' -o /tmp/body -w '%{http_code}' "https://commerce.daubesonntag.com/v1/products?daube-readback=${GITHUB_SHA}" || true)"
-              [[ "$code" == 200 ]] || { echo "COMMERCE_PRODUCTS_HTTP=$code"; exit 38; }
+              [[ "$code" == 200 ]] || exit 38
               python3 -m json.tool /tmp/body >/dev/null
-              echo 'COMMERCE_PRODUCTS_HTTP=200 JSON=true'
               ;;
             *) exit 99 ;;
           esac

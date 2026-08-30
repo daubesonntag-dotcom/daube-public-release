@@ -1,4 +1,4 @@
-name: Fresh GitHub Actions Scheduler Probe
+name: Fresh GitHub Actions Runner-Pool Probe
 
 on:
   push:
@@ -12,13 +12,20 @@ permissions:
   contents: read
 
 jobs:
-  scheduler-probe:
+  latest:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Prove runner assignment and step execution
-        run: |
-          set -euo pipefail
-          printf 'DAUBE_GITHUB_ACTIONS_SCHEDULER_PROBE=PASS\n'
-          printf 'GITHUB_RUN_ID=%s\n' "$GITHUB_RUN_ID"
-          printf 'GITHUB_SHA=%s\n' "$GITHUB_SHA"
+      - run: printf 'DAUBE_RUNNER_POOL=ubuntu-latest PASS\n'
+
+  slim:
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    steps:
+      - run: printf 'DAUBE_RUNNER_POOL=ubuntu-slim PASS\n'
+
+  arm:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 2
+    steps:
+      - run: printf 'DAUBE_RUNNER_POOL=ubuntu-24.04-arm PASS\n'

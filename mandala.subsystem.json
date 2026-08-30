@@ -1,0 +1,36 @@
+{
+  "id": "daube-public-release",
+  "self": {
+    "purpose": "Public distribution, install/update and static presentation boundary for the D’AUBE ecosystem.",
+    "owner": "Public Release / Community Owner",
+    "invariants": [
+      "Publishes only intentionally public artifacts",
+      "Static distribution is not proof of backend production",
+      "Private credentials and Founder controls never belong here"
+    ],
+    "authorityBoundary": "May publish public-safe release artifacts and community/testing surfaces; does not own private runtime, canonical customer/order truth or Founder root governance."
+  },
+  "mind": {
+    "mode": "deterministic",
+    "inputs": ["approved public artifacts", "release provenance", "public-safe evidence"],
+    "decisionLogic": "Admit only artifacts and public calls that satisfy provenance, privacy and public-safety boundaries."
+  },
+  "will": {
+    "goals": ["Distribute public D’AUBE artifacts safely", "Collect clearly classified independent tester/viewer evidence"],
+    "escalationPolicy": "Escalate privacy, legal, commercial, credential or production claims lacking evidence."
+  },
+  "capabilities": ["publish", "distribute", "community-intake", "public-testing"],
+  "execution": {
+    "implementations": ["governance/", "community/", "campaigns/", "hire/", "talent/"],
+    "runtimeBoundary": "Public distribution/community boundary only; private runtime and canonical customer website remain separate authorities."
+  },
+  "evidence": {
+    "paths": ["README.md", "governance/repository-contract.json", "governance/PUBLIC_RELEASE_PROVENANCE.md"],
+    "claimPolicy": "A public artifact or fit-check/tester signal proves only the observed public event; it is not payment, revenue, backend production, customer acceptance or broad legal compliance."
+  },
+  "shadow": {
+    "risks": ["Public surfaces can be mistaken for production or commercial proof"],
+    "unknowns": ["Independent tester participation and customer demand are external facts"],
+    "blockers": ["Commercial and production claims remain dependent on separate external evidence"]
+  }
+}

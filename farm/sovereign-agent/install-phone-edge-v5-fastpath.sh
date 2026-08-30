@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-REVISION="${DAUBE_PHONE_EDGE_V5_REVISION:-feat/phone-edge-v5-persistent-batch-ncnn-synthetic-20260830}"
+REVISION="${DAUBE_PHONE_EDGE_V5_REVISION:-6cd76288def3b250dcef63ede3f531cb8a3af085}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${REVISION}/farm/sovereign-agent"
 BIN_DIR="$HOME/.local/bin"
 LIB_DIR="$HOME/.local/lib/daube-sovereign-agent-v5"

@@ -2,7 +2,7 @@ name: video-gpu-runtime-canary
 
 on:
   push:
-    branches: [gpu-video-canary-20260830]
+    branches: [main, gpu-video-canary-20260830]
     paths:
       - '.github/workflows/video-gpu-runtime-canary.yml'
       - 'scripts/video_gpu_canary.py'

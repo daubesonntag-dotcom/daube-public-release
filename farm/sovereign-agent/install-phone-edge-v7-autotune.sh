@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-REVISION="${DAUBE_PHONE_EDGE_V7_REVISION:-393dcb43af29f2c92f353b35f8a012bb88ec0b89}"
+REVISION="${DAUBE_PHONE_EDGE_V7_REVISION:-57670896a871d82837bd2cde8be34de0dff0129c}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${REVISION}/farm/sovereign-agent"
 BIN_DIR="$HOME/.local/bin"
 LIB_DIR="$HOME/.local/lib/daube-sovereign-agent-v7"
@@ -21,7 +21,8 @@ fi
 
 curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$BASE/run-phone-edge-v7-autotune.py" -o "$LIB_DIR/run-phone-edge-v7-autotune.py"
 curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$BASE/run-phone-edge-v7-auto-premultiply.py" -o "$LIB_DIR/run-phone-edge-v7-auto-premultiply.py"
-python -m py_compile "$LIB_DIR/run-phone-edge-v7-autotune.py" "$LIB_DIR/run-phone-edge-v7-auto-premultiply.py"
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$BASE/run-phone-edge-v7-auto-runtime-canary.py" -o "$LIB_DIR/run-phone-edge-v7-auto-runtime-canary.py"
+python -m py_compile "$LIB_DIR/run-phone-edge-v7-autotune.py" "$LIB_DIR/run-phone-edge-v7-auto-premultiply.py" "$LIB_DIR/run-phone-edge-v7-auto-runtime-canary.py"
 chmod 0755 "$LIB_DIR"/*.py
 
 cat > "$BIN_DIR/daube-phone-edge-v7-autotune" <<EOF
@@ -35,6 +36,12 @@ cat > "$BIN_DIR/daube-phone-edge-auto-premultiply" <<EOF
 set -euo pipefail
 export PATH="$BIN_DIR:\$PATH"
 exec python "$LIB_DIR/run-phone-edge-v7-auto-premultiply.py" "\$@"
+EOF
+cat > "$BIN_DIR/daube-phone-edge-v7-auto-runtime-canary" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+export PATH="$BIN_DIR:\$PATH"
+exec python "$LIB_DIR/run-phone-edge-v7-auto-runtime-canary.py"
 EOF
 cat > "$BIN_DIR/daube-phone-edge-v7-maintain" <<'EOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -64,12 +71,12 @@ if [[ "$current" == "$stored" && -n "$stored" ]]; then
 fi
 exec daube-phone-edge-v7-autotune
 EOF
-chmod 0755 "$BIN_DIR/daube-phone-edge-v7-autotune" "$BIN_DIR/daube-phone-edge-auto-premultiply" "$BIN_DIR/daube-phone-edge-v7-maintain"
+chmod 0755 "$BIN_DIR/daube-phone-edge-v7-autotune" "$BIN_DIR/daube-phone-edge-auto-premultiply" "$BIN_DIR/daube-phone-edge-v7-auto-runtime-canary" "$BIN_DIR/daube-phone-edge-v7-maintain"
 
-# Calibrate once now. Thermal guard fails closed; installation itself remains valid if calibration is deferred.
+# Maintain once now: a fresh fingerprint-bound profile is a NOOP; only missing/mismatched runtime profiles recalibrate.
 set +e
-"$BIN_DIR/daube-phone-edge-v7-autotune"
-CAL_RC=$?
+"$BIN_DIR/daube-phone-edge-v7-maintain"
+MAINT_RC=$?
 set -e
 
 SCHEDULER="NOT_SCHEDULED"
@@ -80,4 +87,4 @@ if command -v termux-job-scheduler >/dev/null 2>&1; then
   set -e
 fi
 
-printf '%s\n' "{\"schema\":\"daube.phone-edge-v7-install.v1\",\"status\":\"INSTALLED\",\"revision\":\"$REVISION\",\"calibrationExitCode\":$CAL_RC,\"scheduler\":\"$SCHEDULER\",\"autoRuntime\":\"daube-phone-edge-auto-premultiply\",\"maintainer\":\"daube-phone-edge-v7-maintain\",\"privateAssetsUsed\":false,\"paidSpendAuthorized\":false}"
+printf '%s\n' "{\"schema\":\"daube.phone-edge-v7-install.v2\",\"status\":\"INSTALLED\",\"revision\":\"$REVISION\",\"maintenanceExitCode\":$MAINT_RC,\"scheduler\":\"$SCHEDULER\",\"autoRuntime\":\"daube-phone-edge-auto-premultiply\",\"autoRuntimeCanary\":\"daube-phone-edge-v7-auto-runtime-canary\",\"maintainer\":\"daube-phone-edge-v7-maintain\",\"fingerprintMismatchFailsClosed\":true,\"privateAssetsUsed\":false,\"paidSpendAuthorized\":false}"

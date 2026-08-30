@@ -34,6 +34,7 @@ cat > "$CACHE_DIR/ncnn-vulkan-synthetic.cpp" <<'CPP'
 #include <cmath>
 #include <cstdio>
 
+#if NCNN_VULKAN
 static int run_canary() {
     ncnn::Net net;
     net.opt.use_vulkan_compute = true;
@@ -81,6 +82,7 @@ static int run_canary() {
     std::printf("{\"schema\":\"daube.ncnn-vulkan-synthetic-inference.v1\",\"status\":\"PASS\",\"gpu\":\"%s\",\"explicitVkMat\":true,\"explicitVkCompute\":true,\"graph\":\"Input-ReLU\",\"valuesVerified\":true,\"inferenceExecuted\":true,\"externalModelUsed\":false,\"privateAssetsUsed\":false,\"paidSpendAuthorized\":false}\n", ncnn::get_gpu_info(0).device_name());
     return 0;
 }
+#endif
 
 int main() {
 #if NCNN_VULKAN

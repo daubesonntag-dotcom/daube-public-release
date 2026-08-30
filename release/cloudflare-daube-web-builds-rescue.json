@@ -1,9 +1,17 @@
 {
-  "schema": "daube.cloudflare-web-builds-rescue-request.v1",
-  "requestId": "flagship-b92a9241-20260830-1340",
+  "schema": "daube.cloudflare-web-builds-rescue-request.v2",
+  "requestId": "flagship-22c8dc1e-20260830",
   "repository": "daubesonntag-dotcom/daube-web",
-  "expectedSha": "b92a92412ed3100b57b5b7b10d4ab8eee1e828db",
+  "expectedSha": "22c8dc1e7dd19fe604358b9675d7051bb895737e",
   "workerName": "daube-sonntag-web",
   "mutationApproved": true,
-  "zeroSpendOnly": true
+  "zeroSpendOnly": true,
+  "authorityPreference": [
+    "deploy_hook",
+    "user_scoped_api_token"
+  ],
+  "requiredExternalReadback": [
+    "/.well-known/daube-build.json",
+    "/__daube/revision.json"
+  ]
 }

@@ -1,0 +1,52 @@
+name: sovereign-phone-edge-kernel-build
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'farm/sovereign-agent/gpu-edge-kernels/**'
+      - '.github/workflows/sovereign-phone-edge-kernel-build.yml'
+permissions:
+  contents: read
+jobs:
+  build-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate Android NDK and shader compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="${ANDROID_NDK_HOME:-}"
+          if [[ -z "$NDK" || ! -d "$NDK" ]]; then
+            NDK="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/ndk" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -1)"
+          fi
+          [[ -n "$NDK" && -d "$NDK" ]]
+          GLSLC="$(find "$NDK" -type f -path '*/shader-tools/*/glslc' | head -1)"
+          CLANG="$(find "$NDK/toolchains/llvm/prebuilt" -type f -name 'aarch64-linux-android28-clang' | head -1)"
+          [[ -x "$GLSLC" && -x "$CLANG" ]]
+          echo "NDK=$NDK" >> "$GITHUB_ENV"
+          echo "GLSLC=$GLSLC" >> "$GITHUB_ENV"
+          echo "CLANG=$CLANG" >> "$GITHUB_ENV"
+      - name: Build shader and Android arm64 phone edge kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+          src='farm/sovereign-agent/gpu-edge-kernels'
+          out='farm/sovereign-agent/bin/android-arm64'
+          mkdir -p "$out"
+          "$GLSLC" "$src/rgba-premultiply.comp" -o "$src/rgba-premultiply.spv"
+          xxd -i -n daube_rgba_premultiply_spv "$src/rgba-premultiply.spv" > "$src/rgba_premultiply_spv.h"
+          "$CLANG" -O2 -std=c11 -Wall -Wextra -Werror \
+            "$src/vk_rgba_premultiply.c" -o "$out/daube-vulkan-rgba-premultiply" -lvulkan
+          chmod 0755 "$out/daube-vulkan-rgba-premultiply"
+          sha256sum "$out/daube-vulkan-rgba-premultiply" | tee "$out/daube-vulkan-rgba-premultiply.sha256"
+          file "$out/daube-vulkan-rgba-premultiply"
+      - name: Upload build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-phone-edge-kernel-arm64
+          path: |
+            farm/sovereign-agent/bin/android-arm64/daube-vulkan-rgba-premultiply
+            farm/sovereign-agent/bin/android-arm64/daube-vulkan-rgba-premultiply.sha256
+          retention-days: 7

@@ -1,0 +1,130 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-365705b5e799d58605d0605ac733d21c4fda4f51}"
+BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${SOURCE_REVISION}/farm/sovereign-agent"
+INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
+BIN_DIR="$HOME/.local/bin"
+STATE_DIR="$HOME/.local/share/daube-sovereign-host"
+WORKER="$INSTALL_DIR/phone-edge-worker.py"
+KERNEL="$INSTALL_DIR/daube-vulkan-rgba-premultiply"
+GPU_PROOF="$BIN_DIR/daube-sovereign-gpu-proof"
+WORKER_BIN="$BIN_DIR/daube-phone-edge-worker"
+JOB_ID=17063
+
+case "${PREFIX:-}" in
+  *com.termux*) ;;
+  *) echo "ERROR: D'AUBE Phone Edge GPU installer must run inside Termux on Android." >&2; exit 2 ;;
+esac
+
+printf '\nD’AUBE Phone Edge GPU — local build/install\n'
+printf '%s\n' '------------------------------------------'
+printf 'Pinned source revision: %s\n' "$SOURCE_REVISION"
+printf 'Execution: outbound pull only; no remote shell\n\n'
+
+mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$STATE_DIR"
+chmod 700 "$STATE_DIR"
+
+# Keep the existing sovereign identity. Install/upgrade the host+Vulkan proof lane
+# only when required; these scripts never install an inbound management channel.
+if [[ ! -f "$INSTALL_DIR/direct-agent.py" ]]; then
+  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+    "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/farm/sovereign-agent/install-termux.sh" | bash
+fi
+if [[ ! -x "$GPU_PROOF" ]]; then
+  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+    "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/farm/sovereign-agent/upgrade-gpu-termux.sh" | bash
+fi
+
+# Build locally on the phone so GitHub-hosted runner availability is irrelevant.
+# glslang provides glslangValidator; Vulkan packages provide headers and Android loader.
+pkg install -y python curl coreutils clang glslang vulkan-headers vulkan-loader-android >/dev/null
+pkg install -y termux-api >/dev/null 2>&1 || true
+
+build_dir="$(mktemp -d)"
+trap 'rm -rf "$build_dir"' EXIT
+
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+  "$BASE/gpu-edge-kernels/rgba-premultiply.comp" -o "$build_dir/rgba-premultiply.comp"
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+  "$BASE/gpu-edge-kernels/vk_rgba_premultiply.c" -o "$build_dir/vk_rgba_premultiply.c"
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+  "$BASE/phone-edge-worker.py" -o "$build_dir/phone-edge-worker.py"
+
+python -m py_compile "$build_dir/phone-edge-worker.py"
+glslangValidator -V -S comp "$build_dir/rgba-premultiply.comp" -o "$build_dir/rgba-premultiply.spv" >/dev/null
+python - "$build_dir/rgba-premultiply.spv" "$build_dir/rgba_premultiply_spv.h" <<'PY'
+from pathlib import Path
+import sys
+src=Path(sys.argv[1]).read_bytes()
+out=Path(sys.argv[2])
+items=','.join(f'0x{b:02x}' for b in src)
+out.write_text(
+    'static const unsigned char daube_rgba_premultiply_spv[] = {' + items + '};\n'
+    f'static const unsigned int daube_rgba_premultiply_spv_len = {len(src)}u;\n',
+    encoding='utf-8'
+)
+PY
+
+clang -O2 -std=c11 -Wall -Wextra -Werror \
+  -I"$PREFIX/include" -L"$PREFIX/lib" \
+  "$build_dir/vk_rgba_premultiply.c" -o "$build_dir/daube-vulkan-rgba-premultiply" -lvulkan
+chmod 0755 "$build_dir/daube-vulkan-rgba-premultiply"
+
+kernel_sha="$(sha256sum "$build_dir/daube-vulkan-rgba-premultiply" | awk '{print $1}')"
+worker_sha="$(sha256sum "$build_dir/phone-edge-worker.py" | awk '{print $1}')"
+install -m 0755 "$build_dir/daube-vulkan-rgba-premultiply" "$KERNEL"
+install -m 0755 "$build_dir/phone-edge-worker.py" "$WORKER"
+
+cat >"$WORKER_BIN" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+export DAUBE_SOVEREIGN_HOME="$STATE_DIR"
+export DAUBE_PHONE_GPU_KERNEL="$KERNEL"
+exec python "$WORKER"
+EOF
+chmod 0755 "$WORKER_BIN"
+
+# Refresh hardware proof before scheduling. A software renderer is rejected by
+# the existing proof lane and this installer fails closed if the real GPU cannot run.
+"$GPU_PROOF"
+
+set +e
+"$WORKER_BIN"
+first_worker_rc=$?
+set -e
+# NO_JOB is success; kernel-not-installed is impossible after a successful local build.
+if [[ "$first_worker_rc" -ne 0 && "$first_worker_rc" -ne 3 ]]; then
+  echo "ERROR: Initial phone GPU worker execution failed with code $first_worker_rc." >&2
+  exit "$first_worker_rc"
+fi
+
+scheduler="NOT_SCHEDULED"
+if command -v termux-job-scheduler >/dev/null 2>&1; then
+  set +e
+  termux-job-scheduler \
+    --script "$WORKER_BIN" \
+    --job-id "$JOB_ID" \
+    --period-ms 1800000 \
+    --network any \
+    --battery-not-low true \
+    --storage-not-low false \
+    --charging false \
+    --persisted true >/dev/null
+  schedule_rc=$?
+  set -e
+  [[ "$schedule_rc" -eq 0 ]] && scheduler="TERMUX_PHONE_GPU_30M_PERSISTED" || scheduler="SCHEDULE_FAILED"
+fi
+
+printf '\nD’AUBE Phone Edge GPU installed\n'
+printf '%s\n' '--------------------------------'
+printf 'kernelSha256: %s\n' "$kernel_sha"
+printf 'workerSha256: %s\n' "$worker_sha"
+printf 'scheduler: %s\n' "$scheduler"
+printf 'maxJobBytes: 16384\n'
+printf 'minBatteryPercent: 35\n'
+printf 'maxBatteryTempC (when Termux API reports it): 42\n'
+printf 'remoteShell: forbidden\n'
+printf 'paidSpendAuthorized: false\n'
+printf 'manual worker: daube-phone-edge-worker\n'
+printf 'manual GPU proof: daube-sovereign-gpu-proof\n'

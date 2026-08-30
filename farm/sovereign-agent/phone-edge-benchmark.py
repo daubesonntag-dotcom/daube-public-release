@@ -45,6 +45,17 @@ def deterministic_rgba(byte_count: int) -> bytes:
     return bytes(raw)
 
 
+def cpu_premultiply(raw: bytes) -> bytes:
+    output = bytearray(raw)
+    for base in range(0, len(raw), 4):
+        alpha = raw[base + 3]
+        output[base] = (raw[base] * alpha + 127) // 255
+        output[base + 1] = (raw[base + 1] * alpha + 127) // 255
+        output[base + 2] = (raw[base + 2] * alpha + 127) // 255
+        output[base + 3] = alpha
+    return bytes(output)
+
+
 def telemetry_summary(samples: list[dict[str, object]]) -> dict[str, object]:
     battery = [int(s["percentage"]) for s in samples if s.get("percentage") is not None]
     temperatures = [float(s["temperatureC"]) for s in samples if s.get("temperatureC") is not None]
@@ -97,15 +108,17 @@ def main() -> int:
         raise SystemExit("iterations must be between 3 and 200")
 
     worker = load_worker()
-    worker.host = worker.load_host_agent()
-    worker.host.require_runtime()
-    if worker.host.runtime_kind() != "android-termux":
+    host = worker.load_host_agent()
+    host.require_runtime()
+    if host.runtime_kind() != "android-termux":
         raise SystemExit("D'AUBE phone GPU benchmark requires Android/Termux")
     if args.bytes > worker.MAX_INPUT_BYTES:
         raise SystemExit(f"bytes exceeds worker ceiling {worker.MAX_INPUT_BYTES}")
 
     raw = deterministic_rgba(args.bytes)
+    expected = cpu_premultiply(raw)
     expected_input_sha = hashlib.sha256(raw).hexdigest()
+    expected_output_sha = hashlib.sha256(expected).hexdigest()
     latencies: list[int] = []
     outputs: list[str] = []
     safety_samples: list[dict[str, object]] = []
@@ -118,8 +131,8 @@ def main() -> int:
             safety = worker.battery_guard()
             safety_samples.append(safety)
             output, kernel_receipt, latency_ms = worker.run_kernel(raw)
-            if len(output) != len(raw):
-                raise RuntimeError("benchmark_output_size_invalid")
+            if output != expected:
+                raise RuntimeError("benchmark_output_cpu_reference_mismatch")
             outputs.append(hashlib.sha256(output).hexdigest())
             latencies.append(latency_ms)
             device_names.add(str(kernel_receipt.get("deviceName", ""))[:160])
@@ -136,7 +149,7 @@ def main() -> int:
     elapsed_ms = max(1, int((time.perf_counter() - started) * 1000))
     successful = len(latencies)
     telemetry = telemetry_summary(safety_samples)
-    deterministic_output = bool(outputs) and len(set(outputs)) == 1
+    deterministic_output = bool(outputs) and len(set(outputs)) == 1 and outputs[0] == expected_output_sha
     pixels_per_run = len(raw) // 4
     total_pixels = pixels_per_run * successful
     throughput_pixels_per_second = round(total_pixels / (elapsed_ms / 1000.0), 2)
@@ -152,6 +165,7 @@ def main() -> int:
         "inputBytesPerRun": len(raw),
         "pixelsPerRun": pixels_per_run,
         "inputSha256": expected_input_sha,
+        "cpuReferenceOutputSha256": expected_output_sha,
         "deterministicOutput": deterministic_output,
         "outputSha256": outputs[0] if deterministic_output else None,
         "latencyMs": {

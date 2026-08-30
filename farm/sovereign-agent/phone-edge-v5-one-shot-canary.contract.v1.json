@@ -1,0 +1,23 @@
+{
+  "schema": "daube.phone-edge-v5-one-shot-canary.contract.v1",
+  "status": "SOURCE_READY_NOT_RUNTIME_PROVEN",
+  "checks": [
+    "thermal_guard_before",
+    "legacy_vs_persistent_224_measurement",
+    "cpu_reference_224",
+    "persistent_512",
+    "cpu_reference_512",
+    "single_context_and_pipeline_receipt",
+    "thermal_guard_after",
+    "ncnn_vulkan_synthetic_inference",
+    "ncnn_cpu_value_verification"
+  ],
+  "truthBoundary": {
+    "persistentVulkanRuntimeProven": false,
+    "ncnnSyntheticVulkanInferenceProven": false,
+    "fusedPremultiplyLumaRuntimeProven": false,
+    "externalModelInferenceProven": false
+  },
+  "privateAssetsUsed": false,
+  "paidSpendAuthorized": false
+}

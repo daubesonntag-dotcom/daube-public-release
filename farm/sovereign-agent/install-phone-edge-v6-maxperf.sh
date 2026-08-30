@@ -24,6 +24,7 @@ fetch() {
 fetch "$BASE/gpu-edge-kernels/rgba-premultiply.comp" "$work/rgba-premultiply.comp"
 fetch "$BASE/gpu-edge-kernels/rgba-premultiply-luma.comp" "$work/rgba-premultiply-luma.comp"
 fetch "$BASE/gpu-edge-kernels/vk_rgba_maxperf.c" "$work/vk_rgba_maxperf.c"
+fetch "$BASE/thermal-headroom-probe.c" "$work/thermal-headroom-probe.c"
 fetch "$BASE/phone-edge-v6-preflight.py" "$work/phone-edge-v6-preflight.py"
 fetch "$BASE/run-phone-edge-v6-maxperf-canary.py" "$work/run-phone-edge-v6-maxperf-canary.py"
 
@@ -55,9 +56,12 @@ PY
 
 build_kernel "$work/rgba-premultiply.comp" "$work/daube-vulkan-rgba-premultiply-maxperf"
 build_kernel "$work/rgba-premultiply-luma.comp" "$work/daube-vulkan-rgba-premultiply-luma-maxperf"
+clang -O2 -std=c11 -Wall -Wextra -Werror -Wformat=2 \
+  "$work/thermal-headroom-probe.c" -o "$work/daube-thermal-headroom-probe" -ldl -lm
 
 install -m 0755 "$work/daube-vulkan-rgba-premultiply-maxperf" "$LIB_DIR/daube-vulkan-rgba-premultiply-maxperf"
 install -m 0755 "$work/daube-vulkan-rgba-premultiply-luma-maxperf" "$LIB_DIR/daube-vulkan-rgba-premultiply-luma-maxperf"
+install -m 0755 "$work/daube-thermal-headroom-probe" "$LIB_DIR/daube-thermal-headroom-probe"
 install -m 0755 "$work/run-phone-edge-v6-maxperf-canary.py" "$LIB_DIR/run-phone-edge-v6-maxperf-canary.py"
 
 cat > "$BIN_DIR/daube-phone-edge-v6-premultiply" <<EOF
@@ -74,14 +78,22 @@ export DAUBE_VK_PIPELINE_CACHE_PATH="$CACHE_DIR/premultiply-luma.cache"
 exec "$LIB_DIR/daube-vulkan-rgba-premultiply-luma-maxperf" "\$@"
 EOF
 
+cat > "$BIN_DIR/daube-phone-edge-thermal-headroom" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec "$LIB_DIR/daube-thermal-headroom-probe" "\$@"
+EOF
+
 cat > "$BIN_DIR/daube-phone-edge-v6-maxperf-canary" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
+export PATH="$BIN_DIR:\$PATH"
 exec python "$LIB_DIR/run-phone-edge-v6-maxperf-canary.py"
 EOF
 
 chmod 0755 "$BIN_DIR/daube-phone-edge-v6-premultiply" \
   "$BIN_DIR/daube-phone-edge-v6-premultiply-luma" \
+  "$BIN_DIR/daube-phone-edge-thermal-headroom" \
   "$BIN_DIR/daube-phone-edge-v6-maxperf-canary"
 
-printf '%s\n' "{\"schema\":\"daube.phone-edge-v6-maxperf-install.v1\",\"status\":\"SOURCE_PREFLIGHT_AND_ANDROID_COMPILE_PASS\",\"revision\":\"$REVISION\",\"wholeImageDispatch\":true,\"pipelineCacheEnabled\":true,\"queueWaitIdleRemoved\":true,\"fusedKernelCompiled\":true,\"runtimeCanaryExecuted\":false,\"command\":\"daube-phone-edge-v6-maxperf-canary\",\"paidSpendAuthorized\":false}"
+printf '%s\n' "{\"schema\":\"daube.phone-edge-v6-maxperf-install.v1\",\"status\":\"SOURCE_PREFLIGHT_AND_ANDROID_COMPILE_PASS\",\"revision\":\"$REVISION\",\"wholeImageDispatch\":true,\"pipelineCacheEnabled\":true,\"queueWaitIdleRemoved\":true,\"fusedKernelCompiled\":true,\"thermalProbeCompiled\":true,\"thermalProbeCommand\":\"daube-phone-edge-thermal-headroom\",\"runtimeCanaryExecuted\":false,\"command\":\"daube-phone-edge-v6-maxperf-canary\",\"paidSpendAuthorized\":false}"

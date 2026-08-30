@@ -12,6 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 WORKER = HERE / "phone-edge-worker.py"
+TARGET_P95_MS = 500
+MAX_USABLE_P95_MS = 5000
 
 
 def load_worker():
@@ -56,6 +58,22 @@ def cpu_premultiply(raw: bytes) -> bytes:
     return bytes(output)
 
 
+def safety_observation_complete(sample: dict[str, object]) -> bool:
+    if sample.get("percentage") is None or sample.get("temperatureC") is None:
+        return False
+    thermal = sample.get("thermal") if isinstance(sample.get("thermal"), dict) else {}
+    if thermal.get("supported") is not True:
+        return False
+    status_code = thermal.get("thermalStatusCode")
+    headroom = thermal.get("headroom")
+    if status_code is None or headroom is None:
+        return False
+    try:
+        return math.isfinite(float(headroom)) and int(status_code) >= 0
+    except (TypeError, ValueError):
+        return False
+
+
 def telemetry_summary(samples: list[dict[str, object]]) -> dict[str, object]:
     battery = [int(s["percentage"]) for s in samples if s.get("percentage") is not None]
     temperatures = [float(s["temperatureC"]) for s in samples if s.get("temperatureC") is not None]
@@ -68,6 +86,8 @@ def telemetry_summary(samples: list[dict[str, object]]) -> dict[str, object]:
         if thermal.get("thermalStatusCode") is not None:
             status_codes.append(int(thermal["thermalStatusCode"]))
     return {
+        "complete": bool(samples) and all(safety_observation_complete(sample) for sample in samples),
+        "sampleCount": len(samples),
         "batteryStartPercent": battery[0] if battery else None,
         "batteryEndPercent": battery[-1] if battery else None,
         "batteryDropPercent": max(0, battery[0] - battery[-1]) if battery else None,
@@ -77,24 +97,30 @@ def telemetry_summary(samples: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def admission_score(worker, successful: int, requested: int, telemetry: dict[str, object]) -> int:
-    stability = 50.0 * (successful / max(1, requested))
+def performance_score(p95_ms: int | None) -> float:
+    if p95_ms is None or p95_ms >= MAX_USABLE_P95_MS:
+        return 0.0
+    if p95_ms <= TARGET_P95_MS:
+        return 30.0
+    span = MAX_USABLE_P95_MS - TARGET_P95_MS
+    return 30.0 * max(0.0, min(1.0, (MAX_USABLE_P95_MS - p95_ms) / span))
 
-    headroom = telemetry.get("maxThermalHeadroom10s")
-    if headroom is None:
-        thermal = 15.0
-    else:
-        ceiling = max(0.01, float(worker.MAX_THERMAL_HEADROOM))
-        thermal = 30.0 * max(0.0, min(1.0, 1.0 - float(headroom) / ceiling))
 
-    battery_end = telemetry.get("batteryEndPercent")
-    if battery_end is None:
-        battery = 10.0
-    else:
-        floor = float(worker.MIN_BATTERY_PERCENT)
-        battery = 20.0 * max(0.0, min(1.0, (float(battery_end) - floor) / max(1.0, 100.0 - floor)))
+def admission_score(worker, successful: int, requested: int, telemetry: dict[str, object], p95_ms: int | None) -> int:
+    if telemetry.get("complete") is not True:
+        return 0
 
-    return max(0, min(100, round(stability + thermal + battery)))
+    stability = 40.0 * (successful / max(1, requested))
+    headroom = float(telemetry["maxThermalHeadroom10s"])
+    ceiling = max(0.01, float(worker.MAX_THERMAL_HEADROOM))
+    thermal = 20.0 * max(0.0, min(1.0, 1.0 - headroom / ceiling))
+
+    battery_end = float(telemetry["batteryEndPercent"])
+    floor = float(worker.MIN_BATTERY_PERCENT)
+    battery = 10.0 * max(0.0, min(1.0, (battery_end - floor) / max(1.0, 100.0 - floor)))
+
+    measured_capacity = performance_score(p95_ms)
+    return max(0, min(100, round(stability + thermal + battery + measured_capacity)))
 
 
 def main() -> int:
@@ -128,11 +154,20 @@ def main() -> int:
     started = time.perf_counter()
     for iteration in range(args.iterations):
         try:
-            safety = worker.battery_guard()
-            safety_samples.append(safety)
+            before = worker.battery_guard()
+            safety_samples.append(before)
+            if not safety_observation_complete(before):
+                raise RuntimeError("safety_telemetry_incomplete_before_kernel")
+
             output, kernel_receipt, latency_ms = worker.run_kernel(raw)
             if output != expected:
                 raise RuntimeError("benchmark_output_cpu_reference_mismatch")
+
+            after = worker.battery_guard()
+            safety_samples.append(after)
+            if not safety_observation_complete(after):
+                raise RuntimeError("safety_telemetry_incomplete_after_kernel")
+
             outputs.append(hashlib.sha256(output).hexdigest())
             latencies.append(latency_ms)
             device_names.add(str(kernel_receipt.get("deviceName", ""))[:160])
@@ -153,6 +188,8 @@ def main() -> int:
     pixels_per_run = len(raw) // 4
     total_pixels = pixels_per_run * successful
     throughput_pixels_per_second = round(total_pixels / (elapsed_ms / 1000.0), 2)
+    p95_ms = percentile(latencies, 0.95) if latencies else None
+    performance_gate_passed = p95_ms is not None and p95_ms <= MAX_USABLE_P95_MS
 
     receipt = {
         "schema": "daube.phone-edge-sustained-benchmark.v1",
@@ -167,24 +204,32 @@ def main() -> int:
         "inputSha256": expected_input_sha,
         "cpuReferenceOutputSha256": expected_output_sha,
         "deterministicOutput": deterministic_output,
-        "outputSha256": outputs[0] if deterministic_output else None,
         "latencyMs": {
             "min": min(latencies) if latencies else None,
             "median": int(statistics.median(latencies)) if latencies else None,
-            "p95": percentile(latencies, 0.95) if latencies else None,
+            "p95": p95_ms,
             "max": max(latencies) if latencies else None,
+            "targetP95": TARGET_P95_MS,
+            "maximumUsableP95": MAX_USABLE_P95_MS,
         },
+        "performanceGatePassed": performance_gate_passed,
         "elapsedMs": elapsed_ms,
         "throughputPixelsPerSecondIncludingCooldown": throughput_pixels_per_second,
         "telemetry": telemetry,
-        "admissionScore0to100": admission_score(worker, successful, args.iterations, telemetry),
+        "admissionScore0to100": admission_score(worker, successful, args.iterations, telemetry, p95_ms),
         "classification": "PHONE_GPU_LIGHTWEIGHT_EDGE_ONLY",
         "heavyMediaClassProven": False,
         "desktopGpuPossessionProven": False,
         "privateAssetsUsed": False,
         "paidSpendAuthorized": False,
         "failures": failures,
-        "passed": successful == args.iterations and deterministic_output and not failures,
+        "passed": (
+            successful == args.iterations
+            and deterministic_output
+            and telemetry.get("complete") is True
+            and performance_gate_passed
+            and not failures
+        ),
     }
     receipt["receiptSha256"] = hashlib.sha256(
         json.dumps(receipt, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")

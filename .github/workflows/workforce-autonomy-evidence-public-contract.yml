@@ -1,0 +1,49 @@
+name: Workforce autonomy evidence public contract
+
+on:
+  pull_request:
+    paths:
+      - "labs/workforce-autonomy-evidence-v1/**"
+      - ".github/workflows/workforce-autonomy-evidence-public-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workforce-autonomy-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify zero-secret public contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --check labs/workforce-autonomy-evidence-v1/enterprise-autonomy-evidence.mjs
+          node --test labs/workforce-autonomy-evidence-v1/enterprise-autonomy-evidence.test.mjs
+          if grep -RInE '(BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,})' labs/workforce-autonomy-evidence-v1; then
+            echo '::error::secret-like material found in public fixture'
+            exit 1
+          fi
+
+      - name: Emit truth boundary
+        shell: bash
+        run: |
+          cat <<'EOF'
+          PUBLIC_CONTRACT=PASS
+          PRODUCTION_WORKFORCE_EVIDENCE=NOT_PROVEN_BY_THIS_RUN
+          VERIFIED_AUTONOMOUS_OPERATION=NOT_PROMOTED_BY_THIS_RUN
+          PAID_SPEND_AUTHORIZED=false
+          PRODUCTION_MUTATION_AUTHORIZED=false
+          EOF

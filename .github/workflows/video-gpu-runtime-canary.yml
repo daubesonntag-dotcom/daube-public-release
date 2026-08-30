@@ -1,0 +1,37 @@
+name: video-gpu-runtime-canary
+
+on:
+  push:
+    branches: [gpu-video-canary-20260830]
+    paths:
+      - '.github/workflows/video-gpu-runtime-canary.yml'
+      - 'scripts/video_gpu_canary.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wan-video-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install bounded client
+        run: python -m pip install --disable-pip-version-check 'gradio_client>=1.13,<2'
+      - name: Execute real ZeroGPU video canary
+        run: |
+          set -euo pipefail
+          command -v ffprobe
+          python scripts/video_gpu_canary.py
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-gpu-runtime-canary-${{ github.run_id }}
+          path: evidence/video-gpu-runtime-canary/
+          if-no-files-found: warn
+          retention-days: 7

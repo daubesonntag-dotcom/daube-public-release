@@ -22,6 +22,8 @@ BROKER_URL = os.environ.get(
 ).rstrip("/")
 GPU_PROOF_BIN = Path(os.environ.get("DAUBE_GPU_PROOF_BIN", str(Path.home() / ".local/bin/daube-sovereign-gpu-proof")))
 KERNEL_BIN = Path(os.environ.get("DAUBE_PHONE_GPU_KERNEL", str(HERE / "daube-vulkan-rgba-premultiply")))
+PROFILE = "phone-edge-rgba-premultiply-v1"
+KERNEL_ID = "rgba-premultiply-u8-v1"
 MAX_INPUT_BYTES = 16 * 1024
 MIN_BATTERY_PERCENT = int(os.environ.get("DAUBE_PHONE_GPU_MIN_BATTERY", "35"))
 MAX_BATTERY_TEMP_C = float(os.environ.get("DAUBE_PHONE_GPU_MAX_BATTERY_TEMP_C", "42"))
@@ -66,6 +68,21 @@ def battery_guard() -> dict[str, object]:
     return {"percentage": percentage, "temperatureC": temperature, "charging": charging}
 
 
+def signed_telemetry(safety: dict[str, object]) -> dict[str, object]:
+    return {
+        "schema": "daube.phone-edge-telemetry.v1",
+        "batteryPercent": safety.get("percentage"),
+        "temperatureC": safety.get("temperatureC"),
+        "charging": safety.get("charging"),
+        "observedAt": now_iso(),
+        "profile": PROFILE,
+        "kernelId": KERNEL_ID,
+        "maxInputBytes": MAX_INPUT_BYTES,
+        "minBatteryPercent": MIN_BATTERY_PERCENT,
+        "maxBatteryTemperatureC": MAX_BATTERY_TEMP_C,
+    }
+
+
 def refresh_gpu_proof() -> None:
     if not GPU_PROOF_BIN.exists() or not os.access(GPU_PROOF_BIN, os.X_OK):
         raise RuntimeError("gpu_proof_binary_missing")
@@ -79,7 +96,7 @@ def post_json(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
     request = urllib.request.Request(
         BROKER_URL,
         data=json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/1"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-phone-edge-worker/2"},
         method="POST",
     )
     try:
@@ -107,7 +124,7 @@ def signed_request(host, public_pem: str, fingerprint: str, action: str, **extra
 
 
 def decode_job(job: dict[str, object]) -> bytes:
-    if job.get("profile") != "phone-edge-rgba-premultiply-v1" or job.get("kernelId") != "rgba-premultiply-u8-v1":
+    if job.get("profile") != PROFILE or job.get("kernelId") != KERNEL_ID:
         raise RuntimeError("job_profile_or_kernel_forbidden")
     if job.get("publicSafe") is not True or job.get("privateAssetsUsed") is not False or job.get("paidSpendAuthorized") is not False:
         raise RuntimeError("job_policy_invalid")
@@ -144,7 +161,7 @@ def run_kernel(raw: bytes) -> tuple[bytes, dict[str, object], int]:
             and receipt.get("hardwareGpu") is True
             and receipt.get("softwareRenderer") is False
             and receipt.get("backend") == "vulkan"
-            and receipt.get("kernelId") == "rgba-premultiply-u8-v1"
+            and receipt.get("kernelId") == KERNEL_ID
             and receipt.get("computeQueue") is True
         ):
             raise RuntimeError("kernel_receipt_invalid")
@@ -179,16 +196,17 @@ def main() -> int:
         raise SystemExit("D'AUBE Phone Edge worker requires Android/Termux.")
     public_pem, fingerprint = host.ensure_identity()
     safety = battery_guard()
+    telemetry = signed_telemetry(safety)
     refresh_gpu_proof()
     if not KERNEL_BIN.exists():
         print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": "GPU_PROOF_REFRESHED_KERNEL_NOT_INSTALLED", "safety": safety, "paidSpendAuthorized": False}, ensure_ascii=False))
         return 3
 
-    status, response = signed_request(host, public_pem, fingerprint, "poll")
+    status, response = signed_request(host, public_pem, fingerprint, "poll", telemetry=telemetry)
     if status != 200 or response.get("ok") is not True:
         raise RuntimeError(f"poll_failed:{status}:{response.get('code', 'unknown')}")
     if response.get("status") == "NO_JOB":
-        print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": "NO_JOB", "safety": safety, "paidSpendAuthorized": False}, ensure_ascii=False))
+        print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": "NO_JOB", "safety": safety, "telemetrySigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
         return 0
     if response.get("status") != "JOB_LEASED":
         raise RuntimeError("poll_response_invalid")
@@ -206,7 +224,7 @@ def main() -> int:
             "jobId": job_id,
             "hostId": host_id,
             "status": "SUCCEEDED",
-            "kernelId": "rgba-premultiply-u8-v1",
+            "kernelId": KERNEL_ID,
             "backend": "vulkan",
             "deviceName": str(receipt.get("deviceName", ""))[:160],
             "outputRgbaBase64": base64.b64encode(output).decode(),
@@ -222,7 +240,7 @@ def main() -> int:
             "jobId": job_id,
             "hostId": host_id,
             "status": "FAILED",
-            "kernelId": "rgba-premultiply-u8-v1",
+            "kernelId": KERNEL_ID,
             "backend": "vulkan",
             "errorClass": type(error).__name__,
             "errorCode": str(error)[:180],
@@ -230,7 +248,7 @@ def main() -> int:
             "paidSpendAuthorized": False,
         }
     final = complete_with_retry(host, public_pem, fingerprint, job_id, result)
-    print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": final.get("status"), "jobId": job_id, "resultStatus": result["status"], "safety": safety, "paidSpendAuthorized": False}, ensure_ascii=False))
+    print(json.dumps({"schema": "daube.phone-edge-worker-status.v1", "status": final.get("status"), "jobId": job_id, "resultStatus": result["status"], "safety": safety, "telemetrySigned": True, "paidSpendAuthorized": False}, ensure_ascii=False))
     return 0 if result["status"] == "SUCCEEDED" else 4
 
 

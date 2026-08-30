@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-a07cec918911195bdb411f1f91e5e43fb9075395}"
+SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-793bc4e4fa72808bff8778fdf2909958bca03aca}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${SOURCE_REVISION}/farm/sovereign-agent"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
 BIN_DIR="$HOME/.local/bin"

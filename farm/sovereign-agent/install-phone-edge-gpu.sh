@@ -1,13 +1,14 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
-SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-96594c0b8d8242af3150ffb33c3b27d86b285ae0}"
+SOURCE_REVISION="${DAUBE_PHONE_EDGE_SOURCE_REVISION:-28fe7f871750971852ca384e01883e943b9cf64d}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${SOURCE_REVISION}/farm/sovereign-agent"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
 BIN_DIR="$HOME/.local/bin"
 STATE_DIR="$HOME/.local/share/daube-sovereign-host"
 WORKER="$INSTALL_DIR/phone-edge-worker.py"
 KERNEL="$INSTALL_DIR/daube-vulkan-rgba-premultiply"
+THERMAL_PROBE="$INSTALL_DIR/daube-thermal-headroom-probe"
 GPU_PROOF="$BIN_DIR/daube-sovereign-gpu-proof"
 WORKER_BIN="$BIN_DIR/daube-phone-edge-worker"
 JOB_ID=17063
@@ -49,6 +50,8 @@ curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
 curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
   "$BASE/gpu-edge-kernels/vk_rgba_premultiply.c" -o "$build_dir/vk_rgba_premultiply.c"
 curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+  "$BASE/thermal-headroom-probe.c" -o "$build_dir/thermal-headroom-probe.c"
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
   "$BASE/phone-edge-worker.py" -o "$build_dir/phone-edge-worker.py"
 
 python -m py_compile "$build_dir/phone-edge-worker.py"
@@ -69,11 +72,15 @@ PY
 clang -O2 -std=c11 -Wall -Wextra -Werror \
   -I"$PREFIX/include" -L"$PREFIX/lib" \
   "$build_dir/vk_rgba_premultiply.c" -o "$build_dir/daube-vulkan-rgba-premultiply" -lvulkan
-chmod 0755 "$build_dir/daube-vulkan-rgba-premultiply"
+clang -O2 -std=c11 -Wall -Wextra -Werror \
+  "$build_dir/thermal-headroom-probe.c" -o "$build_dir/daube-thermal-headroom-probe" -ldl -lm
+chmod 0755 "$build_dir/daube-vulkan-rgba-premultiply" "$build_dir/daube-thermal-headroom-probe"
 
 kernel_sha="$(sha256sum "$build_dir/daube-vulkan-rgba-premultiply" | awk '{print $1}')"
+thermal_probe_sha="$(sha256sum "$build_dir/daube-thermal-headroom-probe" | awk '{print $1}')"
 worker_sha="$(sha256sum "$build_dir/phone-edge-worker.py" | awk '{print $1}')"
 install -m 0755 "$build_dir/daube-vulkan-rgba-premultiply" "$KERNEL"
+install -m 0755 "$build_dir/daube-thermal-headroom-probe" "$THERMAL_PROBE"
 install -m 0755 "$build_dir/phone-edge-worker.py" "$WORKER"
 
 cat >"$WORKER_BIN" <<EOF
@@ -81,6 +88,7 @@ cat >"$WORKER_BIN" <<EOF
 set -euo pipefail
 export DAUBE_SOVEREIGN_HOME="$STATE_DIR"
 export DAUBE_PHONE_GPU_KERNEL="$KERNEL"
+export DAUBE_PHONE_THERMAL_PROBE="$THERMAL_PROBE"
 exec python "$WORKER"
 EOF
 chmod 0755 "$WORKER_BIN"
@@ -119,12 +127,15 @@ fi
 printf '\nD’AUBE Phone Edge GPU installed\n'
 printf '%s\n' '--------------------------------'
 printf 'kernelSha256: %s\n' "$kernel_sha"
+printf 'thermalProbeSha256: %s\n' "$thermal_probe_sha"
 printf 'workerSha256: %s\n' "$worker_sha"
 printf 'scheduler: %s\n' "$scheduler"
-printf 'signedTelemetry: Ed25519 claim-bound v1\n'
+printf 'signedTelemetry: Ed25519 claim-bound v1 + Android thermal headroom\n'
 printf 'maxJobBytes: 16384\n'
 printf 'minBatteryPercent: 35\n'
 printf 'maxBatteryTempC (when Termux API reports it): 42\n'
+printf 'maxThermalHeadroomForecast10s: 0.95\n'
+printf 'maxThermalStatusCode: 2 (MODERATE); SEVERE+ is held\n'
 printf 'remoteShell: forbidden\n'
 printf 'paidSpendAuthorized: false\n'
 printf 'manual worker: daube-phone-edge-worker\n'

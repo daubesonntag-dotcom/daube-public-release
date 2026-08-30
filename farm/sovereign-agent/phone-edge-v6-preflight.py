@@ -27,7 +27,7 @@ check("pipeline_cache_persist", "vkGetPipelineCacheData" in src and "DAUBE_VK_PI
 check("multi_job_context_reuse", "job_count" in src and "contextCreates\\\":1" in src and "pipelineCreates\\\":1" in src)
 check("dispatch_limit_checked", "maxComputeWorkGroupCount[0]" in src and "dispatch_limit_exceeded" in src)
 check("bounded_cache_file", "16 * 1024 * 1024" in src)
-check("no_shell_or_network_api", all(x not in src for x in ["system(", "popen(", "curl ", "wget ", "socket(", "connect("])) )
+check("no_shell_or_network_api", all(x not in src for x in ["system(", "popen(", "curl ", "wget ", "socket(", "connect("]))
 check("truth_boundary", "privateAssetsUsed\\\":false" in src and "paidSpendAuthorized\\\":false" in src)
 
 failed = [c for c in checks if not c["pass"]]

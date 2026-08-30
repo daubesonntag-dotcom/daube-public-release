@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """D'AUBE Phone Edge v5 rapid hardening preflight.
 
-This is a source-level fail-closed gate used before real-device promotion. It does
-not substitute for Android/Mali compilation or runtime evidence.
+Fail-closed source/build inspection before real-device promotion. This never
+substitutes for Android/Mali compilation or runtime evidence.
 """
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -22,11 +21,12 @@ def require(ok: bool, code: str, findings: list[dict]) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: phone-edge-v5-preflight.py vk_rgba_premultiply_batch.c", file=sys.stderr)
+    if len(sys.argv) not in (2, 3):
+        print("usage: phone-edge-v5-preflight.py vk_rgba_premultiply_batch.c [rgba_premultiply_spv.h]", file=sys.stderr)
         return 2
     path = Path(sys.argv[1])
     text = path.read_text(encoding="utf-8")
+    header_text = Path(sys.argv[2]).read_text(encoding="utf-8") if len(sys.argv) == 3 else ""
     findings: list[dict] = []
 
     # Safety / attack-surface review (“doctor” pass).
@@ -47,11 +47,13 @@ def main() -> int:
     require("vkDestroyPipeline" in text and "vkDestroyShaderModule" in text and "vkDestroyDevice" in text and "vkDestroyInstance" in text, "vulkan_object_cleanup", findings)
     require("contextReusedAcrossTiles\\\":true" in text, "receipt_declares_context_reuse", findings)
 
-    # Portability guard: VkShaderModuleCreateInfo::pCode is uint32_t words and
-    # must be suitably aligned. A byte-array cast is tolerated by some builds
-    # but is not accepted for v5 promotion.
-    unsafe_spv_cast = bool(re.search(r"pCode\s*=\s*\(const uint32_t \*\)\s*daube_rgba_premultiply_spv", text))
-    require(not unsafe_spv_cast, "spirv_pcode_32bit_alignment_safe", findings)
+    # VkShaderModuleCreateInfo::pCode requires 32-bit words/alignment. V5 build
+    # must generate a uint32_t array rather than relying on a byte-array cast.
+    if header_text:
+        require("static const uint32_t daube_rgba_premultiply_spv[]" in header_text, "spirv_pcode_32bit_alignment_safe", findings)
+        require("daube_rgba_premultiply_spv_len" in header_text, "spirv_byte_length_declared", findings)
+    else:
+        require(False, "spirv_header_required_for_alignment_check", findings)
 
     failed = [x["code"] for x in findings if not x["pass"]]
     result = {
@@ -61,7 +63,7 @@ def main() -> int:
         "findings": findings,
         "failed": failed,
         "runtimeProofPerformed": False,
-        "truthBoundary": "Source preflight only; real Android/Mali compile and canary remain mandatory.",
+        "truthBoundary": "Source/build preflight only; real Android/Mali compile and canary remain mandatory.",
     }
     print(json.dumps(result, separators=(",", ":")))
     return 0 if not failed else 1

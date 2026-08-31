@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   buildRuntimeReceipt,
+  computeAdaptivePollDelay,
   executeFixedTask,
   fnv1a32U32,
   KERNEL_ID,
@@ -95,6 +96,21 @@ test('worker rejects tampered input before sending a completion', () => {
   raw[0] ^= 0xff;
   const tampered = { ...task, rgbaInputBase64: raw.toString('base64') };
   assert.throws(() => executeFixedTask(tampered), /input_sha256_mismatch/);
+});
+
+test('adaptive polling drains quickly after work then backs off on idle/error', () => {
+  const random=()=>0.5;
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:0,errorStreak:0,random}),500);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:1,errorStreak:0,random}),2500);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:2,errorStreak:0,random}),5000);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:8,errorStreak:0,random}),30000);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:0,errorStreak:1,random}),5000);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:0,errorStreak:2,random}),10000);
+});
+
+test('adaptive polling adds bounded jitter', () => {
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:1,random:()=>0}),2000);
+  assert.equal(computeAdaptivePollDelay({baseMs:2500,maxMs:30000,idleStreak:1,random:()=>1}),3000);
 });
 
 test('one cycle registers, claims, heartbeats and completes without arbitrary execution', async () => {

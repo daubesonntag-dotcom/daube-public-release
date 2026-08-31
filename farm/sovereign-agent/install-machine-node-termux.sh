@@ -5,7 +5,7 @@ umask 077
 # D'AUBE Machine Node capability installer for the already-paired sovereign
 # Android/Termux host. Source is pinned immutably; no GitHub runner/token,
 # remote shell, paid provider, secret-bearing job, or production mutation is used.
-SOURCE_REVISION="${DAUBE_MACHINE_NODE_SOURCE_REVISION:-a2bae112fa2cc4b8a63c4a03e14b522c195db2ad}"
+SOURCE_REVISION="${DAUBE_MACHINE_NODE_SOURCE_REVISION:-c33048ddda4eb471adddaee11512fb5429917d42}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${SOURCE_REVISION}/farm/sovereign-agent"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
 BIN_DIR="$HOME/.local/bin"
@@ -87,6 +87,7 @@ printf 'npm: %s\n' "$(npm --version)"
 printf 'git: %s\n' "$(git --version)"
 printf 'scheduler: %s\n' "$scheduler"
 printf 'transport: outbound HTTPS only\n'
+printf 'endpointSlot: ci-diag-retired-slot-reused\n'
 printf 'remoteShell: forbidden\n'
 printf 'remoteSourceExecution: forbidden\n'
 printf 'secrets: forbidden\n'

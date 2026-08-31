@@ -44,7 +44,7 @@ def post_json(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
     request = urllib.request.Request(
         CAPABILITY_URL,
         data=json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-machine-node-worker/1"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-machine-node-worker/2"},
         method="POST",
     )
     try:
@@ -89,6 +89,21 @@ def validate_challenge(response: dict[str, object]) -> dict[str, object]:
     return {"challengeId": challenge_id, "seedHex": seed_hex, "iterations": iterations}
 
 
+def termux_tool(name: str) -> str:
+    prefix = Path(os.environ.get("PREFIX", "")).resolve()
+    if "com.termux" not in str(prefix):
+        raise RuntimeError("termux_prefix_invalid")
+    candidate = (prefix / "bin" / name).resolve()
+    expected_root = (prefix / "bin").resolve()
+    try:
+        candidate.relative_to(expected_root)
+    except ValueError as error:
+        raise RuntimeError(f"fixed_tool_outside_termux_prefix:{name}") from error
+    if not candidate.is_file() or not os.access(candidate, os.X_OK):
+        raise RuntimeError(f"fixed_tool_missing:{name}")
+    return str(candidate)
+
+
 def run_fixed(argv: list[str], timeout: int = 10) -> str:
     completed = subprocess.run(argv, check=False, capture_output=True, text=True, timeout=timeout, shell=False)
     if completed.returncode != 0:
@@ -100,18 +115,21 @@ def run_fixed(argv: list[str], timeout: int = 10) -> str:
     return lines[-1][:160]
 
 
-def software_versions() -> tuple[str, str, str]:
-    node_version = run_fixed(["node", "--version"])
-    npm_version = run_fixed(["npm", "--version"])
-    git_version = run_fixed(["git", "--version"])
+def software_versions() -> tuple[str, str, str, str]:
+    node = termux_tool("node")
+    npm = termux_tool("npm")
+    git = termux_tool("git")
+    node_version = run_fixed([node, "--version"])
+    npm_version = run_fixed([npm, "--version"])
+    git_version = run_fixed([git, "--version"])
     match = re.match(r"^v?(\d+)(?:\.|$)", node_version)
     if not match or int(match.group(1)) < 22:
         raise RuntimeError(f"node22_required:{node_version}")
-    return node_version, npm_version, git_version
+    return node, node_version, npm_version, git_version
 
 
-def compute_node_digest(seed_hex: str, iterations: int) -> str:
-    digest = run_fixed(["node", "-e", NODE_DIGEST_SCRIPT, seed_hex, str(iterations)], timeout=30).lower()
+def compute_node_digest(node: str, seed_hex: str, iterations: int) -> str:
+    digest = run_fixed([node, "-e", NODE_DIGEST_SCRIPT, seed_hex, str(iterations)], timeout=30).lower()
     if not HEX64.fullmatch(digest):
         raise RuntimeError("node_digest_invalid")
     return digest
@@ -147,8 +165,8 @@ def main() -> int:
         raise RuntimeError(f"challenge_http_failed:{status}:{response.get('code', 'unknown')}")
     challenge = validate_challenge(response)
 
-    node_version, npm_version, git_version = software_versions()
-    digest = compute_node_digest(str(challenge["seedHex"]), int(challenge["iterations"]))
+    node, node_version, npm_version, git_version = software_versions()
+    digest = compute_node_digest(node, str(challenge["seedHex"]), int(challenge["iterations"]))
     result = build_result(host_id, challenge, node_version, npm_version, git_version, digest)
 
     status, completion = signed_request(host, public_pem, fingerprint, "complete", result=result)
@@ -163,6 +181,7 @@ def main() -> int:
         "nodeVersion": node_version,
         "npmVersion": npm_version,
         "gitVersion": git_version,
+        "toolRoot": "$PREFIX/bin",
         "remoteShellUsed": False,
         "privateAssetsUsed": False,
         "paidSpendAuthorized": False,

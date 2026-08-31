@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 HOST_AGENT = HERE / "direct-agent.py"
 CAPABILITY_URL = os.environ.get(
     "DAUBE_MACHINE_NODE_CAPABILITY_URL",
-    "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-machine-node-capability",
+    "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/ci-diag",
 ).rstrip("/")
 CLAIM_SCHEMA = "daube.machine-node-capability-claim.v1"
 CHALLENGE_SCHEMA = "daube.machine-node-capability-challenge.v1"
@@ -44,7 +44,7 @@ def post_json(payload: dict[str, object]) -> tuple[int, dict[str, object]]:
     request = urllib.request.Request(
         CAPABILITY_URL,
         data=json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(),
-        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-machine-node-worker/2"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "daube-machine-node-worker/3"},
         method="POST",
     )
     try:
@@ -182,6 +182,7 @@ def main() -> int:
         "npmVersion": npm_version,
         "gitVersion": git_version,
         "toolRoot": "$PREFIX/bin",
+        "endpointSlot": "ci-diag-retired-slot-reused",
         "remoteShellUsed": False,
         "privateAssetsUsed": False,
         "paidSpendAuthorized": False,

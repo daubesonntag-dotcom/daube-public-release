@@ -170,32 +170,71 @@ export async function runWorkerCycle(state, { bridgeUrl = state?.bridgeUrl, bloc
   }
 }
 
+export function computeAdaptivePollDelay({
+  baseMs = 2500,
+  maxMs = 30_000,
+  idleStreak = 0,
+  errorStreak = 0,
+  random = Math.random
+} = {}) {
+  const base = integer(baseMs, 250, 60_000, 2500);
+  const max = integer(maxMs, base, 120_000, Math.max(base, 30_000));
+  const idle = integer(idleStreak, 0, 1_000_000, 0);
+  const errors = integer(errorStreak, 0, 1_000_000, 0);
+  const entropy = Number(random());
+  const unit = Number.isFinite(entropy) ? Math.max(0, Math.min(1, entropy)) : 0.5;
+
+  let raw;
+  if (errors > 0) raw = Math.max(5000, base) * (2 ** Math.min(errors - 1, 4));
+  else if (idle > 0) raw = base * (2 ** Math.min(idle - 1, 4));
+  else raw = Math.min(base, 500);
+
+  const capped = Math.min(max, Math.max(250, raw));
+  const jitter = 0.8 + unit * 0.4;
+  return Math.max(250, Math.round(capped * jitter));
+}
+
 export async function watchWorker(state, {
   bridgeUrl = state?.bridgeUrl,
   pollMs = 2500,
+  maxPollMs = 30_000,
   blockMs = 2000,
   maxJobs = 0,
   fetchImpl = globalThis.fetch,
   signal = null,
+  random = Math.random,
   onEvent = event => console.log(JSON.stringify(event))
 } = {}) {
   assertPairedState(state);
   const interval = integer(pollMs, 250, 60_000, 2500);
+  const maxInterval = integer(maxPollMs, interval, 120_000, Math.max(interval, 30_000));
   const block = integer(blockMs, 0, 5000, 2000);
   const limit = integer(maxJobs, 0, 1_000_000, 0);
   let completed = 0;
-  onEvent({ schema: WORKER_SCHEMA, status: 'STARTED', executorId: state.executorId, publicSafeOnly: true, localStop: 'Ctrl+C' });
+  let idleStreak = 0;
+  let errorStreak = 0;
+  onEvent({ schema: WORKER_SCHEMA, status: 'STARTED', executorId: state.executorId, publicSafeOnly: true, localStop: 'Ctrl+C', adaptivePolling: true });
 
   while (!signal?.aborted && (limit === 0 || completed < limit)) {
     try {
       const result = await runWorkerCycle(state, { bridgeUrl, blockMs: block, fetchImpl });
       onEvent(result);
-      if (result.status === 'PASS') completed += 1;
+      if (result.status === 'PASS') {
+        completed += 1;
+        idleStreak = 0;
+        errorStreak = 0;
+      } else {
+        idleStreak += 1;
+        errorStreak = 0;
+      }
     } catch (error) {
+      idleStreak = 0;
+      errorStreak += 1;
       onEvent({ schema: WORKER_SCHEMA, status: 'ERROR', error: String(error instanceof Error ? error.message : error).slice(0, 500) });
     }
     if (signal?.aborted || (limit > 0 && completed >= limit)) break;
-    await sleep(interval, signal).catch(() => undefined);
+    const delayMs = computeAdaptivePollDelay({ baseMs: interval, maxMs: maxInterval, idleStreak, errorStreak, random });
+    await sleep(delayMs, signal).catch(() => undefined);
   }
 
   const result = Object.freeze({ schema: WORKER_SCHEMA, status: 'STOPPED', completed });
@@ -319,7 +358,7 @@ function parseArgs(argv = process.argv.slice(2)) {
 }
 
 function help() {
-  return `D’AUBE Compute Commons fixed worker V1\n\nCommands:\n  once [--state PATH] [--bridge-url https://...] [--block-ms 2000]\n  watch [--state PATH] [--bridge-url https://...] [--poll-ms 2500] [--block-ms 2000] [--max-jobs N]\n\nSafety:\n  Only ${KERNEL_ID}/${TASK_MODE} is supported. No arbitrary shell, code, secrets, private assets or production mutation. The worker is pull-only and stops locally with Ctrl+C.`;
+  return `D’AUBE Compute Commons fixed worker V1\n\nCommands:\n  once [--state PATH] [--bridge-url https://...] [--block-ms 2000]\n  watch [--state PATH] [--bridge-url https://...] [--poll-ms 2500] [--max-poll-ms 30000] [--block-ms 2000] [--max-jobs N]\n\nSafety:\n  Only ${KERNEL_ID}/${TASK_MODE} is supported. No arbitrary shell, code, secrets, private assets or production mutation. The worker is pull-only, uses adaptive jittered polling, and stops locally with Ctrl+C.`;
 }
 
 export async function main(argv = process.argv.slice(2)) {
@@ -340,6 +379,7 @@ export async function main(argv = process.argv.slice(2)) {
     await watchWorker(state, {
       bridgeUrl,
       pollMs: options['poll-ms'],
+      maxPollMs: options['max-poll-ms'],
       blockMs: options['block-ms'],
       maxJobs: options['max-jobs'],
       signal: controller.signal

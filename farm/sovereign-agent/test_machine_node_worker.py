@@ -117,6 +117,8 @@ class MachineNodeWorkerContractTests(unittest.TestCase):
         self.assertIn('termux_tool("node")', source)
         self.assertIn('termux_tool("npm")', source)
         self.assertIn('termux_tool("git")', source)
+        self.assertIn('/functions/v1/ci-diag', source)
+        self.assertNotIn('/functions/v1/daube-machine-node-capability', source)
 
 
 if __name__ == "__main__":

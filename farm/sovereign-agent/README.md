@@ -23,11 +23,17 @@ The first proof normally returns `PAIRING_REQUIRED` and prints a `publicKeySha25
 
 `install-termux.sh` installs the sovereign proof agent only. CI execution is a separate least-authority layer.
 
-Run `install-sovereign-ci-toolchain-termux.sh` on an already founder-controlled Termux host to install the local execution/materialization tools required by the existing D'AUBE Sovereign Source Handoff and Quick Green closure contracts: Git, Node.js, npm, Python, `age`, `zstd`, tar, curl and hashing tools. The script writes a machine-readable receipt at:
+Run `install-sovereign-ci-toolchain-termux.sh` on an already founder-controlled Termux host. The CI bootstrap installs Git, Node.js 22+, npm, Python, `zstd`, tar, curl and Termux `rage` (the age-v1-compatible implementation used for source transport). It generates a separate X25519 transport identity locally, keeps that identity mode `0600`, and signs the public age recipient plus its SHA-256 fingerprint into the existing Ed25519 host proof. The signing key and source-decryption key remain separate key purposes.
+
+The local machine-readable receipt is written at:
 
 `~/.local/share/daube-sovereign-host/ci/toolchain-receipt.json`
 
-The receipt deliberately proves **toolchain readiness only**. It does not certify a private-source handoff or a Quick Green run. The phone receives private source only through an encrypted exact-command closure produced at the connected source-authority boundary. GitHub/cloud bearer credentials are not required on the host, inbound ports are not required, paid spend remains unauthorized, and Quick Green cannot authorize merge or production publication.
+The bootstrap also installs `sovereign-ci-worker.py`. This is not a remote shell and does not run `npm test` or arbitrary package scripts. It accepts only the fixed `sovereign-node-package-smoke-v1` profile, only immutable D'AUBE target revisions explicitly admitted by the broker, and executes only canonical `node --test tests/...test.mjs` argv. The worker validates the encrypted capsule digest, archive paths, source manifest digest and target revision before execution; it keeps runtime HOME/TMP outside the source tree, emits only stdout/stderr digests, verifies source immutability after the tests, and scrubs the ephemeral workspace before signed completion.
+
+When Termux JobScheduler is available, signed CI readiness is refreshed every 30 minutes and the bounded CI worker polls every 15 minutes. A worker poll is attempted immediately only after the fresh signed toolchain proof is accepted. If the broker, toolchain proof or transport recipient is not admitted, execution remains fail-closed.
+
+The receipt deliberately proves **toolchain and transport readiness only**. It does not certify a private-source handoff or a Quick Green run. GitHub/cloud bearer credentials are not required on the host, inbound ports are not required, paid spend remains unauthorized, and CI execution cannot authorize merge or production publication.
 
 The canonical source-handoff/execution contracts remain owned by `daube-ci-platform`; this public installer is only the founder-controlled Android execution substrate.
 
@@ -37,4 +43,4 @@ The Python agent can be run manually or by another local scheduler. This is usef
 
 ## Truth boundary
 
-Publishing or installing this agent does not itself prove a sovereign host exists. Until an actual directly controlled machine generates a fresh signed proof and its fingerprint is approved, Resource Farm must remain fail-closed. Likewise, publishing the CI toolchain installer is `IMPLEMENTED`, not `RUNTIME_VERIFIED`; sovereign CI fallback becomes verified only after a fresh Android/Termux toolchain receipt plus an encrypted exact-source Quick Green execution receipt exist for the immutable target revision.
+Publishing or installing this agent does not itself prove a sovereign host exists. Until an actual directly controlled machine generates a fresh signed proof and its fingerprint is approved, Resource Farm must remain fail-closed. Likewise, publishing the CI toolchain and worker is `IMPLEMENTED`, not `RUNTIME_VERIFIED`; sovereign CI fallback becomes verified only after a fresh Android/Termux proof reports `ciToolchain.ready=true` with the bound age/X25519 recipient and a signed exact-source CI execution receipt exists for the immutable target revision.

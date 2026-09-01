@@ -5,13 +5,19 @@ STATE_DIR="${DAUBE_SOVEREIGN_HOME:-$HOME/.local/share/daube-sovereign-host}"
 CI_DIR="$STATE_DIR/ci"
 RECEIPT="$CI_DIR/toolchain-receipt.json"
 BIN_DIR="$HOME/.local/bin"
+INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
+ATTEST_REVISION="${DAUBE_SOVEREIGN_CI_ATTEST_REVISION:-8a5a3a4d93aa83184d7d58325774987e7a349a29}"
+ATTEST_URL="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${ATTEST_REVISION}/farm/sovereign-agent/sovereign-ci-attest.py"
+ATTEST_PATH="$INSTALL_DIR/sovereign-ci-attest.py"
+ATTEST_BIN="$BIN_DIR/daube-sovereign-ci-proof"
+JOB_ID=17062
 
 case "${PREFIX:-}" in
   *com.termux*) ;;
   *) echo "ERROR: run this inside Termux on Android" >&2; exit 2 ;;
 esac
 
-mkdir -p "$CI_DIR" "$BIN_DIR"
+mkdir -p "$CI_DIR" "$BIN_DIR" "$INSTALL_DIR"
 chmod 700 "$STATE_DIR" "$CI_DIR"
 
 # Source transport uses encrypted exact-command closures. Keep the phone free of
@@ -79,6 +85,14 @@ path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encodi
 path.chmod(0o600)
 PY
 
+# Install a pinned companion attestor. It reuses the existing sovereign Ed25519
+# identity and submits only a fixed toolchain probe; it is not a remote shell.
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
+curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$ATTEST_URL" -o "$tmp"
+python -m py_compile "$tmp"
+install -m 0755 "$tmp" "$ATTEST_PATH"
+
 cat >"$BIN_DIR/daube-sovereign-ci-status" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
@@ -91,12 +105,51 @@ cat "\$RECEIPT"
 EOF
 chmod 0755 "$BIN_DIR/daube-sovereign-ci-status"
 
+cat >"$ATTEST_BIN" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+export DAUBE_SOVEREIGN_HOME="$STATE_DIR"
+exec python "$ATTEST_PATH" "\$@"
+EOF
+chmod 0755 "$ATTEST_BIN"
+
 if ! grep -Fq 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
   printf '\nexport PATH="$HOME/.local/bin:$PATH"\n' >>"$HOME/.bashrc"
+fi
+export PATH="$BIN_DIR:$PATH"
+
+# Submit one fresh signed toolchain proof now. Pairing-required is preserved as a
+# non-destructive admission state; other failures remain fail-closed.
+set +e
+"$ATTEST_BIN"
+attest_rc=$?
+set -e
+if [[ "$attest_rc" -ne 0 && "$attest_rc" -ne 3 ]]; then
+  echo "ERROR: signed CI readiness proof failed with exit code $attest_rc" >&2
+  exit "$attest_rc"
+fi
+
+scheduler="UNAVAILABLE"
+if command -v termux-job-scheduler >/dev/null 2>&1; then
+  set +e
+  termux-job-scheduler \
+    --script "$ATTEST_BIN" \
+    --job-id "$JOB_ID" \
+    --period-ms 1800000 \
+    --network any \
+    --battery-not-low true \
+    --storage-not-low false \
+    --charging false \
+    --persisted true >/dev/null
+  schedule_rc=$?
+  set -e
+  [[ "$schedule_rc" -eq 0 ]] && scheduler="TERMUX_JOB_SCHEDULER_30M_PERSISTED" || scheduler="AVAILABLE_BUT_SCHEDULE_FAILED"
 fi
 
 printf 'D’AUBE Sovereign CI toolchain READY\n'
 printf 'receipt: %s\n' "$RECEIPT"
+printf 'signedAttestorRevision: %s\n' "$ATTEST_REVISION"
 printf 'node: %s | npm: %s | git: %s\n' "$NODE_VERSION" "$NPM_VERSION" "$GIT_VERSION"
+printf 'signedReadinessScheduler: %s\n' "$scheduler"
 printf 'private-source transport: encrypted exact-command closure; no GitHub credential on host\n'
 printf 'paidSpendAuthorized: false\n'

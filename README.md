@@ -2,6 +2,19 @@
 
 Public install, update and static presentation boundary for the D’AUBE ecosystem.
 
+## D’AUBE Studio — Public Atelier
+
+**Build the world without exposing the private workshop.**
+
+D’AUBE Studio Public Atelier is the public-safe Living Atelier sandbox: compose assets, place blocks, switch Makeover Lens themes, preview AI routing, and run prototype QC while project state remains in the browser. Private AI execution, credentials, production mutation and release authority stay outside the public shell.
+
+- [Open D’AUBE Studio Public Atelier](https://d-aube-studio-public-atelier-7s9b5a.v2.appdeploy.ai/?utm_source=github&utm_medium=owned-repository&utm_campaign=studio-public-atelier&utm_content=public-release-readme)
+- [Read the Studio public supply/upgrade contract](studio-public-atelier/README.md)
+- [Read the machine-readable stable channel](studio-public-atelier/release-channel.json)
+- [Inspect the release passport](studio-public-atelier/release-passport.v1.json)
+
+Version `1.1.0` adds an installable PWA shell where supported, bounded offline caching and network-first stable-channel update discovery. `studio.daubesonntag.com` remains pending DNS verification until the required DNS record is materialized and verified.
+
 ## BREAK THE DAWN — independent testers & viewers wanted
 
 **Find the crack before the sunrise.**

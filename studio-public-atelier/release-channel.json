@@ -1,0 +1,52 @@
+{
+  "schema": "daube.studio.release-channel.v1",
+  "artifact": "studio-public-atelier",
+  "channel": "stable",
+  "version": "1.1.0",
+  "state": "PUBLIC_SHELL",
+  "publicUrl": "https://d-aube-studio-public-atelier-7s9b5a.v2.appdeploy.ai/",
+  "customDomain": {
+    "hostname": "studio.daubesonntag.com",
+    "status": "pending_dns"
+  },
+  "source": {
+    "repository": "daubesonntag-dotcom/daube-studio-runtime",
+    "commit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778"
+  },
+  "distribution": {
+    "installablePwa": true,
+    "offlineShell": true,
+    "automaticUpdateDiscovery": true,
+    "browserLocalProjectMemory": true,
+    "providers": [
+      {
+        "id": "appdeploy",
+        "role": "active-public-host",
+        "spendPolicy": "zero-paid-spend"
+      },
+      {
+        "id": "provider-neutral-static-host",
+        "role": "portable-fallback",
+        "state": "eligible-after-verification"
+      }
+    ]
+  },
+  "publicBoundary": {
+    "aiExecution": false,
+    "productionMutation": false,
+    "credentials": false,
+    "privateRuntimeTopology": false,
+    "releaseAuthority": false
+  },
+  "upgradePolicy": {
+    "strategy": "verified-in-place-stable",
+    "check": "network-no-store",
+    "rollbackRequired": true,
+    "failClosedOnUnknownRights": true,
+    "neverPromoteFromStaticPublishAlone": true
+  },
+  "rollback": {
+    "previousPublicVersion": "1.0.0",
+    "appDeployVersion": "1788282369551"
+  }
+}

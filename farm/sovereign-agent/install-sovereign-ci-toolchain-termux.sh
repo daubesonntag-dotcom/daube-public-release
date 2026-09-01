@@ -7,10 +7,10 @@ CI_DIR="$STATE_DIR/ci"
 RECEIPT="$CI_DIR/toolchain-receipt.json"
 BIN_DIR="$HOME/.local/bin"
 INSTALL_DIR="$HOME/.local/lib/daube-sovereign-agent"
-PAYLOAD_REVISION="${DAUBE_SOVEREIGN_CI_RELEASE_REVISION:-6d2d2a70c33af5eebcf02dde970e69477111f2c9}"
+PAYLOAD_REVISION="${DAUBE_SOVEREIGN_CI_RELEASE_REVISION:-246dfaa1e6ff8668e87c6054ba557d57217613da}"
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${PAYLOAD_REVISION}/farm/sovereign-agent"
 ATTEST_PATH="$INSTALL_DIR/sovereign-ci-attest.py"
-WORKER_PATH="$INSTALL_DIR/sovereign-ci-worker.py"
+WORKER_PATH="$INSTALL_DIR/sovereign-ci-worker-v2.py"
 ATTEST_BIN="$BIN_DIR/daube-sovereign-ci-proof"
 WORKER_BIN="$BIN_DIR/daube-sovereign-ci-worker"
 AGE_IDENTITY="$CI_DIR/transport-age-identity.txt"
@@ -27,7 +27,7 @@ mkdir -p "$CI_DIR" "$BIN_DIR" "$INSTALL_DIR"
 chmod 700 "$STATE_DIR" "$CI_DIR"
 
 # rage is the Termux-packaged age-v1-compatible implementation. No GitHub/cloud
-# bearer credential, runner-registration token, root path, or paid provider is introduced.
+# bearer credential, runner token, root path, or paid provider is introduced.
 pkg install -y git python curl coreutils tar zstd rage >/dev/null
 if ! command -v node >/dev/null 2>&1; then
   if ! pkg install -y nodejs-lts >/dev/null 2>&1; then
@@ -87,6 +87,7 @@ receipt = {
         "recipientType": "age-x25519",
         "ageRecipient": os.environ["AGE_RECIPIENT"],
         "recipientFingerprint": os.environ["RECIPIENT_FINGERPRINT"],
+        "sourceIdentityVisibleBeforeDecrypt": False,
         "githubCredentialRequiredOnHost": False,
         "cloudBearerCredentialRequiredOnHost": False,
         "inboundPortRequired": False,
@@ -113,7 +114,7 @@ fetch_python() {
   rm -f "$tmp"
 }
 fetch_python sovereign-ci-attest.py "$ATTEST_PATH"
-fetch_python sovereign-ci-worker.py "$WORKER_PATH"
+fetch_python sovereign-ci-worker-v2.py "$WORKER_PATH"
 
 cat >"$ATTEST_BIN" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
@@ -173,9 +174,10 @@ fi
 
 printf 'D’AUBE Sovereign CI toolchain READY (local)\n'
 printf 'payloadRevision: %s\n' "$PAYLOAD_REVISION"
+printf 'workerProtocol: sealed-capsule-v2\n'
 printf 'node: %s | npm: %s | git: %s\n' "$NODE_VERSION" "$NPM_VERSION" "$GIT_VERSION"
 printf 'ageImplementation: rage | recipientFingerprint: %s\n' "$RECIPIENT_FINGERPRINT"
 printf 'attestationExitCode: %s | immediateWorkerExitCode: %s\n' "$ATTEST_RC" "$WORKER_RC"
 printf 'attestationScheduler: %s | workerScheduler: %s\n' "$ATTEST_SCHEDULER" "$WORKER_SCHEDULER"
-printf 'private-source transport: age-v1/X25519; no GitHub credential on host\n'
+printf 'private-source transport: age-v1/X25519; source identity sealed until decrypt; no GitHub credential on host\n'
 printf 'paidSpendAuthorized: false\n'

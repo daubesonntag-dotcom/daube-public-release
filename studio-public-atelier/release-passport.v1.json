@@ -5,31 +5,50 @@
   "changeTier": "T2",
   "state": "LIVE_PUBLIC_SHELL",
   "publicVersion": "1.1.0",
-  "sourceRepository": "daubesonntag-dotcom/daube-studio-runtime",
-  "sourceCommit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778",
-  "releaseCandidateHead": "e70ce2e77f7c655918514944a92c3ac575bf3a08",
+  "canonicalForgeHandoff": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "commit": "594c224aa0ea8fcd19e7370a799071efd8b38c62",
+    "path": "config/release-assurance/public-release-handoffs/studio-public-atelier-v1.1.json",
+    "handoffId": "DAUBE-FORGE-STUDIO-PUBLIC-ATELIER-V1.1"
+  },
+  "upstreamStudioSource": {
+    "repository": "daubesonntag-dotcom/daube-studio-runtime",
+    "commit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778"
+  },
+  "publicReleaseCandidateHeadObservedBeforePassport": "540878855fa2b8c0cd555da18561823dc8e9efcf",
   "artifactDigestScheme": "sha256(path/NUL/gitBlobSha/NUL in lexicographic path order)",
-  "artifactDigestScope": "public payload only: app.js + bootstrap.js + icon.svg + index.html + manifest.webmanifest + release-channel.json + styles.css + sw.js; excludes README and release passport to avoid circular provenance",
-  "artifactDigest": "sha256:b56704882bb802199c942c241e6c13290b4ce0bb3578dc6f6c1ccc2f7623e536",
+  "artifactDigestScope": "executable public payload only: app.js + bootstrap.js + icon.svg + index.html + manifest.webmanifest + styles.css + sw.js; excludes README, release-channel and release passport so provenance metadata can reference the canonical Forge handoff without circular identity",
+  "artifactDigest": "sha256:ee557850a73045fb9be387aef223acd7ca442bd2fb4eefb010acdc561f87501f",
   "gitBlobIds": {
     "app.js": "e4563bc7a1a5abe8d5ba34bcfaa9b52604dec1b6",
     "bootstrap.js": "fdf1e713ed82575a9623b4721d8db1b61d51a8e2",
     "icon.svg": "4467d0bac8c5f2ea139b69cc42edcbe706460790",
     "index.html": "fe533963b472127cca6c485e33730ce45b83699f",
     "manifest.webmanifest": "1f070f1d91395ec0b2b5a7891cd171cc80c5e316",
-    "release-channel.json": "f8adde13751530341e93a0933bd664fd457deff7",
     "styles.css": "caf660177cf8fd529b4efa65c16b064ec8de73c5",
-    "sw.js": "da7d6c7ab54c3c7ad20dcb4251647c9c6e6b018f"
+    "sw.js": "3f3a6f47964d88033c7ac9e955cdac79563b29f3"
   },
   "deployment": {
     "provider": "appdeploy",
     "appId": "d-aube-studio-public-atelier-7s9b5a",
-    "version": "1788284332001",
-    "versionName": "v2",
+    "version": "1788284887642",
+    "versionName": "v4",
     "url": "https://d-aube-studio-public-atelier-7s9b5a.v2.appdeploy.ai/",
-    "providerRecordedAt": "2026-09-01T17:38:52.001Z",
+    "providerRecordedAt": "2026-09-01T17:48:07.642Z",
     "rollbackReference": "appdeploy-version:1788282369551",
-    "previousVerifiedVersion": "1788282369551",
+    "previousVerifiedPublicVersion": "1.0.0",
+    "stagingVersions": {
+      "v2": {
+        "version": "1788284332001",
+        "state": "REJECTED_FOR_ROLLBACK",
+        "reason": "Service worker could cache a non-entry navigation response as the offline index shell."
+      },
+      "v3": {
+        "version": "1788284727618",
+        "state": "VERIFIED_EXECUTABLE_STAGING",
+        "reason": "Service-worker fix passed fresh readback before canonical Forge provenance was promoted into the live stable-channel metadata."
+      }
+    },
     "customDomain": {
       "hostname": "studio.daubesonntag.com",
       "state": "PENDING_DNS",
@@ -43,10 +62,11 @@
   },
   "distribution": {
     "stableChannelManifest": "release-channel.json",
+    "stableChannelBackedByCanonicalForgeHandoff": true,
     "installablePwa": true,
     "offlineShell": true,
     "updateDiscovery": "network-no-store with cached offline fallback",
-    "serviceWorkerCache": "daube-studio-public-v1.1.0",
+    "serviceWorkerCache": "daube-studio-public-v1.1.0-r2",
     "browserLocalProjectMemory": true,
     "activeProvider": "appdeploy",
     "providerNeutralFallbackEligibleAfterVerification": true
@@ -58,7 +78,9 @@
     "qaScreenshotsRecorded": true,
     "declaredUserVisibleTests": 5,
     "providerE2eResult": "NOT_REPORTED",
-    "claim": "The provider reported a ready v2 deployment with zero frontend/network errors and fresh desktop/mobile QA screenshots. This does not claim that all five declared E2E scenarios were executed by the provider."
+    "serviceWorkerNavigationCacheFixReadback": "PASS_BY_PROVIDER_READY_AND_ZERO_RUNTIME_ERRORS",
+    "canonicalForgeChannelReadback": "PASS_BY_PROVIDER_READY_AND_ZERO_RUNTIME_ERRORS",
+    "claim": "The provider reported a ready v4 deployment with zero frontend/network errors and fresh desktop/mobile QA screenshots after the service-worker fix and canonical Forge channel promotion. This does not claim that all five declared E2E scenarios were executed by the provider or that every browser install/offline behavior was independently tested."
   },
   "publicBoundary": {
     "localProjectMemoryOnly": true,

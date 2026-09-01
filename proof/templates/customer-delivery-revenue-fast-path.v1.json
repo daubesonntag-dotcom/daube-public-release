@@ -1,0 +1,84 @@
+{
+  "schema": "daube.customer-delivery-revenue-fast-path-packet.v1",
+  "status": "TEMPLATE_NOT_EVIDENCE",
+  "authority": "daubesonntag-dotcom/daube-public-release",
+  "purpose": "Make the first real paid delivery promotable to CUSTOMER_DELIVERY and, only when separately supported by authoritative settlement/reconciliation evidence, REVENUE_VERIFIED without reconstructing evidence after the fact.",
+  "truth_boundary": "This template is not a customer, order, payment, settlement, delivery, acceptance or revenue record. Empty/example fields must never be published as proof.",
+  "customer_delivery_candidate": {
+    "claim_id": null,
+    "proof_class": "CUSTOMER_DELIVERY",
+    "capability_or_offer_id": null,
+    "evidence_summary": null,
+    "evidence_date": null,
+    "scope_or_environment": null,
+    "limitations": null,
+    "rights_and_disclosure_basis": null,
+    "commercial_basis": {
+      "order_or_agreement_reference": null,
+      "offer_or_sku": null,
+      "payment_state_reference": null,
+      "customer_identity_public": false,
+      "public_safe_customer_reference": null
+    },
+    "delivery": {
+      "delivered_artifact_or_service_version": null,
+      "delivery_timestamp": null,
+      "delivery_method": null,
+      "artifact_digest_or_private_evidence_reference": null,
+      "included_scope": [],
+      "excluded_scope": []
+    },
+    "acceptance": {
+      "state": "UNOBSERVED",
+      "accepted_at": null,
+      "acceptance_evidence_reference": null,
+      "conditions_or_remediation": null
+    },
+    "support_and_recovery": {
+      "support_entitlement_reference": null,
+      "defect_or_remediation_state": "NONE_OBSERVED",
+      "refund_or_cancellation_state": "UNOBSERVED"
+    },
+    "privacy_and_consent": {
+      "customer_publication_consent_or_other_disclosure_basis": null,
+      "private_customer_data_redacted": true,
+      "secrets_credentials_payment_account_identity_excluded": true
+    }
+  },
+  "revenue_verified_candidate": {
+    "claim_id": null,
+    "proof_class": "REVENUE_VERIFIED",
+    "capability_or_offer_id": null,
+    "evidence_summary": null,
+    "evidence_date": null,
+    "scope_or_environment": null,
+    "limitations": null,
+    "rights_and_disclosure_basis": null,
+    "settlement": {
+      "canonical_order_reference": null,
+      "external_settlement_reference": null,
+      "reconciliation_reference": null,
+      "currency": null,
+      "amount_publicly_disclosable": false,
+      "public_amount": null,
+      "revenue_countable": false,
+      "independent_external_customer": false,
+      "test_payment": false,
+      "related_party_payment": false,
+      "founder_funded": false
+    },
+    "delivery_binding": {
+      "customer_delivery_claim_id": null,
+      "delivery_evidence_reference": null
+    }
+  },
+  "promotion_checks": [
+    "Do not promote CUSTOMER_DELIVERY without a real commercial basis and acceptance or delivery evidence.",
+    "Do not expose private customer identity or payment evidence without a valid disclosure basis.",
+    "Do not promote REVENUE_VERIFIED from checkout creation, QR rendering, invoice issuance, pending transfer or provider dashboard state alone.",
+    "Do not promote REVENUE_VERIFIED if test_payment, related_party_payment or founder_funded is true.",
+    "REVENUE_VERIFIED requires externally settled evidence reconciled to the canonical order under Commerce authority.",
+    "A revenue record must bind to the corresponding real delivered offer when delivery is part of the commercial obligation.",
+    "Refund/reversal status must remain append-only and may require later correction/revocation of public commercial claims."
+  ]
+}

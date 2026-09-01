@@ -1,0 +1,103 @@
+name: ỦA? Recovery Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ua/**'
+      - '.github/workflows/ua-recovery-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ua-recovery-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy-ua:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Checkout exact recovery revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify bounded ỦA? recovery projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s ua/index.html
+          grep -Fq 'data-recovery-projection="ua-wonder-pages-v1"' ua/index.html
+          grep -Fq 'data-canonical-repository="daubesonntag-dotcom/daube-web"' ua/index.html
+          grep -Fq 'data-canonical-source-revision="4e746c3b3f4474028c49196eb5ff5ca1df342dd1"' ua/index.html
+          grep -Fq '<h1 id="ua-title">ỦA?</h1>' ua/index.html
+          grep -Fq 'Không streak.' ua/index.html
+          grep -Fq 'Không có countdown.' ua/index.html
+          grep -Fq '● Một nút' ua/index.html
+          grep -Fq 'Đủ rồi nha ✓' ua/index.html
+          ! grep -Eiq '(api[_-]?key|secret[_-]?key|service_role|webhook_secret|private[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'][^"'"']+' ua/index.html
+
+      - name: Verify local /ua/ route before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4182 --bind 127.0.0.1 >/tmp/ua-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            code="$(curl --silent --show-error --output /tmp/ua-local.html --write-out '%{http_code}' http://127.0.0.1:4182/ua/ || true)"
+            if [[ "$code" == 200 ]] && grep -Fq '<title>ỦA? — by D’AUBE</title>' /tmp/ua-local.html; then
+              exit 0
+            fi
+            sleep .2
+          done
+          cat /tmp/ua-http.log || true
+          exit 1
+
+      - name: Configure GitHub Pages recovery publisher
+        uses: actions/configure-pages@v6
+
+      - name: Upload bounded public site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      - name: Deploy bounded recovery site
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Verify canonical /ua/ external readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            code="$(curl --silent --show-error --location --output /tmp/ua-live.html --write-out '%{http_code}' --header 'Cache-Control: no-cache' "https://daubesonntag.com/ua/?recovery-sha=${GITHUB_SHA}" || true)"
+            if [[ "$code" == 200 ]] \
+              && grep -Fq '<title>ỦA? — by D’AUBE</title>' /tmp/ua-live.html \
+              && grep -Fq 'data-recovery-projection="ua-wonder-pages-v1"' /tmp/ua-live.html \
+              && grep -Fq 'data-canonical-source-revision="4e746c3b3f4474028c49196eb5ff5ca1df342dd1"' /tmp/ua-live.html \
+              && grep -Fq 'Không streak.' /tmp/ua-live.html; then
+              {
+                echo '## ỦA? recovery route verified'
+                echo '- canonical URL: https://daubesonntag.com/ua/'
+                echo '- HTTP: 200'
+                echo '- recovery projection marker: VERIFIED'
+                echo '- canonical daube-web source provenance: VERIFIED'
+                echo '- anti-retention copy: VERIFIED'
+                echo '- Cloudflare remains intended final canonical runtime; this Pages publication is temporary recovery.'
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo '::error title=ỦA route external readback failed::https://daubesonntag.com/ua/ did not converge to the verified recovery projection.'
+          exit 1

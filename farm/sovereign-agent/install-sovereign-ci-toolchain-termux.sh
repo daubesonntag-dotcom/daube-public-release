@@ -17,10 +17,15 @@ chmod 700 "$STATE_DIR" "$CI_DIR"
 # Source transport uses encrypted exact-command closures. Keep the phone free of
 # GitHub/cloud bearer credentials: install only local execution/materialization tools.
 pkg install -y git python curl coreutils tar zstd age >/dev/null
-if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+if ! command -v node >/dev/null 2>&1; then
   if ! pkg install -y nodejs-lts >/dev/null 2>&1; then
     pkg install -y nodejs >/dev/null
   fi
+fi
+# Current Termux Node packages recommend npm separately; install it explicitly so
+# the receipt is independent of apt recommends behavior.
+if ! command -v npm >/dev/null 2>&1; then
+  pkg install -y npm >/dev/null
 fi
 
 for tool in git python curl sha256sum tar zstd age node npm; do

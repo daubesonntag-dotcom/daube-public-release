@@ -1,0 +1,20 @@
+{
+  "name": "D’AUBE Studio — Public Atelier",
+  "short_name": "D’AUBE Studio",
+  "description": "A public-safe, local-only living creative sandbox from D’AUBE SONNTAG.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffaf4",
+  "theme_color": "#fff8ef",
+  "orientation": "any",
+  "categories": ["design", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

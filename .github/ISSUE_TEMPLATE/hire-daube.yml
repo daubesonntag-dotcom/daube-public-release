@@ -1,24 +1,50 @@
 name: "Hire D’AUBE / Request a fit review"
-description: "Describe one public-safe business or workflow problem. This is not a purchase or promise of acceptance."
+description: "Describe one public-safe business or workflow problem. This is a qualification request, not a purchase or promise of acceptance."
 title: "[Hire D’AUBE] "
 body:
   - type: markdown
     attributes:
       value: |
-        Start with one concrete problem. Do not post passwords, OTPs, API keys, private keys, recovery codes, government-ID data, bank/card details, private customer data, confidential contracts, or unrestricted admin access.
+        Start with one concrete problem. D’AUBE currently routes suitable requests toward a bounded Automation Sprint, Digital Workflow Kit, micro-audit, Managed SEO Operator, or another explicitly scoped digital offer.
+
+        Do not post passwords, OTPs, API keys, private keys, recovery codes, government-ID data, bank/card details, private customer data, confidential contracts, or unrestricted admin access.
+
+        This public issue is an owned acquisition/qualification surface. Creating it does not create an order, invoice, payment, contract, customer acceptance, settlement, or revenue event.
 
   - type: dropdown
     id: request_type
     attributes:
       label: What kind of help are you looking for?
       options:
-        - Workflow / automation problem
+        - Automation Sprint / workflow implementation
+        - Digital Workflow Kit / reusable template
         - Managed SEO / discoverability fit review
-        - Digital workflow kit / reusable template
         - Micro-audit / prioritized diagnosis
         - Other bounded digital work
     validations:
       required: true
+
+  - type: dropdown
+    id: acquisition_source
+    attributes:
+      label: How did you reach this D’AUBE intake?
+      description: This is used only for first-party acquisition attribution and channel quality analysis.
+      options:
+        - D’AUBE website
+        - D’AUBE GitHub / public release
+        - Search engine
+        - Social/community post
+        - Referral / recommendation
+        - Other / prefer not to say
+    validations:
+      required: true
+
+  - type: input
+    id: campaign_reference
+    attributes:
+      label: Campaign/reference code (optional)
+      description: If a D’AUBE link or post showed a campaign/reference code, paste only that public code here. Do not paste tokens, credentials, cookies, or private tracking data.
+      placeholder: "Example: github-owned-fast-path-20260902"
 
   - type: textarea
     id: problem
@@ -103,5 +129,5 @@ body:
           required: true
         - label: I consent to D’AUBE replying to this issue about fit and next steps.
           required: true
-        - label: I understand this request is not a contract, purchase, guarantee, invoice, or proof of revenue.
+        - label: I understand this request is not a contract, purchase, guarantee, invoice, settlement, or proof of revenue.
           required: true

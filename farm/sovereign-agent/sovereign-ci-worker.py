@@ -15,10 +15,10 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 HOME = Path(os.environ.get("DAUBE_SOVEREIGN_HOME", str(Path.home() / ".local/share/daube-sovereign-host")))
-HERE = Path(__file__).resolve().parent
 AGENT_PATH = Path(os.environ.get("DAUBE_SOVEREIGN_AGENT_PATH", str(Path.home() / ".local/lib/daube-sovereign-agent/direct-agent.py")))
 BROKER_URL = os.environ.get("DAUBE_SOVEREIGN_CI_WORKER_URL", "https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-sovereign-ci-worker").rstrip("/")
 AGE_IDENTITY = Path(os.environ.get("DAUBE_SOVEREIGN_CI_AGE_IDENTITY", str(HOME / "ci" / "transport-age-identity.txt")))
@@ -53,6 +53,17 @@ def load_agent():
 
 def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def parse_iso_utc(value: object) -> float:
+    text = str(value or "")
+    try:
+        instant = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise RuntimeError("job_expiry_invalid") from error
+    if instant.tzinfo is None:
+        raise RuntimeError("job_expiry_timezone_required")
+    return instant.astimezone(timezone.utc).timestamp()
 
 
 def stable_json(value: object) -> str:
@@ -161,8 +172,7 @@ def validate_job(job: dict[str, object], manifest_digest: str, host_id: str, rec
     duration = int(job.get("maxDurationSeconds", 0))
     if duration < 10 or duration > 300:
         raise RuntimeError("job_duration_invalid")
-    expires_at = time.mktime(time.strptime(str(job.get("expiresAt", "")), "%Y-%m-%dT%H:%M:%S.%fZ")) if "." in str(job.get("expiresAt", "")) else time.mktime(time.strptime(str(job.get("expiresAt", "")), "%Y-%m-%dT%H:%M:%SZ"))
-    if expires_at <= time.time():
+    if parse_iso_utc(job.get("expiresAt")) <= time.time():
         raise RuntimeError("job_expired")
     return ciphertext, normalize_test_paths(job.get("testPaths"))
 
@@ -233,18 +243,20 @@ def workspace_digest(workspace: Path) -> str:
     return digest.hexdigest()
 
 
-def run_tests(workspace: Path, test_paths: list[str], timeout: int) -> tuple[int, bytes, bytes, list[str]]:
+def run_tests(workspace: Path, runtime_root: Path, test_paths: list[str], timeout: int) -> tuple[int, bytes, bytes, list[str]]:
     argv = ["node", "--test", *test_paths]
+    home = runtime_root / "home"
+    tmp = runtime_root / "tmp"
+    home.mkdir(parents=True, mode=0o700)
+    tmp.mkdir(parents=True, mode=0o700)
     env = {
         "PATH": os.environ.get("PATH", ""),
-        "HOME": str(workspace / ".home"),
-        "TMPDIR": str(workspace / ".tmp"),
+        "HOME": str(home),
+        "TMPDIR": str(tmp),
         "CI": "1",
         "NO_COLOR": "1",
         "LANG": os.environ.get("LANG", "C.UTF-8"),
     }
-    Path(env["HOME"]).mkdir(mode=0o700)
-    Path(env["TMPDIR"]).mkdir(mode=0o700)
     try:
         completed = subprocess.run(argv, cwd=workspace, env=env, capture_output=True, timeout=timeout, check=False)
         return completed.returncode, completed.stdout, completed.stderr, argv
@@ -300,7 +312,7 @@ def failure_result(job: dict[str, object], job_id: str, host_id: str, code: str)
 
 def main() -> int:
     require_tools()
-    recipient, recipient_fingerprint = load_recipient()
+    _recipient, recipient_fingerprint = load_recipient()
     agent = load_agent()
     agent.require_runtime()
     if agent.runtime_kind() != "android-termux":
@@ -318,24 +330,25 @@ def main() -> int:
 
     job = response["job"]
     job_id = str(job.get("jobId", ""))
-    result: dict[str, object]
     try:
         ciphertext, test_paths = validate_job(job, str(response.get("manifestDigest", "")), host_id, recipient_fingerprint)
         with tempfile.TemporaryDirectory(prefix="daube-sovereign-ci-") as temp_dir:
             root = Path(temp_dir)
             cipher_path = root / "source.age"
             workspace = root / "workspace"
+            runtime_root = root / "runtime"
             workspace.mkdir(mode=0o700)
+            runtime_root.mkdir(mode=0o700)
             cipher_path.write_bytes(ciphertext)
             extract_archive(cipher_path, workspace)
             before = workspace_digest(workspace)
             if before != str(job.get("sourceManifestDigest", "")).lower():
                 raise RuntimeError("source_manifest_digest_mismatch")
-            exit_code, stdout, stderr, argv = run_tests(workspace, test_paths, int(job.get("maxDurationSeconds", 0)))
+            exit_code, stdout, stderr, argv = run_tests(workspace, runtime_root, test_paths, int(job.get("maxDurationSeconds", 0)))
             after = workspace_digest(workspace)
             source_mutated = before != after
             passed = exit_code == 0 and not source_mutated
-            result = {
+            result: dict[str, object] = {
                 "schema": RESULT_SCHEMA,
                 "jobId": job_id,
                 "hostId": host_id,

@@ -19,7 +19,17 @@
     "version": "1788282369551",
     "url": "https://d-aube-studio-public-atelier-7s9b5a.v2.appdeploy.ai/",
     "providerRecordedAt": "2026-09-01T17:06:09.551Z",
-    "rollbackReference": "appdeploy-version:1788282369551"
+    "rollbackReference": "appdeploy-version:1788282369551",
+    "customDomain": {
+      "hostname": "studio.daubesonntag.com",
+      "state": "PENDING_DNS",
+      "requiredRecord": {
+        "type": "CNAME",
+        "name": "studio",
+        "target": "proxy-v2.appdeploy.ai"
+      },
+      "activationRequiresDnsVerification": true
+    }
   },
   "testSummary": {
     "deploymentStatus": "ready",
@@ -43,7 +53,7 @@
     "authenticated private Studio is live",
     "AI generation executes from the public shell",
     "production publish is authorized from the public shell",
-    "custom daubesonntag.com Studio hostname is configured",
+    "studio.daubesonntag.com DNS is active and verified",
     "all browsers and devices have passed independent external testing"
   ]
 }

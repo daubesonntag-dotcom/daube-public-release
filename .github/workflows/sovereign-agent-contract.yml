@@ -6,10 +6,12 @@ on:
       - main
     paths:
       - 'farm/sovereign-agent/**'
+      - 'tests/sovereign-ci-termux-contract.test.mjs'
       - '.github/workflows/sovereign-agent-contract.yml'
   pull_request:
     paths:
       - 'farm/sovereign-agent/**'
+      - 'tests/sovereign-ci-termux-contract.test.mjs'
       - '.github/workflows/sovereign-agent-contract.yml'
   workflow_dispatch:
 
@@ -32,9 +34,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m py_compile farm/sovereign-agent/direct-agent.py
+          python3 -m py_compile \
+            farm/sovereign-agent/direct-agent.py \
+            farm/sovereign-agent/sovereign-ci-attest.py \
+            farm/sovereign-agent/sovereign-ci-worker.py
           bash -n farm/sovereign-agent/install.sh
           bash -n farm/sovereign-agent/install-termux.sh
+          bash -n farm/sovereign-agent/install-sovereign-ci-toolchain-termux.sh
+      - name: Sovereign Termux CI contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/sovereign-ci-termux-contract.test.mjs
       - name: Runtime-kind contracts
         shell: bash
         run: |
@@ -156,9 +167,6 @@ jobs:
               subprocess.check_call([openssl,'pkey','-in',str(agent.KEY),'-pubout','-out',str(agent.PUB)])
               public_pem=agent.PUB.read_text()
               payload={'daube':'termux-pem-one-shot-fallback'}
-              # Reproduce the Android class of failure after a valid PEM identity
-              # already exists: the CLI frontend fails, but the same identity must
-              # continue through libcrypto without key rotation.
               agent._openssl_sign_pem_file=lambda *_args,**_kwargs: (_ for _ in ()).throw(
                   subprocess.CalledProcessError(1,['openssl','pkeyutl','-sign'])
               )

@@ -15,6 +15,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -174,6 +175,20 @@ def register(host, public_pem: str, fingerprint: str) -> dict[str, object]:
     return response
 
 
+def parse_utc_epoch(value: object) -> float:
+    text = str(value or "").strip()
+    if not text:
+        raise RuntimeError("kms_job_expiry_invalid")
+    normalized = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise RuntimeError("kms_job_expiry_invalid") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
 def validate_job(job: dict[str, object], host_id: str) -> None:
     if job.get("schema") != JOB_SCHEMA:
         raise RuntimeError("kms_job_schema_invalid")
@@ -193,15 +208,7 @@ def validate_job(job: dict[str, object], host_id: str) -> None:
         raise RuntimeError("kms_job_id_invalid")
     if not HEX64.fullmatch(str(job.get("contextSha256", ""))):
         raise RuntimeError("kms_job_context_invalid")
-    expires_at = str(job.get("expiresAt", ""))
-    try:
-        expires_epoch = time.mktime(time.strptime(expires_at, "%Y-%m-%dT%H:%M:%S.%fZ"))
-    except ValueError:
-        try:
-            expires_epoch = time.mktime(time.strptime(expires_at, "%Y-%m-%dT%H:%M:%SZ"))
-        except ValueError as exc:
-            raise RuntimeError("kms_job_expiry_invalid") from exc
-    if expires_epoch <= time.time() - 2:
+    if parse_utc_epoch(job.get("expiresAt")) <= time.time() - 2:
         raise RuntimeError("kms_job_expired")
 
 

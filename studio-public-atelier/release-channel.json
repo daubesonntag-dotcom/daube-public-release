@@ -10,8 +10,17 @@
     "status": "pending_dns"
   },
   "source": {
-    "repository": "daubesonntag-dotcom/daube-studio-runtime",
-    "commit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778"
+    "forgeHandoff": {
+      "repository": "daubesonntag-dotcom/daube-forge-os",
+      "commit": "594c224aa0ea8fcd19e7370a799071efd8b38c62",
+      "path": "config/release-assurance/public-release-handoffs/studio-public-atelier-v1.1.json",
+      "handoffId": "DAUBE-FORGE-STUDIO-PUBLIC-ATELIER-V1.1"
+    },
+    "upstreamStudio": {
+      "repository": "daubesonntag-dotcom/daube-studio-runtime",
+      "commit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778"
+    },
+    "executablePayloadDigest": "sha256:ee557850a73045fb9be387aef223acd7ca442bd2fb4eefb010acdc561f87501f"
   },
   "distribution": {
     "installablePwa": true,
@@ -43,7 +52,8 @@
     "check": "network-no-store",
     "rollbackRequired": true,
     "failClosedOnUnknownRights": true,
-    "neverPromoteFromStaticPublishAlone": true
+    "neverPromoteFromStaticPublishAlone": true,
+    "canonicalForgeHandoffRequired": true
   },
   "rollback": {
     "previousPublicVersion": "1.0.0",

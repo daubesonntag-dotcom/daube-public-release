@@ -21,6 +21,7 @@ RECEIPT = CI_DIR / "signed-readiness-receipt.json"
 AGE_IDENTITY = Path(os.environ.get("DAUBE_SOVEREIGN_CI_AGE_IDENTITY", str(CI_DIR / "transport-age-identity.txt")))
 AGE_RECIPIENT_FILE = Path(os.environ.get("DAUBE_SOVEREIGN_CI_AGE_RECIPIENT", str(CI_DIR / "transport-age-recipient.txt")))
 AGE_RECIPIENT_RE = re.compile(r"^age1[0-9a-z]{20,4096}$")
+MIN_NODE_MAJOR = 22
 
 
 def load_agent():
@@ -41,6 +42,13 @@ def version(command: list[str]) -> str | None:
         return None
     lines = (completed.stdout or completed.stderr or "").strip().splitlines()
     return lines[0][:180] if lines else None
+
+
+def node_version_ready(value: str | None) -> bool:
+    if not value:
+        return False
+    match = re.search(r"v?(\d+)(?:\.|$)", value)
+    return bool(match and int(match.group(1)) >= MIN_NODE_MAJOR)
 
 
 def load_age_recipient() -> tuple[str | None, str | None]:
@@ -78,6 +86,8 @@ def probe_toolchain() -> dict[str, object]:
         executable = shutil.which(command[0])
         observed_version = version(command) if executable else None
         ready = bool(executable and observed_version)
+        if name == "node":
+            ready = ready and node_version_ready(observed_version)
         all_ready = all_ready and ready
         tools[name] = {"ready": ready, "version": observed_version}
 
@@ -145,6 +155,7 @@ def main() -> int:
         "runtimeKind": attestation["runtimeKind"],
         "ciToolchainReady": ci_toolchain["ready"],
         "recipientFingerprint": ci_toolchain["sourceTransport"]["recipientFingerprint"],
+        "minimumNodeMajor": MIN_NODE_MAJOR,
         "publicKeySha256": attestation["identity"]["publicKeySha256"],
         "paidSpendAuthorized": False,
         "nextGate": (

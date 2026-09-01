@@ -1,0 +1,49 @@
+{
+  "schema": "daube.public-release-passport.v1",
+  "releasePassport": "DAUBE-STUDIO-PUBLIC-ATELIER-V1",
+  "artifact": "studio-public-atelier",
+  "changeTier": "T2",
+  "state": "LIVE_PUBLIC_SHELL",
+  "sourceRepository": "daubesonntag-dotcom/daube-studio-runtime",
+  "sourceCommit": "6c1c7be93f426870e9cf8bb82d5e26fd924dd778",
+  "artifactDigestScope": "standalone sanitized public shell: index.html + styles.css + app.js in lexicographic path order with path/NUL/content/NUL framing",
+  "artifactDigest": "sha256:5f5bb041571081f70bd6a940cb263a0cb87c1533fbcb7b64cfaea5fc578257b8",
+  "fileDigests": {
+    "index.html": "sha256:79627bc970f7198021ea47538cd873550ca25b254bf1faa6aec620a7dc1e3123",
+    "styles.css": "sha256:8f2738097b4e1a0d6d8a4ea922acbb09f98d276e805a7584b63292611afbd7ec",
+    "app.js": "sha256:f91d46de1ccfa9b0982fd19b3b3c9b551bf31aa9c952bf2787298de8a980af88"
+  },
+  "deployment": {
+    "provider": "appdeploy",
+    "appId": "d-aube-studio-public-atelier-7s9b5a",
+    "version": "1788282369551",
+    "url": "https://d-aube-studio-public-atelier-7s9b5a.v2.appdeploy.ai/",
+    "providerRecordedAt": "2026-09-01T17:06:09.551Z",
+    "rollbackReference": "appdeploy-version:1788282369551"
+  },
+  "testSummary": {
+    "deploymentStatus": "ready",
+    "frontendErrors": 0,
+    "networkErrors": 0,
+    "qaScreenshotsRecorded": true,
+    "declaredUserVisibleTests": 4,
+    "providerE2eResult": "NOT_REPORTED",
+    "claim": "The provider reported a ready deployment with zero frontend/network errors. This does not claim that all declared E2E scenarios were executed by the provider."
+  },
+  "publicBoundary": {
+    "localProjectMemoryOnly": true,
+    "aiExecutionExposed": false,
+    "productionMutationExposed": false,
+    "credentialsExposed": false,
+    "privateRuntimeTopologyPublished": false,
+    "releaseAuthorityExposed": false
+  },
+  "releaseOwner": "daubesonntag-dotcom",
+  "claimsNotProven": [
+    "authenticated private Studio is live",
+    "AI generation executes from the public shell",
+    "production publish is authorized from the public shell",
+    "custom daubesonntag.com Studio hostname is configured",
+    "all browsers and devices have passed independent external testing"
+  ]
+}

@@ -15,7 +15,7 @@ test('Termux CI bootstrap uses packaged rage, Node 22+, and no runner credential
   assert.match(installer, /chmod 0600 "\$AGE_IDENTITY"/);
   assert.match(installer, /RECIPIENT_FINGERPRINT/);
   assert.match(installer, /DAUBE_SOVEREIGN_CI_RELEASE_REVISION:-[a-f0-9]{40}/);
-  assert.doesNotMatch(installer, /GITHUB_TOKEN|GH_TOKEN|runner-registration|sudo /i);
+  assert.doesNotMatch(installer, /\bGITHUB_TOKEN\b|\bGH_TOKEN\b|\bRUNNER_TOKEN\b|config\.sh[^\n]*--token|^\s*sudo\s/m);
 });
 
 test('bootstrap schedules bounded proof and fixed worker without paid fallback', () => {

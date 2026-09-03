@@ -1,0 +1,103 @@
+name: D'AUBE Community Browser Harness V1
+
+on:
+  push:
+    branches:
+      - feat/community-browser-harness-v1
+    paths:
+      - ".github/workflows/community-browser-harness-v1.yml"
+      - "tools/community-browser-harness-v1.mjs"
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Public HTTPS URL only"
+        required: false
+        type: string
+      expected_revision:
+        description: "Optional exact 40-char public deployment revision"
+        required: false
+        type: string
+      workload_digest:
+        description: "Optional 64-char Community Mesh workload digest"
+        required: false
+        type: string
+      viewport_width:
+        description: "Viewport width"
+        required: false
+        default: "1440"
+        type: string
+      viewport_height:
+        description: "Viewport height"
+        required: false
+        default: "1000"
+        type: string
+      scenario:
+        description: "Scenario label"
+        required: false
+        default: "default"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-browser-harness-v1-${{ github.ref }}-${{ inputs.target_url || 'canary' }}
+  cancel-in-progress: true
+
+jobs:
+  public-browser:
+    name: public-safe-browser-evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: Checkout public harness only
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Resolve public-safe inputs
+        shell: bash
+        env:
+          INPUT_URL: ${{ inputs.target_url }}
+          INPUT_REVISION: ${{ inputs.expected_revision }}
+          INPUT_DIGEST: ${{ inputs.workload_digest }}
+          INPUT_WIDTH: ${{ inputs.viewport_width }}
+          INPUT_HEIGHT: ${{ inputs.viewport_height }}
+          INPUT_SCENARIO: ${{ inputs.scenario }}
+        run: |
+          set -euo pipefail
+          echo "TARGET_URL=${INPUT_URL:-https://d-aube-work-arcade-xs0pd2.v2.appdeploy.ai/}" >> "$GITHUB_ENV"
+          echo "EXPECTED_REVISION=${INPUT_REVISION:-}" >> "$GITHUB_ENV"
+          echo "WORKLOAD_DIGEST=${INPUT_DIGEST:-}" >> "$GITHUB_ENV"
+          echo "VIEWPORT_WIDTH=${INPUT_WIDTH:-1440}" >> "$GITHUB_ENV"
+          echo "VIEWPORT_HEIGHT=${INPUT_HEIGHT:-1000}" >> "$GITHUB_ENV"
+          echo "SCENARIO=${INPUT_SCENARIO:-default}" >> "$GITHUB_ENV"
+          echo "OUTPUT_DIR=$RUNNER_TEMP/daube-community-browser-evidence" >> "$GITHUB_ENV"
+          echo "HARNESS_PREFIX=$RUNNER_TEMP/daube-community-browser-deps" >> "$GITHUB_ENV"
+
+      - name: Install pinned public harness dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HARNESS_PREFIX"
+          cd "$HARNESS_PREFIX"
+          npm init -y >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund playwright@1.62.0 axe-core@4.12.1
+          npx playwright install --with-deps chromium
+
+      - name: Run public-safe browser evidence
+        run: node tools/community-browser-harness-v1.mjs
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daube-community-browser-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/daube-community-browser-evidence
+          if-no-files-found: error
+          retention-days: 7

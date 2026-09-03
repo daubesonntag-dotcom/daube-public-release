@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#eaf6ff" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>D’AUBE Payment Preview</title>
+  <link rel="stylesheet" href="payment-preview.css" />
+</head>
+<body>
+  <main class="screen" aria-label="D’AUBE payment confirmation preview">
+    <div class="aurora a1" aria-hidden="true"></div>
+    <div class="aurora a2" aria-hidden="true"></div>
+
+    <header class="masthead">
+      <div class="brand"><span aria-hidden="true">✦</span><strong>D’AUBE SONNTAG</strong></div>
+      <div class="secure"><span aria-hidden="true">♢</span><strong>Secure checkout</strong></div>
+      <nav class="steps" aria-label="Checkout progress">
+        <div class="step done"><i>✓</i><span>Order</span></div><b></b>
+        <div class="step current"><i>2</i><span>Payment</span></div><b></b>
+        <div class="step"><i>3</i><span>Confirmation</span></div>
+      </nav>
+    </header>
+
+    <section class="card hero">
+      <div class="hero-icon">▣</div>
+      <div><p class="kicker">PAYMENT REVIEW</p><h1>Confirm your payment</h1><p class="lede">Review the order and payment route before continuing to the provider.</p></div>
+    </section>
+
+    <section class="card order">
+      <p class="kicker">ORDER SUMMARY</p>
+      <div class="product-row">
+        <div class="product-art"><small>D’AUBE</small><strong>DIGITAL<br/>EDITION</strong><span>DS-CREATIVE-001</span></div>
+        <div class="product-copy"><h2>Creative Market Bundle</h2><p>Premium Digital Asset Collection</p><span>◇ Digital product</span><span>◇ Delivery after verified payment</span></div>
+      </div>
+      <div class="price-lines"><div><span>Subtotal</span><b>249.000 ₫</b></div><div><span>Tax</span><b>Calculated by provider if applicable</b></div></div>
+      <div class="total"><span>Total</span><strong>249.000 ₫ <small>VND</small></strong></div>
+      <div class="meta"><div><i>✓</i><span><small>Order number</small><strong>DS-A1B2C3D4</strong></span></div><div><i>✉</i><span><small>Customer contact</small><strong>alex@example.test</strong></span></div></div>
+    </section>
+
+    <section class="card customer">
+      <p class="kicker">CUSTOMER DETAILS</p>
+      <div class="customer-row"><span class="avatar">A</span><div><strong>Alex Morgan</strong><span>alex@example.test</span><small>+84 900 000 000</small></div><button type="button" onclick="location.href='index.html'">✎ Edit details</button></div>
+    </section>
+
+    <section class="card method">
+      <p class="kicker">PAYMENT METHOD</p>
+      <div class="tabs"><span class="active">▰ Cards</span><span><b>P</b> PayPal</span><span>▱ Wallets</span><span>♢ Provider checkout</span></div>
+      <div class="provider"><span class="shield">♢</span><div><small>Payment handled by</small><strong>PayPal Sandbox</strong><span>Methods are determined securely by the provider.</span></div><code>DSA1B2C3D4</code></div>
+    </section>
+
+    <button class="back" type="button" onclick="location.href='index.html'">←&nbsp;&nbsp; Back to Nexus</button>
+    <button class="primary" type="button" disabled aria-disabled="true">▣&nbsp;&nbsp; Confirm &amp; continue · 249.000 ₫ &nbsp;↗</button>
+    <p class="fineprint">Preview only. D’AUBE does not collect or store your card number, CVV, PIN, password or OTP.</p>
+
+    <section class="card assurance">
+      <p class="kicker">PAYMENT ASSURANCE</p>
+      <div class="assurance-grid">
+        <div><i>♢</i><span><strong>Secure checkout</strong><small>Sensitive credentials stay with the provider.</small></span></div>
+        <div><i>✉</i><span><strong>Clear reference</strong><small>Your payment reference is DSA1B2C3D4.</small></span></div>
+        <div><i>✓</i><span><strong>Settlement verified</strong><small>Delivery advances only after reconciliation.</small></span></div>
+      </div>
+    </section>
+
+    <section class="card overview">
+      <p class="kicker">ORDER OVERVIEW</p>
+      <div class="overview-grid"><div><small>Total amount</small><strong>249.000 ₫ <em>VND</em></strong></div><div><small>Provider</small><b>PayPal Sandbox</b></div><div><small>Confirmation</small><b>◷ After verified settlement</b></div></div>
+      <footer>▣ &nbsp; Opening the provider is not proof of payment. D’AUBE confirms payment only after provider or bank evidence is reconciled.</footer>
+    </section>
+  </main>
+</body>
+</html>

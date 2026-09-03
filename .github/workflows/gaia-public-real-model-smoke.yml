@@ -1,0 +1,139 @@
+name: D'AUBE GAIA Public Real-Model Smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'farm/gaia/**'
+      - '.github/workflows/gaia-public-real-model-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daube-gaia-public-real-model-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-model-smoke:
+    name: Official GAIA + local Qwen + live web witness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      LLAMA_RELEASE: b10516
+      LLAMA_ARCHIVE_SHA256: f263a91280471b4c33c4999d7c76259c0f3a0a53a0b3e692b2c0b84380137a35
+      QWEN_REVISION: 9217f5db79a29953eb74d5343926648285ec7e67
+      QWEN_FILE: qwen2.5-0.5b-instruct-q2_k.gguf
+      MODEL_NAME: qwen2.5-0.5b-instruct-q2_k
+      MODEL_BASE_URL: http://127.0.0.1:8080/v1
+      GAIA_URL: https://agents-course-unit4-scoring.hf.space/questions
+      MAX_STEPS: '3'
+    steps:
+      - name: Checkout exact public witness source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove exact clean checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Install pinned llama.cpp CPU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/llama
+          archive=.runtime/llama.tar.gz
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --silent --show-error \
+            -o "$archive" \
+            "https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA_RELEASE}/llama-${LLAMA_RELEASE}-bin-ubuntu-x64.tar.gz"
+          printf '%s  %s\n' "$LLAMA_ARCHIVE_SHA256" "$archive" | sha256sum -c -
+          tar -xzf "$archive" -C .runtime/llama
+          server="$(find .runtime/llama -type f -name llama-server -print -quit)"
+          test -n "$server"
+          chmod +x "$server"
+          printf '%s\n' "$server" > .runtime/llama-server-path
+          "$server" --version
+
+      - name: Download immutable Apache-2.0 Qwen GGUF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .runtime/models artifacts/gaia-public-smoke
+          model=.runtime/models/$QWEN_FILE
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --silent --show-error \
+            -o "$model" \
+            "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/${QWEN_REVISION}/${QWEN_FILE}?download=true"
+          test -s "$model"
+          sha256sum "$model" | tee artifacts/gaia-public-smoke/model.sha256
+          du -h "$model"
+
+      - name: Start local OpenAI-compatible model endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          server="$(cat .runtime/llama-server-path)"
+          "$server" \
+            --model ".runtime/models/$QWEN_FILE" \
+            --alias "$MODEL_NAME" \
+            --host 127.0.0.1 \
+            --port 8080 \
+            --ctx-size 4096 \
+            --threads 2 \
+            --parallel 1 \
+            > artifacts/gaia-public-smoke/llama-server.log 2>&1 &
+          echo $! > .runtime/llama-server.pid
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent http://127.0.0.1:8080/v1/models > artifacts/gaia-public-smoke/models.json; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 90 ]; then
+              cat artifacts/gaia-public-smoke/llama-server.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Run official-question real-model web-agent smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          node farm/gaia/public-real-model-smoke.mjs | tee artifacts/gaia-public-smoke/stdout.json
+
+      - name: Validate evidence truth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const r = JSON.parse(fs.readFileSync('artifacts/gaia-public-smoke/receipt.json', 'utf8'));
+          if (r.schema !== 'daube.gaia-public-real-model-smoke.v1') throw new Error('receipt_schema_invalid');
+          if (r.status !== 'SUCCEEDED') throw new Error(`smoke_not_succeeded:${r.status}`);
+          if (r.officialQuestionCount !== 20) throw new Error('official_question_count_invalid');
+          if (!Array.isArray(r.model?.calls) || r.model.calls.length < 1) throw new Error('real_model_call_missing');
+          if (r.submittedToGaia !== false || r.officialScoreClaimed !== false) throw new Error('truth_boundary_invalid');
+          if (r.synthetic !== false || r.paidSpendAuthorized !== false) throw new Error('execution_class_invalid');
+          console.log(JSON.stringify({ decision: 'PASS', taskId: r.question.taskId, modelCalls: r.model.calls.length, retrievalObservations: r.retrieval.observationCount, receiptDigest: r.receiptDigest }));
+          NODE
+
+      - name: Stop local model server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f .runtime/llama-server.pid ]; then kill "$(cat .runtime/llama-server.pid)" 2>/dev/null || true; fi
+
+      - name: Upload immutable witness evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gaia-public-real-model-${{ github.sha }}
+          path: artifacts/gaia-public-smoke/**
+          if-no-files-found: error
+          retention-days: 14

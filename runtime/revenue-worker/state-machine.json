@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "states": [
+    "DISCOVER",
+    "QUALIFY",
+    "PREPARE_APPLICATION",
+    "OFFICIAL_SUBMIT",
+    "FOUNDER_PLATFORM_GATE",
+    "CLIENT_RESPONSE",
+    "CONTRACT_POLICY_CHECK",
+    "ACCEPT_STANDARD",
+    "FOUNDER_CONTRACT_GATE",
+    "FREEZE_SCOPE",
+    "EXECUTE",
+    "VERIFY",
+    "DELIVER",
+    "REVISION_WINDOW",
+    "REQUEST_RELEASE",
+    "AWAIT_SETTLEMENT",
+    "SETTLED",
+    "CLOSED"
+  ],
+  "requiredTransitionEvidence": [
+    "source",
+    "externalId",
+    "timestamp",
+    "evidenceRef",
+    "blocker",
+    "nextAction"
+  ],
+  "revenueCountState": "SETTLED"
+}

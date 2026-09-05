@@ -24,7 +24,7 @@ HOME=Path.home(); BASE=HOME/'daube-revenue-worker'; OPS=BASE/'full-loop'; JOBS=O
 TOKEN_FILE=HOME/'.config/daube/secrets/freelancer.token'; RECEIPTS=MC/'receipts'; EVENTS=MC/'events'/'events.jsonl'; STATE=MC/'state.json'; REVENUE=MC/'revenue-ledger.jsonl'
 VERSION='money-closure-v1'; URL='https://www.freelancer.com'
 EXPAND_TERMS={'new feature','additional feature','extra feature','new page','additional page','new integration','another integration','redesign entire','full redesign','new platform','mobile app','native app','unlimited revision','additional scope'}
-RISK_TERMS={'legal advice','medical diagnosis','therapy','forex','trading bot','crypto trading','gambling','adult content','onsite','on-site'}
+RISK_TERMS={'legal advice','medical diagnosis','therapy','forex','trading bot','crypto trading','gambling','adult content','onsite','on-site','payment wallet','payment gateway','fintech','banking','financial services','money transfer'}
 SENSITIVE_NAMES=('secret','token','credential','.env','id_rsa','private_key','apikey','api_key','password')
 
 def now():return datetime.now(timezone.utc).isoformat()

@@ -1,0 +1,33 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40691264,
+  "title": "Animated Web Journal Development -- 2",
+  "amount": 129,
+  "period": 2,
+  "milestone_percentage": 100,
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "description": "Hi — this is a strong fit for D’AUBE SONNTAG’s interactive web and motion work. I’d build v1 as a lightweight vintage journal with editable pages, browser-local persistence, realistic page flips, subtle petal and stardust effects, page/tab navigation, responsive behavior, and the requested 30–45 second promo capture. I’d keep the first delivery deliberately bounded: local browser saving is included; cross-device account sync is excluded unless you want it added as a separate milestone. D’AUBE-owned systems use React/TypeScript/Three.js and production visual/performance QA, so I’d tune animation density for smooth mobile behavior rather than only desktop. Delivery is 2 days including source, assets, README and promo video. Before build I’d confirm only the target page count and whether you want local-only persistence or a later cross-device sync milestone.",
+  "scope_guard": {
+    "included": [
+      "editable journal pages",
+      "local browser persistence",
+      "page-flip animation",
+      "petal and stardust motion layer",
+      "page/tab navigation",
+      "responsive modern-browser behavior",
+      "30–45 second promo capture",
+      "source/assets/README",
+      "one normal revision cycle"
+    ],
+    "excluded_unless_change_order": [
+      "cross-device account sync",
+      "user authentication/backend account system",
+      "additional themes beyond the agreed vintage direction",
+      "major scope expansion after acceptance"
+    ]
+  },
+  "evidence_policy": "Use only D’AUBE-owned product/system work as capability evidence; do not represent it as past client work.",
+  "source_url": "https://www.freelancer.com/projects/javascript/animated-web-journal-development"
+}

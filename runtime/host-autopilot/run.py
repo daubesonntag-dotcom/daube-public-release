@@ -1,4 +1,4 @@
-import argparse,json,shutil,subprocess,urllib.request
+import argparse,json,os,shutil,subprocess,urllib.request
 from pathlib import Path
 from controller import poll_once, fetch_manifest_url
 from manifest import validate_manifest
@@ -19,16 +19,26 @@ def load_last():
     if not p.exists():return {}
     try:return json.loads(p.read_text())
     except Exception:return {}
+def snapshot_unit_names(manifest):
+    names=set(manifest.get('health_units',[]))
+    for unit in list(names):
+        if unit.endswith('.timer'): names.add(unit[:-6]+'.service')
+    return sorted(names)
 def snapshot_units(manifest):
     d=SNAP/f"{manifest['release_id']}-{manifest['target_revision'][:12]}"; d.mkdir(parents=True,exist_ok=True)
-    for unit in manifest.get('health_units',[]):
+    for unit in snapshot_unit_names(manifest):
         src=Path('/etc/systemd/system')/unit
         if src.exists(): shutil.copy2(src,d/unit)
     return d
+def activation_env(manifest):
+    env=os.environ.copy(); revision=manifest['target_revision']
+    env['DAUBE_AUTOPILOT_TARGET_REVISION']=revision
+    env['DAUBE_V9_REF']=revision
+    return env
 def activate(manifest):
     ep=STAGING/manifest['release_id']/manifest['activation']['entrypoint']
     if not ep.is_file():return 127
-    r=subprocess.run(['bash',str(ep)],cwd=ep.parent.parent,text=True,capture_output=True,timeout=1800)
+    r=subprocess.run(['bash',str(ep)],cwd=ep.parent.parent,text=True,capture_output=True,timeout=1800,env=activation_env(manifest))
     append_event(STATE/'events.jsonl',{'kind':'ACTIVATION','release_id':manifest['release_id'],'exit_code':r.returncode})
     return r.returncode
 def health(units): return all(system_unit_state(u)=='active' for u in units)

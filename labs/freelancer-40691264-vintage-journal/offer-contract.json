@@ -1,0 +1,43 @@
+{
+  "version": "v1",
+  "project_id": 40691264,
+  "currency": "USD",
+  "posted_scope": {
+    "name": "Studio Care",
+    "price_usd": 129,
+    "revision_rounds": 1,
+    "aftercare": {
+      "bug_care_days": 14,
+      "launch_checkin_days": 7,
+      "minor_polish_passes": 1
+    },
+    "complimentary_gifts": [
+      "1 accent/theme variation tailored to the final direction"
+    ],
+    "billing": "No surprise billing; material scope changes are quoted before work starts."
+  },
+  "collector": {
+    "name": "Collector Care Passport",
+    "price_usd": 300,
+    "optional_upgrade": true,
+    "revision_rounds": 2,
+    "aftercare": {
+      "bug_care_days": 30,
+      "launch_hypercare_days": 14,
+      "compatibility_checks": 1,
+      "priority_handling": true
+    },
+    "complimentary_gifts": [
+      "1 exclusive seasonal theme",
+      "1 signature micro-interaction",
+      "1 future minor enhancement credit"
+    ]
+  },
+  "guardrails": {
+    "fake_scarcity": false,
+    "fake_discounting": false,
+    "unlimited_support": false,
+    "posted_bid_preserved": true,
+    "scope_expansion_requires_quote": true
+  }
+}

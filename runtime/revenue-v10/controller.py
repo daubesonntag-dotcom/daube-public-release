@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -15,6 +16,9 @@ ALLOWED_SERVICES = frozenset(
     }
 )
 SECRET_KEYS = ("token", "secret", "password", "api_key", "apikey", "credential")
+SECRET_VALUE_PATTERNS = [
+    re.compile(r"(?i)(token|secret|password|api[_-]?key)\s*[=:]\s*([^\s]+)")
+]
 
 
 def atomic_json(path, obj):
@@ -40,6 +44,11 @@ def _scrub(obj):
         }
     if isinstance(obj, list):
         return [_scrub(value) for value in obj]
+    if isinstance(obj, str):
+        value = obj
+        for pattern in SECRET_VALUE_PATTERNS:
+            value = pattern.sub(lambda match: f"{match.group(1)}=[REDACTED]", value)
+        return value
     return obj
 
 
@@ -63,12 +72,7 @@ def safe_start(service, starter):
 
 
 def systemd_starter(service):
-    """Best-effort acceleration only; existing timers remain the authority.
-
-    V10 never elevates privileges or widens polkit/sudo policy. If the host user
-    cannot start a system service directly, this returns False and the existing
-    worker timer performs the same action on its normal cadence.
-    """
+    """Best-effort acceleration only; existing timers remain the authority."""
     if service not in ALLOWED_SERVICES:
         return False
     result = subprocess.run(
@@ -127,6 +131,8 @@ def run_once(root: Path, service_starter=systemd_starter, roots_override=None):
                 started.add(action)
         snapshot["action"] = action if started_ok else None
         atomic_json(root / "projects" / f"{project_id}.json", snapshot)
+        if state == "FOUNDER_GATE":
+            atomic_json(root / "founder-gates" / f"{project_id}.json", snapshot)
         projects.append(snapshot)
         append_event(
             root / "events.jsonl",

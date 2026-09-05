@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-09-05T16:21:00+07:00",
+  "provider": "freelancer_official_api",
+  "active_bid_wip_cap": 3,
+  "active_submitted": [
+    {"project_id": 40691264, "bid_id": 493896806, "amount": 129, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD"},
+    {"project_id": 40690929, "bid_id": 493897084, "amount": 115, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD"}
+  ],
+  "closed_without_bid": [
+    {"project_id": 40691270, "state": "PROVIDER_ERROR_FAIL_CLOSED", "reason": "project_not_active"}
+  ],
+  "next_candidate": {"project_id": 40690632, "amount": 119, "currency": "USD", "delivery_days": 2, "state": "HOST_ENQUEUE_PENDING", "packet_commit": "3562fc6f7c3d0ab6f80eee55fc76903adf6e6034"},
+  "settled_revenue_usd": 0
+}

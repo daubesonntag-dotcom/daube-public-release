@@ -1,17 +1,53 @@
-import hashlib, tempfile, unittest
+import hashlib, json, tempfile, unittest
 from pathlib import Path
-import manifest, stage, checks, transaction, controller, watchdog
+import manifest, stage, checks, transaction, controller, watchdog, chain
 import run
 
 def good_manifest():
     payload=b'echo ok\n'
     return {'schema':'daube.host-autopilot.v1','enabled':True,'target_revision':'89e7ea9e2ece88f5ffbc3f856b746aefca6a5427','release_id':'fixture-1','artifacts':[{'path':'installers/example.sh','sha256':hashlib.sha256(payload).hexdigest(),'mode':'0755'}],'checks':[['bash','-n','installers/example.sh']],'activation':{'kind':'installer','entrypoint':'installers/example.sh'},'health_units':['daube-runtime-watchdog.timer'],'rollback':'required'}
 
+def good_phase(phase_id='phase-1',release_id='release-1',revision='1'*40,depends_on=None):
+    payload=b'echo ok\n'
+    return {'phase_id':phase_id,'target_revision':revision,'release_id':release_id,'artifacts':[{'path':'installers/example.sh','sha256':hashlib.sha256(payload).hexdigest(),'mode':'0755'}],'checks':[['bash','-n','installers/example.sh']],'activation':{'kind':'installer','entrypoint':'installers/example.sh'},'health_units':['daube-runtime-watchdog.timer'],'depends_on':depends_on,'success_receipt':'APPLIED'}
+
+def good_chain(enabled=True):
+    p1=good_phase(); p2=good_phase('phase-2','release-2','2'*40,'phase-1')
+    return {'schema':'daube.native-release-chain.v1','enabled':enabled,'chain_id':'chain-1','phases':[p1,p2],'rollback_policy':'phase-local-required'}
+
+def applied(phase): return {'state':'APPLIED','release_id':phase['release_id'],'target_revision':phase['target_revision']}
+
 class ManifestTests(unittest.TestCase):
     def test_good(self): self.assertEqual(manifest.validate_manifest(good_manifest()),(True,'OK'))
     def test_revision_exact(self): m=good_manifest(); m['target_revision']='main'; self.assertFalse(manifest.validate_manifest(m)[0])
     def test_shell_string_rejected(self): m=good_manifest(); m['checks']=['bash -n x']; self.assertFalse(manifest.validate_manifest(m)[0])
     def test_path_allowlist(self): m=good_manifest(); m['artifacts'][0]['path']='../../etc/passwd'; self.assertFalse(manifest.validate_manifest(m)[0])
+class ChainTests(unittest.TestCase):
+    def test_good_chain(self): self.assertEqual(chain.validate_chain(good_chain()),(True,'OK'))
+    def test_chain_requires_exact_sha(self): c=good_chain(); c['phases'][0]['target_revision']='main'; self.assertFalse(chain.validate_chain(c)[0])
+    def test_chain_rejects_shell_string(self): c=good_chain(); c['phases'][0]['checks']=['bash -n x']; self.assertFalse(chain.validate_chain(c)[0])
+    def test_disabled_chain(self): self.assertEqual(chain.select_phase(good_chain(False),lambda p:None)['classification'],'DISABLED')
+    def test_first_phase_ready(self): self.assertEqual(chain.select_phase(good_chain(),lambda p:None)['phase']['phase_id'],'phase-1')
+    def test_predecessor_exact_receipt_unlocks_second(self):
+        c=good_chain(); p1=c['phases'][0]
+        r=chain.select_phase(c,lambda p:applied(p1) if p['phase_id']=='phase-1' else None)
+        self.assertEqual((r['classification'],r['phase']['phase_id']),('READY','phase-2'))
+    def test_mismatched_predecessor_receipt_waits(self):
+        c=good_chain(); bad={'state':'APPLIED','release_id':'wrong','target_revision':c['phases'][0]['target_revision']}
+        r=chain.select_phase(c,lambda p:bad if p['phase_id']=='phase-1' else None)
+        self.assertEqual(r['classification'],'READY')
+        # phase 1 itself is not proven applied, so it remains the only eligible phase.
+        self.assertEqual(r['phase']['phase_id'],'phase-1')
+    def test_predecessor_rollback_blocks_successor(self):
+        c=good_chain(); p1=c['phases'][0]
+        rb={'state':'ROLLED_BACK','release_id':p1['release_id'],'target_revision':p1['target_revision']}
+        # A rolled-back phase is selected for retry only if it has no predecessor; successor is never skipped into.
+        r=chain.select_phase(c,lambda p:rb if p['phase_id']=='phase-1' else None)
+        self.assertEqual(r['phase']['phase_id'],'phase-1')
+    def test_all_applied_noop(self):
+        c=good_chain(); receipts={p['phase_id']:applied(p) for p in c['phases']}
+        self.assertEqual(chain.select_phase(c,lambda p:receipts[p['phase_id']])['classification'],'NOOP')
+    def test_prior_founder_hold_stops_chain(self): self.assertEqual(chain.select_phase(good_chain(),lambda p:None,{'classification':'HOLD_FOUNDER_GATE'})['classification'],'HOLD_FOUNDER_GATE')
 class StageTests(unittest.TestCase):
     def test_url_pinned(self):
         u=stage.artifact_url('daubesonntag-dotcom/daube-public-release',good_manifest()['target_revision'],'installers/example.sh'); self.assertIn(good_manifest()['target_revision'],u); self.assertNotIn('/main/',u)

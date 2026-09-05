@@ -1,6 +1,5 @@
 import tempfile, unittest
 from pathlib import Path
-from types import SimpleNamespace
 
 from controller import BusinessOperator
 
@@ -11,12 +10,11 @@ class RuntimeTests(unittest.TestCase):
             base=home/'daube-revenue-worker'
             (base/'watchdog').mkdir(parents=True)
             (base/'watchdog'/'health.json').write_text('{"overall":"HEALTHY"}\n')
-            seen=[]
-            def runner(argv): seen.append(argv); return SimpleNamespace(returncode=0)
-            out=BusinessOperator(home,runner).run_once()
+            out=BusinessOperator(home).run_once()
             self.assertEqual(out['classification'],'BUSINESS_OPERATOR_READY')
             self.assertTrue((base/'business-v11'/'BUSINESS_OPERATOR_READY.json').is_file())
             self.assertTrue((base/'business-v11'/'daily-queue.json').is_file())
-            self.assertEqual(seen[0][-1],'daube-revenue-worker.service')
+            self.assertEqual(out['dispatch']['classification'],'DELEGATED_TIMER')
+            self.assertEqual(out['dispatch']['timer'],'daube-revenue-worker.timer')
 
 if __name__=='__main__': unittest.main()

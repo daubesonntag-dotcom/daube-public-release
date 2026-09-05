@@ -1,25 +1,25 @@
 {
   "schema": "daube.host-autopilot.v1",
-  "enabled": false,
-  "target_revision": "89e7ea9e2ece88f5ffbc3f856b746aefca6a5427",
-  "release_id": "bootstrap-inert-v1",
+  "enabled": true,
+  "target_revision": "747d344103827e3aabdcbac95b413cbd0cbba0ec",
+  "release_id": "host-autopilot-self-update-747d3441",
   "artifacts": [
     {
-      "path": "installers/install-freelancer-execution-mesh-v9.sh",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "path": "installers/install-host-autopilot-v1.sh",
+      "sha256": "061d88394a52ef4136e970b3c4d65ff22e81deb720c0c3bbfda0d0fdb6ea834f",
       "mode": "0755"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"]
+    ["bash", "-n", "installers/install-host-autopilot-v1.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-freelancer-execution-mesh-v9.sh"
+    "entrypoint": "installers/install-host-autopilot-v1.sh"
   },
   "health_units": [
-    "daube-freelancer-executor.timer",
-    "daube-runtime-watchdog.timer"
+    "daube-host-autopilot.timer",
+    "daube-host-autopilot-watchdog.timer"
   ],
   "rollback": "required"
 }

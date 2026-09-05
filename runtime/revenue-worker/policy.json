@@ -1,0 +1,26 @@
+{
+  "minValueUsd": 25,
+  "preferredMinFixedUsd": 80,
+  "maxStandardContractUsd": 1000,
+  "maxDeliveryHours": 72,
+  "paidSpendAllowed": false,
+  "officialAuthenticatedWritesOnly": true,
+  "browserBotAutomationAllowed": false,
+  "sessionCookieAutomationAllowed": false,
+  "captchaBypassAllowed": false,
+  "identityLocationMisrepresentationAllowed": false,
+  "offPlatformPaymentRequiredAllowed": false,
+  "autoAcceptStandardPlatformFixedPrice": true,
+  "founderGates": [
+    "KYC",
+    "OTP",
+    "CAPTCHA",
+    "NON_STANDARD_CONTRACT",
+    "TAX_CHANGE",
+    "PAYOUT_CHANGE",
+    "PAID_SPEND",
+    "UNUSUAL_LIABILITY",
+    "CREDENTIAL_SHARING"
+  ],
+  "settlementOnlyRevenue": true
+}

@@ -30,26 +30,10 @@
       "target_revision": "bbf826216587a02f31da9fcf05d8a4ddde6ec74c",
       "release_id": "cloudflare-control-plane-host-v1-bbf82621",
       "artifacts": [
-        {
-          "path": "installers/install-cloudflare-control-plane-host-v1.sh",
-          "sha256": "a835a966e50609a04c8ae55e00b811bd87399bfe0b813c6395677dcb9acc796c",
-          "mode": "0755"
-        },
-        {
-          "path": "runtime/ci-platform/cloudflare-control-plane.mjs",
-          "sha256": "9939d26a23b4c4baece55079b2a25176f5e8c2c89a0422cc728d720502e29dc9",
-          "mode": "0644"
-        },
-        {
-          "path": "runtime/ci-platform/cloudflare-control-plane-hook.mjs",
-          "sha256": "61430ef6171504772759a7e59659a23d49c5fa9382a3b3584f6f643c44c781e9",
-          "mode": "0644"
-        },
-        {
-          "path": "runtime/ci-platform/daube-executor-v2.service",
-          "sha256": "1674f6b09688242eab3f4bf7d5696d79da2427d5bc5a83528bd733efe01b1f5c",
-          "mode": "0644"
-        }
+        {"path": "installers/install-cloudflare-control-plane-host-v1.sh", "sha256": "a835a966e50609a04c8ae55e00b811bd87399bfe0b813c6395677dcb9acc796c", "mode": "0755"},
+        {"path": "runtime/ci-platform/cloudflare-control-plane.mjs", "sha256": "9939d26a23b4c4baece55079b2a25176f5e8c2c89a0422cc728d720502e29dc9", "mode": "0644"},
+        {"path": "runtime/ci-platform/cloudflare-control-plane-hook.mjs", "sha256": "61430ef6171504772759a7e59659a23d49c5fa9382a3b3584f6f643c44c781e9", "mode": "0644"},
+        {"path": "runtime/ci-platform/daube-executor-v2.service", "sha256": "1674f6b09688242eab3f4bf7d5696d79da2427d5bc5a83528bd733efe01b1f5c", "mode": "0644"}
       ],
       "checks": [
         ["bash", "-n", "installers/install-cloudflare-control-plane-host-v1.sh"],
@@ -67,11 +51,7 @@
       "target_revision": "89e7ea9e2ece88f5ffbc3f856b746aefca6a5427",
       "release_id": "v9-executor-89e7ea9e",
       "artifacts": [
-        {
-          "path": "installers/install-freelancer-execution-mesh-v9.sh",
-          "sha256": "af94929f153a8ffcf425f434ae503957ccc8e4bb79b04045c61bf232f9765fe4",
-          "mode": "0755"
-        }
+        {"path": "installers/install-freelancer-execution-mesh-v9.sh", "sha256": "af94929f153a8ffcf425f434ae503957ccc8e4bb79b04045c61bf232f9765fe4", "mode": "0755"}
       ],
       "checks": [["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"]],
       "activation": {"kind": "installer", "entrypoint": "installers/install-freelancer-execution-mesh-v9.sh"},
@@ -83,6 +63,26 @@
         "daube-freelancer-money-closure.timer"
       ],
       "depends_on": "cloudflare-control-plane-host",
+      "success_receipt": "APPLIED"
+    },
+    {
+      "phase_id": "native-revenue-autopilot-v10",
+      "target_revision": "d606a4c64b9d31e4a86db3a941d35a41be041fc2",
+      "release_id": "native-revenue-autopilot-v10-d606a4c6",
+      "artifacts": [
+        {"path": "installers/install-native-revenue-autopilot-v10.sh", "sha256": "78ebd0f2e2d196a8f146f03d60348a2a81e0a2152033060e30002a342f8bbb5b", "mode": "0755"}
+      ],
+      "checks": [["bash", "-n", "installers/install-native-revenue-autopilot-v10.sh"]],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-native-revenue-autopilot-v10.sh"},
+      "health_units": [
+        "daube-native-revenue-autopilot.timer",
+        "daube-revenue-worker.timer",
+        "daube-freelancer-award-watcher.timer",
+        "daube-freelancer-executor.timer",
+        "daube-runtime-watchdog.timer",
+        "daube-freelancer-money-closure.timer"
+      ],
+      "depends_on": "execution-mesh-v9",
       "success_receipt": "APPLIED"
     }
   ]

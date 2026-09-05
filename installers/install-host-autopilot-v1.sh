@@ -20,7 +20,7 @@ fi
 
 ROOT="$HOME/daube-host-autopilot"; RUNTIME="$ROOT/runtime"; STATE="$ROOT/state"
 REPO="daubesonntag-dotcom/daube-public-release"
-for cmd in curl python3 systemctl flock install id getent cut tee chmod chown cat rm mkdir mktemp; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
+for cmd in curl python3 systemctl flock install id getent cut tee chmod chown cat cp rm mkdir mktemp; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
 if [ -n "${DAUBE_AUTOPILOT_REF:-}" ]; then
   REF="$DAUBE_AUTOPILOT_REF"
 else
@@ -40,8 +40,12 @@ for f in "${FILES[@]}"; do curl -fsSL "$RAW/$f" -o "$STAGE/$f"; done
 )
 mkdir -p "$RUNTIME" "$STATE" "$ROOT/staging" "$ROOT/snapshots" "$ROOT/bootstrap-backup"
 chmod 700 "$ROOT" "$RUNTIME" "$STATE" "$ROOT/staging" "$ROOT/snapshots" "$ROOT/bootstrap-backup"
-if (( EUID == 0 )); then chown -R "$USER_NAME:$USER_GROUP" "$ROOT"; fi
-for f in "${FILES[@]}"; do install -o "$USER_NAME" -g "$USER_GROUP" -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
+if (( EUID == 0 )); then
+  chown -R "$USER_NAME:$USER_GROUP" "$ROOT"
+  for f in "${FILES[@]}"; do install -o "$USER_NAME" -g "$USER_GROUP" -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
+else
+  for f in "${FILES[@]}"; do install -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
+fi
 BACKUP="$ROOT/bootstrap-backup"
 for name in daube-host-autopilot.service daube-host-autopilot.timer daube-host-autopilot-watchdog.service daube-host-autopilot-watchdog.timer; do
   p="/etc/systemd/system/$name"; if privileged test -f "$p"; then privileged cat "$p" > "$BACKUP/$name"; fi

@@ -1,14 +1,26 @@
 {
-  "recorded_at": "2026-09-05T16:21:00+07:00",
+  "recorded_at": "2026-09-05T22:29:31+07:00",
   "provider": "freelancer_official_api",
   "active_bid_wip_cap": 3,
   "active_submitted": [
-    {"project_id": 40691264, "bid_id": 493896806, "amount": 129, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD"},
-    {"project_id": 40690929, "bid_id": 493897084, "amount": 115, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD"}
+    {"project_id": 40691264, "bid_id": 493896806, "amount": 129, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD", "public_project_state": "OPEN_FOR_BIDDING"},
+    {"project_id": 40690929, "bid_id": 493897084, "amount": 115, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD", "public_project_state": "OPEN_FOR_BIDDING"},
+    {"project_id": 40685020, "bid_id": 493897673, "amount": 118, "currency": "USD", "delivery_days": 2, "state": "AWAITING_CLIENT_RESPONSE_OR_AWARD", "public_project_state": "OPEN_FOR_BIDDING"}
   ],
+  "gross_active_bid_value_usd": 362,
+  "wip_state": "CAP_REACHED_NO_NEW_BIDS",
+  "inbound_check": {
+    "channel": "founder@daubesonntag.com",
+    "result": "NO_CLIENT_RESPONSE_AWARD_MILESTONE_REJECTION_OR_CANCELLATION_OBSERVED_IN_REVIEWED_RECENT_FREELANCER_MAIL",
+    "notes": "Recent Freelancer mail contained project recommendations/account notices but no evidence promoting any active bid to award, funded milestone, rejection, cancellation, completion, or settlement."
+  },
+  "owned_intake_check": {
+    "issue": 250,
+    "result": "NO_INDEPENDENT_QUALIFIED_BUYER_LEAD_OBSERVED"
+  },
   "closed_without_bid": [
     {"project_id": 40691270, "state": "PROVIDER_ERROR_FAIL_CLOSED", "reason": "project_not_active"}
   ],
-  "next_candidate": {"project_id": 40690632, "amount": 119, "currency": "USD", "delivery_days": 2, "state": "HOST_ENQUEUE_PENDING", "packet_commit": "3562fc6f7c3d0ab6f80eee55fc76903adf6e6034"},
+  "replacement_policy": "DO_NOT_SEARCH_OR_SUBMIT_REPLACEMENT_UNTIL_ONE_ACTIVE_BID_DEFINITIVELY_FREES_A_SLOT",
   "settled_revenue_usd": 0
 }

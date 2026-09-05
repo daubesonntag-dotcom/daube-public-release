@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$HOME/daube-host-autopilot"; RUNTIME="$ROOT/runtime"; STATE="$ROOT/state"
-REF="${DAUBE_AUTOPILOT_REF:-main}"; REPO="daubesonntag-dotcom/daube-public-release"
+REPO="daubesonntag-dotcom/daube-public-release"
+for cmd in curl python3 systemctl flock sudo; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
+if [ -n "${DAUBE_AUTOPILOT_REF:-}" ]; then
+  REF="$DAUBE_AUTOPILOT_REF"
+else
+  MANIFEST_URL="https://raw.githubusercontent.com/$REPO/main/.daube/autopilot/host-desired-state.json"
+  REF="$(curl -fsSL "$MANIFEST_URL" | python3 -c 'import json,re,sys; m=json.load(sys.stdin); r=str(m.get("target_revision","")); assert re.fullmatch(r"[0-9a-f]{40}",r), "invalid target revision"; print(r)')"
+fi
+[[ "$REF" =~ ^[0-9a-f]{40}$ ]] || { echo "AUTOPILOT_BLOCKED=INVALID_REF"; exit 1; }
 RAW="https://raw.githubusercontent.com/$REPO/$REF/runtime/host-autopilot"
 FILES=(models.py manifest.py stage.py checks.py transaction.py controller.py watchdog.py run.py test_autopilot.py)
-for cmd in curl python3 systemctl flock sudo; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
 for f in "${FILES[@]}"; do curl -fsSL "$RAW/$f" -o "$STAGE/$f"; done
 (

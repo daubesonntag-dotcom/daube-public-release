@@ -6,9 +6,36 @@ fail(){ log "HOLD: $*" >&2; exit 1; }
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REF="${DAUBE_AUTOPILOT_TARGET_REVISION:-}"
+REPO="daubesonntag-dotcom/daube-public-release"
+CONTEXT="daube/full-wave-v12"
+
 [[ "$REF" =~ ^[0-9a-f]{40}$ ]] || fail "exact autopilot target revision required"
 command -v sudo >/dev/null 2>&1 || fail "sudo missing"
 sudo -n true >/dev/null 2>&1 || fail "passwordless sudo authority missing"
+
+publish_status() {
+  local state="$1" description="$2"
+  sudo -n /usr/bin/bash -c '
+    set -Eeuo pipefail
+    set -a
+    . /etc/daube/daube-executor-v2.env
+    set +a
+    export GH_TOKEN
+    gh api --method POST "repos/'"$REPO"'/statuses/'"$REF"'" \
+      -f state="'"$state"'" \
+      -f context="'"$CONTEXT"'" \
+      -f description="'"$description"'" >/dev/null
+  ' || true
+}
+
+on_exit() {
+  local rc=$?
+  if (( rc != 0 )); then
+    publish_status failure "FULL_WAVE_V12_HOLD"
+  fi
+  exit "$rc"
+}
+trap on_exit EXIT
 
 export DAUBE_V9_REF="$REF"
 export DAUBE_REVENUE_V10_REF="$REF"
@@ -97,4 +124,6 @@ if receipt["classification"] != "FULL_WAVE_READY":
     raise SystemExit(1)
 PY
 
+publish_status success "FULL_WAVE_READY"
+trap - EXIT
 log "PASS FULL_WAVE_READY ref=$REF"

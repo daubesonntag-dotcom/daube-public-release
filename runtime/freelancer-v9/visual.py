@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 TERMS = (
@@ -9,7 +10,13 @@ TERMS = (
 
 def requires_visual_lane(contract: dict):
     scope = contract.get("locked_scope", "").lower()
-    return any(term in scope for term in TERMS)
+    for term in TERMS:
+        if " " in term or "." in term or "-" in term:
+            if term in scope:
+                return True
+        elif re.search(r"\b" + re.escape(term) + r"\b", scope):
+            return True
+    return False
 
 
 def inspect_visual(workspace: Path, contract: dict, tools: dict):

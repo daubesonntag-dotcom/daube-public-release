@@ -26,6 +26,43 @@
       "success_receipt": "APPLIED"
     },
     {
+      "phase_id": "cloudflare-control-plane-host",
+      "target_revision": "bbf826216587a02f31da9fcf05d8a4ddde6ec74c",
+      "release_id": "cloudflare-control-plane-host-v1-bbf82621",
+      "artifacts": [
+        {
+          "path": "installers/install-cloudflare-control-plane-host-v1.sh",
+          "sha256": "a835a966e50609a04c8ae55e00b811bd87399bfe0b813c6395677dcb9acc796c",
+          "mode": "0755"
+        },
+        {
+          "path": "runtime/ci-platform/cloudflare-control-plane.mjs",
+          "sha256": "9939d26a23b4c4baece55079b2a25176f5e8c2c89a0422cc728d720502e29dc9",
+          "mode": "0644"
+        },
+        {
+          "path": "runtime/ci-platform/cloudflare-control-plane-hook.mjs",
+          "sha256": "61430ef6171504772759a7e59659a23d49c5fa9382a3b3584f6f643c44c781e9",
+          "mode": "0644"
+        },
+        {
+          "path": "runtime/ci-platform/daube-executor-v2.service",
+          "sha256": "1674f6b09688242eab3f4bf7d5696d79da2427d5bc5a83528bd733efe01b1f5c",
+          "mode": "0644"
+        }
+      ],
+      "checks": [
+        ["bash", "-n", "installers/install-cloudflare-control-plane-host-v1.sh"],
+        ["/opt/daube/toolchains/node24/bin/node", "--check", "runtime/ci-platform/cloudflare-control-plane.mjs"],
+        ["/opt/daube/toolchains/node24/bin/node", "--check", "runtime/ci-platform/cloudflare-control-plane-hook.mjs"],
+        ["systemd-analyze", "verify", "runtime/ci-platform/daube-executor-v2.service"]
+      ],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-cloudflare-control-plane-host-v1.sh"},
+      "health_units": ["daube-executor-v2.service", "daube-host-autopilot.timer"],
+      "depends_on": "native-autopilot-bootstrap",
+      "success_receipt": "APPLIED"
+    },
+    {
       "phase_id": "execution-mesh-v9",
       "target_revision": "89e7ea9e2ece88f5ffbc3f856b746aefca6a5427",
       "release_id": "v9-executor-89e7ea9e",
@@ -45,7 +82,7 @@
         "daube-runtime-watchdog.timer",
         "daube-freelancer-money-closure.timer"
       ],
-      "depends_on": "native-autopilot-bootstrap",
+      "depends_on": "cloudflare-control-plane-host",
       "success_receipt": "APPLIED"
     }
   ]

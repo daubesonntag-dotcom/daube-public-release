@@ -50,6 +50,7 @@ BACKUP="$ROOT/bootstrap-backup"
 for name in daube-host-autopilot.service daube-host-autopilot.timer daube-host-autopilot-watchdog.service daube-host-autopilot-watchdog.timer; do
   p="/etc/systemd/system/$name"; if privileged test -f "$p"; then privileged cat "$p" > "$BACKUP/$name"; fi
 done
+if (( EUID == 0 )); then chown -R "$USER_NAME:$USER_GROUP" "$BACKUP"; fi
 rollback_units(){
   for name in daube-host-autopilot.service daube-host-autopilot.timer daube-host-autopilot-watchdog.service daube-host-autopilot-watchdog.timer; do
     if [ -f "$BACKUP/$name" ]; then privileged cp "$BACKUP/$name" "/etc/systemd/system/$name"; else privileged rm -f "/etc/systemd/system/$name"; fi

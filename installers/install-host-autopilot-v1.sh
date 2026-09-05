@@ -1,8 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+REQUESTED_USER="${DAUBE_AUTOPILOT_USER:-}"
+if (( EUID == 0 )); then
+  [[ -n "$REQUESTED_USER" ]] || { echo "AUTOPILOT_BLOCKED=ROOT_REQUIRES_USER"; exit 1; }
+  id "$REQUESTED_USER" >/dev/null 2>&1 || { echo "AUTOPILOT_BLOCKED=OWNER_INVALID"; exit 1; }
+  USER_NAME="$REQUESTED_USER"
+  USER_GROUP="$(id -gn "$USER_NAME")"
+  EXPECTED_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
+  [[ -n "$EXPECTED_HOME" && "$HOME" == "$EXPECTED_HOME" ]] || { echo "AUTOPILOT_BLOCKED=HOME_MISMATCH"; exit 1; }
+  privileged(){ "$@"; }
+else
+  USER_NAME="$(id -un)"
+  USER_GROUP="$(id -gn)"
+  [[ -z "$REQUESTED_USER" || "$REQUESTED_USER" == "$USER_NAME" ]] || { echo "AUTOPILOT_BLOCKED=OWNER_MISMATCH"; exit 1; }
+  command -v sudo >/dev/null 2>&1 || { echo "AUTOPILOT_BLOCKED=SUDO_MISSING"; exit 1; }
+  privileged(){ sudo "$@"; }
+fi
+
 ROOT="$HOME/daube-host-autopilot"; RUNTIME="$ROOT/runtime"; STATE="$ROOT/state"
 REPO="daubesonntag-dotcom/daube-public-release"
-for cmd in curl python3 systemctl flock sudo; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
+for cmd in curl python3 systemctl flock install id getent cut tee chmod chown cat cp rm mkdir mktemp; do command -v "$cmd" >/dev/null || { echo "AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }; done
 if [ -n "${DAUBE_AUTOPILOT_REF:-}" ]; then
   REF="$DAUBE_AUTOPILOT_REF"
 else
@@ -22,19 +40,25 @@ for f in "${FILES[@]}"; do curl -fsSL "$RAW/$f" -o "$STAGE/$f"; done
 )
 mkdir -p "$RUNTIME" "$STATE" "$ROOT/staging" "$ROOT/snapshots" "$ROOT/bootstrap-backup"
 chmod 700 "$ROOT" "$RUNTIME" "$STATE" "$ROOT/staging" "$ROOT/snapshots" "$ROOT/bootstrap-backup"
-for f in "${FILES[@]}"; do install -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
-USER_NAME="$(id -un)"; BACKUP="$ROOT/bootstrap-backup"
+if (( EUID == 0 )); then
+  chown -R "$USER_NAME:$USER_GROUP" "$ROOT"
+  for f in "${FILES[@]}"; do install -o "$USER_NAME" -g "$USER_GROUP" -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
+else
+  for f in "${FILES[@]}"; do install -m 600 "$STAGE/$f" "$RUNTIME/$f"; done
+fi
+BACKUP="$ROOT/bootstrap-backup"
 for name in daube-host-autopilot.service daube-host-autopilot.timer daube-host-autopilot-watchdog.service daube-host-autopilot-watchdog.timer; do
-  p="/etc/systemd/system/$name"; if sudo test -f "$p"; then sudo cat "$p" > "$BACKUP/$name"; fi
+  p="/etc/systemd/system/$name"; if privileged test -f "$p"; then privileged cat "$p" > "$BACKUP/$name"; fi
 done
+if (( EUID == 0 )); then chown -R "$USER_NAME:$USER_GROUP" "$BACKUP"; fi
 rollback_units(){
   for name in daube-host-autopilot.service daube-host-autopilot.timer daube-host-autopilot-watchdog.service daube-host-autopilot-watchdog.timer; do
-    if [ -f "$BACKUP/$name" ]; then sudo cp "$BACKUP/$name" "/etc/systemd/system/$name"; else sudo rm -f "/etc/systemd/system/$name"; fi
+    if [ -f "$BACKUP/$name" ]; then privileged cp "$BACKUP/$name" "/etc/systemd/system/$name"; else privileged rm -f "/etc/systemd/system/$name"; fi
   done
-  sudo systemctl daemon-reload || true
+  privileged systemctl daemon-reload || true
 }
 trap 'rc=$?; if [ $rc -ne 0 ]; then rollback_units; fi; rm -rf "$STAGE"; exit $rc' EXIT
-sudo tee /etc/systemd/system/daube-host-autopilot.service >/dev/null <<EOF
+privileged tee /etc/systemd/system/daube-host-autopilot.service >/dev/null <<EOF
 [Unit]
 Description=D'AUBE Host Autopilot v1
 After=network-online.target
@@ -50,7 +74,7 @@ UMask=0077
 Nice=10
 TimeoutStartSec=35min
 EOF
-sudo tee /etc/systemd/system/daube-host-autopilot.timer >/dev/null <<'EOF'
+privileged tee /etc/systemd/system/daube-host-autopilot.timer >/dev/null <<'EOF'
 [Unit]
 Description=Run D'AUBE Host Autopilot
 [Timer]
@@ -61,7 +85,7 @@ RandomizedDelaySec=45
 [Install]
 WantedBy=timers.target
 EOF
-sudo tee /etc/systemd/system/daube-host-autopilot-watchdog.service >/dev/null <<EOF
+privileged tee /etc/systemd/system/daube-host-autopilot-watchdog.service >/dev/null <<EOF
 [Unit]
 Description=D'AUBE Host Autopilot Watchdog v1
 After=network-online.target
@@ -76,7 +100,7 @@ UMask=0077
 Nice=10
 TimeoutStartSec=5min
 EOF
-sudo tee /etc/systemd/system/daube-host-autopilot-watchdog.timer >/dev/null <<'EOF'
+privileged tee /etc/systemd/system/daube-host-autopilot-watchdog.timer >/dev/null <<'EOF'
 [Unit]
 Description=Run D'AUBE Host Autopilot Watchdog
 [Timer]
@@ -87,10 +111,10 @@ RandomizedDelaySec=60
 [Install]
 WantedBy=timers.target
 EOF
-sudo systemctl daemon-reload
-sudo systemctl enable --now daube-host-autopilot.timer daube-host-autopilot-watchdog.timer
-sudo systemctl start daube-host-autopilot.service
-sudo systemctl start daube-host-autopilot-watchdog.service
+privileged systemctl daemon-reload
+privileged systemctl enable --now daube-host-autopilot.timer daube-host-autopilot-watchdog.timer
+privileged systemctl start daube-host-autopilot.service
+privileged systemctl start daube-host-autopilot-watchdog.service
 test "$(systemctl is-active daube-host-autopilot.timer)" = active
 test "$(systemctl is-active daube-host-autopilot-watchdog.timer)" = active
 PYTHONPATH="$RUNTIME" python3 "$RUNTIME/run.py" --verify

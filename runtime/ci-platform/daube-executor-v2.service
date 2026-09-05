@@ -1,0 +1,64 @@
+[Unit]
+Description=D'AUBE Persistent Executor V2 Hardened Convergence Supervisor
+Documentation=https://github.com/daubesonntag-dotcom/daube-ci-platform
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=daube-executor
+Group=daube-executor
+WorkingDirectory=/opt/daube/control/daube-ci-platform
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/daube-executor/home
+Environment=DAUBE_EXECUTOR_STATE_ROOT=/var/lib/daube-executor
+EnvironmentFile=-/etc/daube/daube-executor-v2.env
+ExecStart=/opt/daube/toolchains/node24/bin/node --import /opt/daube/control/daube-ci-platform/runtime/persistent-executor-v2/cloudflare-control-plane-hook.mjs /opt/daube/control/daube-ci-platform/runtime/persistent-executor-v2/supervisor.mjs
+Restart=always
+RestartSec=10s
+TimeoutStopSec=30s
+KillMode=control-group
+KillSignal=SIGTERM
+RestartKillSignal=SIGUSR2
+SuccessExitStatus=SIGUSR2
+UMask=0077
+
+StateDirectory=daube-executor
+LogsDirectory=daube-executor
+RuntimeDirectory=daube-executor
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+ReadOnlyPaths=/opt/daube/control /opt/daube/toolchains
+ReadWritePaths=/var/lib/daube-executor /var/log/daube-executor
+TemporaryFileSystem=/var/lib/daube-executor/worktrees:rw,nodev,nosuid,size=8G,mode=0700,uid=%U,gid=%G
+TemporaryFileSystem=/var/lib/daube-executor/mirrors:rw,nodev,nosuid,size=4G,mode=0700,uid=%U,gid=%G
+
+CPUAccounting=true
+MemoryAccounting=true
+TasksAccounting=true
+IOAccounting=true
+CPUQuota=600%
+MemoryHigh=5G
+MemoryMax=6G
+TasksMax=512
+LimitNOFILE=8192
+LimitFSIZE=1073741824
+
+[Install]
+WantedBy=multi-user.target

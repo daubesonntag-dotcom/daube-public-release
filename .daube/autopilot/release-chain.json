@@ -1,0 +1,52 @@
+{
+  "schema": "daube.native-release-chain.v1",
+  "enabled": true,
+  "chain_id": "native-bootstrap-v1",
+  "rollback_policy": "phase-local-required",
+  "phases": [
+    {
+      "phase_id": "native-autopilot-bootstrap",
+      "target_revision": "28bd9f18b1d7f1c9e3bfe57dc603763b191afd39",
+      "release_id": "native-autopilot-chain-28bd9f18",
+      "artifacts": [
+        {
+          "path": "installers/install-native-autopilot-chain-v1.sh",
+          "sha256": "991f331cae8f135a8960b484c391aa96fe6717bcabeb000245cc0835912f93e6",
+          "mode": "0755"
+        }
+      ],
+      "checks": [["bash", "-n", "installers/install-native-autopilot-chain-v1.sh"]],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-native-autopilot-chain-v1.sh"},
+      "health_units": [
+        "daube-host-autopilot.timer",
+        "daube-host-autopilot-watchdog.timer",
+        "daube-native-autopilot-chain.timer"
+      ],
+      "depends_on": null,
+      "success_receipt": "APPLIED"
+    },
+    {
+      "phase_id": "execution-mesh-v9",
+      "target_revision": "89e7ea9e2ece88f5ffbc3f856b746aefca6a5427",
+      "release_id": "v9-executor-89e7ea9e",
+      "artifacts": [
+        {
+          "path": "installers/install-freelancer-execution-mesh-v9.sh",
+          "sha256": "af94929f153a8ffcf425f434ae503957ccc8e4bb79b04045c61bf232f9765fe4",
+          "mode": "0755"
+        }
+      ],
+      "checks": [["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"]],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-freelancer-execution-mesh-v9.sh"},
+      "health_units": [
+        "daube-revenue-worker.timer",
+        "daube-freelancer-award-watcher.timer",
+        "daube-freelancer-executor.timer",
+        "daube-runtime-watchdog.timer",
+        "daube-freelancer-money-closure.timer"
+      ],
+      "depends_on": "native-autopilot-bootstrap",
+      "success_receipt": "APPLIED"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 {
-  "version": "v1",
+  "version": "v2-studio-care-plus",
   "project_id": 40691264,
   "currency": "USD",
   "posted_scope": {
-    "name": "Studio Care",
+    "name": "Studio Care Plus",
     "price_usd": 129,
     "revision_rounds": 1,
     "aftercare": {
@@ -12,9 +12,19 @@
       "minor_polish_passes": 1
     },
     "complimentary_gifts": [
-      "1 accent/theme variation tailored to the final direction"
+      "1 accent/theme variation tailored to the final direction",
+      "1 signature decorative motif tailored to the final direction"
     ],
-    "billing": "No surprise billing; material scope changes are quoted before work starts."
+    "billing": "No surprise billing; material scope changes are quoted before work starts.",
+    "features": [
+      "Polished vintage journal + responsive QA",
+      "Persistent page bookmarks",
+      "3 subtle paper accents",
+      "Entry date stamp + character counter",
+      "Live autosave feedback",
+      "Browser-local persistence + JSON export",
+      "Reduced-motion accessibility guardrail"
+    ]
   },
   "collector": {
     "name": "Collector Care Passport",

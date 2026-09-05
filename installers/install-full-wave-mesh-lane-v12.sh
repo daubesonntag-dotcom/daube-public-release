@@ -30,9 +30,7 @@ publish_status() {
 
 on_exit() {
   local rc=$?
-  if (( rc != 0 )); then
-    publish_status failure "FULL_WAVE_V12_HOLD"
-  fi
+  if (( rc != 0 )); then publish_status failure "FULL_WAVE_V12_HOLD"; fi
   exit "$rc"
 }
 trap on_exit EXIT
@@ -48,6 +46,30 @@ for installer in \
   install-autonomous-business-operator-v11.sh
 do
   test -x "$HERE/$installer" || fail "staged installer missing or not executable: $installer"
+done
+
+log "RUN install-ci-platform-wave-full-host-v1.sh ref=$REF"
+bash "$HERE/install-ci-platform-wave-full-host-v1.sh"
+
+BASE_TIMERS=(
+  daube-revenue-worker.timer
+  daube-freelancer-preaward-conversation.timer
+  daube-freelancer-award-watcher.timer
+  daube-freelancer-executor.timer
+  daube-runtime-watchdog.timer
+  daube-freelancer-money-closure.timer
+)
+for unit in "${BASE_TIMERS[@]}"; do
+  sudo systemctl reset-failed "${unit%.timer}.service" >/dev/null 2>&1 || true
+  sudo systemctl enable --now "$unit" >/dev/null 2>&1 || fail "base timer unavailable: $unit"
+  systemctl is-active --quiet "$unit" || fail "base timer inactive: $unit"
+done
+
+for installer in \
+  install-freelancer-execution-mesh-v9.sh \
+  install-native-revenue-autopilot-v10.sh \
+  install-autonomous-business-operator-v11.sh
+do
   log "RUN $installer ref=$REF"
   bash "$HERE/$installer"
 done
@@ -84,7 +106,6 @@ KICK=(
   daube-business-operator.service
   daube-freelancer-money-closure.service
 )
-
 set +e
 for unit in "${KICK[@]}"; do
   sudo systemctl start "$unit"
@@ -102,7 +123,6 @@ chmod 700 "$OUT"
 python3 - "$REF" "$OUT/receipt.json" "${REQUIRED[@]}" <<'PY'
 import json, subprocess, sys
 from datetime import datetime, timezone
-
 ref, out, *units = sys.argv[1:]
 states = {}
 for unit in units:
@@ -117,11 +137,9 @@ receipt = {
     "revenue_truth": "EXTERNAL_SETTLEMENT_ONLY",
 }
 with open(out, "w", encoding="utf-8") as f:
-    json.dump(receipt, f, indent=2, sort_keys=True)
-    f.write("\n")
+    json.dump(receipt, f, indent=2, sort_keys=True); f.write("\n")
 print(json.dumps(receipt, sort_keys=True))
-if receipt["classification"] != "FULL_WAVE_READY":
-    raise SystemExit(1)
+if receipt["classification"] != "FULL_WAVE_READY": raise SystemExit(1)
 PY
 
 publish_status success "FULL_WAVE_READY"

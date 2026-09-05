@@ -1,0 +1,53 @@
+name: Autonomous Revenue Worker
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: autonomous-revenue-worker
+  cancel-in-progress: false
+
+jobs:
+  policy-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify fail-closed commercial policy
+        run: node runtime/revenue-worker/worker.test.mjs
+      - name: Runtime binding status
+        env:
+          FREELANCER_OFFICIAL_TOKEN: ${{ secrets.FREELANCER_OFFICIAL_TOKEN }}
+          CONTRA_OFFICIAL_BINDING: ${{ secrets.CONTRA_OFFICIAL_BINDING }}
+        run: |
+          set -eu
+          bound=0
+          if [ -n "${FREELANCER_OFFICIAL_TOKEN:-}" ]; then
+            echo "Freelancer official credential binding: PRESENT"
+            bound=1
+          else
+            echo "Freelancer official credential binding: ABSENT"
+          fi
+          if [ -n "${CONTRA_OFFICIAL_BINDING:-}" ]; then
+            echo "Contra official binding marker: PRESENT"
+            bound=1
+          else
+            echo "Contra official binding marker: ABSENT"
+          fi
+          if [ "$bound" -eq 0 ]; then
+            echo "FOUNDER_PLATFORM_GATE: no authoritative official marketplace write binding available to this runner."
+          fi
+
+  # External marketplace writes are deliberately not implemented in this workflow
+  # until an official provider adapter is present and proves all three properties:
+  # official=true, authenticated=true, permitsExactAction=true.
+  # This prevents accidental browser/session-cookie automation or fabricated submits.

@@ -1,4 +1,5 @@
 from collections import deque
+import re
 
 
 class GraphError(RuntimeError):
@@ -21,7 +22,13 @@ INTEGRATION_TERMS = (
 
 def _contains(scope: str, terms):
     value = scope.lower()
-    return any(term in value for term in terms)
+    for term in terms:
+        if " " in term or "." in term or "-" in term:
+            if term in value:
+                return True
+        elif re.search(r"\b" + re.escape(term) + r"\b", value):
+            return True
+    return False
 
 
 def _node(node_id, executor_class, depends_on, required=True, max_attempts=3):

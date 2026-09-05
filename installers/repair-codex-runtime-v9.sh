@@ -186,6 +186,8 @@ PY
   echo 'V9=PASS'
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+_daube_source="${BASH_SOURCE[0]-}"
+if [ -z "$_daube_source" ] || [ "$_daube_source" = "$0" ]; then
   main "$@"
 fi
+unset _daube_source

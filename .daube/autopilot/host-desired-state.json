@@ -21,7 +21,7 @@
     },
     {
       "path": "runtime/ci-platform/daube-executor-v2.service",
-      "sha256": "55f58e3110cdadb786ab5bd6bc70d07c58ff67cecea3878d49fd873a2d63f8e7",
+      "sha256": "1674f6b09688242eab3f4bf7d5696d79da2427d5bc5a83528bd733efe01b1f5c",
       "mode": "0644"
     }
   ],

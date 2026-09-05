@@ -10,3 +10,11 @@ test('autopilot bootstrap stages every direct run.py local import', () => {
   assert.match(installer, /FILES=\([^\n]*chain\.py/);
   assert.match(installer, /python3 -m py_compile[^\n]*chain\.py/);
 });
+
+test('autopilot bootstrap supports a trusted root recovery carrier without granting founder sudo', () => {
+  assert.match(installer, /DAUBE_AUTOPILOT_USER/);
+  assert.match(installer, /privileged\(\)/);
+  assert.match(installer, /if \(\( EUID == 0 \)\)/);
+  assert.match(installer, /install -o "\$USER_NAME" -g "\$USER_GROUP" -m 600/);
+  assert.match(installer, /User=\$USER_NAME/);
+});

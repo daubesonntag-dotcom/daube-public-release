@@ -16,7 +16,7 @@ VERSION='v8-provider-neutral-executor'
 HOME=Path.home(); BASE=HOME/'daube-revenue-worker'; OPS=BASE/'full-loop'; JOBS=OPS/'jobs'; V8=OPS/'v8'
 EVENTS=V8/'events'/'events.jsonl'
 ALLOWED_STATES={'READY_FOR_EXECUTOR','WAITING_FOR_INPUT','EXECUTING','QA_FAILED','DELIVERY_READY','DELIVERY_SENT','REVISION_REQUIRED','MILESTONE_REQUEST_READY','HOLD_FOUNDER_GATE','DONE'}
-BLOCKED={'tax','legal advice','medical','healthcare','trading','forex','crypto','gambling','adult','on-site','onsite','enterprise platform','complete platform','full platform'}
+BLOCKED={'tax','legal advice','medical','healthcare','trading','forex','crypto','gambling','adult','on-site','onsite','enterprise platform','complete platform','full platform','payment wallet','payment gateway','fintech','banking','financial services','money transfer'}
 
 def now(): return datetime.now(timezone.utc).isoformat()
 def atomic_json(path,obj):
@@ -36,13 +36,11 @@ def validate_job(d):
     if any(x in scope for x in BLOCKED): return False,'BLOCKED_SCOPE'
     return True,'PASS'
 def detect_runtime():
-    # Provider-neutral contract; V8 ships Codex adapter first. Never install/buy a runtime here.
     codex=shutil.which('codex')
     if codex: return {'name':'codex','path':codex}
     return None
 def required_input_missing(d):
     manifest=read_json(d/'job.json'); scope=(manifest.get('scope') or '').lower()
-    # Only hold for explicit external access requirements; do not invent access needs.
     markers=['existing repository','existing repo','github repository','source code access','ssh access','api key provided','credentials provided','sample data provided']
     if any(m in scope for m in markers) and not (d/'client-input').exists(): return ['client repository/access or supplied data referenced by scope']
     return []
@@ -149,8 +147,6 @@ set -u
 exec python3 "$HOME/daube-revenue-worker/full-loop/v8/executor.py"
 SH
 chmod 700 "$V8/run.sh"
-
-# Verification is deliberately before systemd activation.
 PYTHONPATH="$V8" python3 -m unittest -v "$V8/test_executor.py" || { echo 'V8_TESTS_FAILED'; exit 1; }
 python3 -m py_compile "$V8/executor.py" || exit 1
 

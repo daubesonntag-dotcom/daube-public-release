@@ -25,10 +25,11 @@ from freelancersdk.resources.users.users import get_self_user_id
 HOME=Path.home(); BASE=HOME/'daube-revenue-worker'; OPS=BASE/'full-loop'
 TOKEN_FILE=HOME/'.config/daube/secrets/freelancer.token'
 OPP_LOG=BASE/'opportunities.jsonl'; BID_RECEIPTS=BASE/'receipts'
+LIVE_BASE=HOME/'daube-freelancer-live'; LIVE_BID_RECEIPTS=LIVE_BASE/'receipts'; LIVE_PROCESSED=LIVE_BASE/'processed'
 STATE=OPS/'state.json'; JOBS=OPS/'jobs'; EVENTS=OPS/'events'; RECEIPTS=OPS/'receipts'
 URL='https://www.freelancer.com'
 VERSION='v7-full-loop-control-plane'
-BLOCKED_TERMS={'tax','taxation','legal','medical','healthcare','therapy','trading','forex','crypto','gambling','adult','onsite','on-site','enterprise platform','full platform','complete platform','multi-tenant','native ios','native android'}
+BLOCKED_TERMS={'tax','taxation','legal','medical','healthcare','therapy','trading','forex','crypto','gambling','adult','onsite','on-site','enterprise platform','full platform','complete platform','multi-tenant','native ios','native android','payment wallet','payment gateway','fintech','banking','financial services','money transfer'}
 
 def now(): return datetime.now(timezone.utc).isoformat()
 def load_state():
@@ -50,14 +51,29 @@ def read_auto_ready(project_id):
             if best is None or int(x.get('timestamp') or 0)>int(best.get('timestamp') or 0): best=x
     return best
 
+def read_live_packet(project_id):
+    p=LIVE_PROCESSED/f'freelancer-{int(project_id)}.json'
+    if not p.is_file(): return None
+    try: x=json.loads(p.read_text())
+    except Exception: return None
+    try: period=int(x.get('period') or 0)
+    except Exception: period=0
+    desc=x.get('description') if isinstance(x.get('description'),str) else ''
+    guard=(x.get('confirm_standard_contract') is True and x.get('paid_spend_required') is not True and x.get('nonstandard_legal_terms') is not True and 1<=period<=3 and len(desc.strip())>=80)
+    if not guard: return None
+    return {'authority_source':'live_packet','live_packet_guard':True,'estimated_hours':period*24,'proposal':desc,'score':None}
+
 def bid_receipts():
     out=[]
-    if not BID_RECEIPTS.exists(): return out
-    for p in BID_RECEIPTS.glob('*.json'):
-        try:
-            x=json.loads(p.read_text())
-            if x.get('authoritative') is True and int(x.get('bid_id') or 0)>0 and int(x.get('project_id') or 0)>0: out.append(x)
-        except Exception: pass
+    seen=set()
+    for root in (BID_RECEIPTS,LIVE_BID_RECEIPTS):
+        if not root.exists(): continue
+        for p in root.glob('*.json'):
+            try:
+                x=json.loads(p.read_text()); key=(int(x.get('project_id') or 0),int(x.get('bid_id') or 0))
+                if x.get('authoritative') is True and key[0]>0 and key[1]>0 and key not in seen:
+                    out.append(x); seen.add(key)
+            except Exception: pass
     return out
 
 def extract_selected_bid_ids(project):
@@ -78,7 +94,9 @@ def safe_contract(op, project):
     text=((project.get('title') or '')+' '+(project.get('description') or '')).lower()
     if any(t in text for t in BLOCKED_TERMS): return False,'BLOCKED_SCOPE'
     if not op: return False,'NO_PRIOR_QUALIFICATION'
-    if int(op.get('score') or 0)<88: return False,'LOW_SCORE'
+    if op.get('authority_source')=='live_packet':
+        if op.get('live_packet_guard') is not True: return False,'LIVE_PACKET_GUARD_FAILED'
+    elif int(op.get('score') or 0)<88: return False,'LOW_SCORE'
     if int(op.get('estimated_hours') or 999)>72: return False,'OVER_72H'
     if not op.get('proposal'): return False,'NO_PROPOSAL_EVIDENCE'
     return True,'STANDARD_AUTHORITY_PASS'
@@ -103,7 +121,7 @@ def main():
     pd=create_get_projects_project_details_object(full_description=True,jobs=True,selected_bids=True,qualifications=True)
     ud=create_get_projects_user_details_object(basic=True,reputation=True,employer_reputation=True,status=True,financial=True)
     for br in receipts:
-        pid=int(br['project_id']); bid_id=int(br['bid_id']); op=read_auto_ready(pid)
+        pid=int(br['project_id']); bid_id=int(br['bid_id']); op=read_auto_ready(pid) or read_live_packet(pid)
         try: project=get_project_by_id(session,pid,project_details=pd,user_details=ud)
         except Exception as e: log_event('PROJECT_READ_FAIL',{'project_id':pid,'error':str(e)[:180]}); continue
         if isinstance(project,dict) and 'result' in project and isinstance(project['result'],dict): project=project['result']
@@ -135,7 +153,6 @@ def main():
                 (d/'STATUS').write_text('WAITING_FOR_INPUT_OR_EXECUTION\n')
                 log_event('CLIENT_THREAD_OPENED',{'project_id':pid})
             except Exception as e: log_event('MESSAGE_FAIL_CLOSED',{'project_id':pid,'error':str(e)[:220]})
-        # Do not fabricate delivery. Create an execution queue only after award acceptance.
         task={
           'project_id':pid,'bid_id':bid_id,'created_at':now(),'state':'READY_FOR_EXECUTOR',
           'workspace':str(d),'requirements_file':str(d/'SCOPE.md'),

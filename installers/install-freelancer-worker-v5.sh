@@ -51,7 +51,7 @@ LANES={
 
 HARD_BLOCK={
  "tax","taxation","accounting compliance","legal advice","law firm","medical","healthcare","telehealth",
- "diagnosis","therapy","mental health","trading","forex","crypto","betting","gambling","casino",
+ "diagnosis","therapy","mental health","trading","forex","crypto","betting","gambling","casino","payment wallet","payment gateway","fintech","banking","financial services","money transfer",
  "power bi","tableau","dynamics 365","sap","tallyprime","gohighlevel","marketing campaign","seo campaign",
  "social media marketing","r3f","three fiber","three.js game","3d game","unity","unreal engine",
  "wordpress theme from scratch","native ios","native android","blockchain","web3","scrape captcha","bypass captcha",

@@ -1,0 +1,14 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40685020,
+  "amount": 118,
+  "period": 2,
+  "milestone_percentage": 100,
+  "description": "Hi — I can run this as a structured sandbox-only QA/UX audit and give you a report your team can actually act on. I’d map the main guest and admin journeys first, then test UI/UX friction, performance with reproducible Lighthouse/WebPageTest measurements, and functional paths such as rates, automated emails, housekeeping, reporting and safe test payment flows where the sandbox supports them. Every finding will include severity, impact, reproduction steps, evidence, and at least one practical recommendation, split clearly into UI/UX, performance and functionality. I will not make breaking changes or touch the live account. D’AUBE SONNTAG’s relevant evidence is our own Visual QC, web QA and production-site testing systems; I won’t present internal product work as past Beds24 client history. My bid is $118 fixed with a 2-day target, assuming sandbox access covers the representative properties/features you want reviewed and any payment testing uses test credentials only. One normal revision pass on the report is included.",
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "evidence_policy": "D'AUBE-owned Visual QC / QA product-system work only; no fabricated Beds24 or client history",
+  "scope_guard": "sandbox-only audit of representative guest/admin journeys, UI/UX, reproducible performance metrics, and functional checks; no live changes, no real payment charges, no production credentials changes, no fix implementation beyond recommendations",
+  "source_url": "https://www.freelancer.com/projects/php/comprehensive-beds-system-audit"
+}

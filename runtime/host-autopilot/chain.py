@@ -37,10 +37,12 @@ def validate_chain(data):
             if dep not in prior:return False,'DEPENDENCY_ORDER'
     return True,'OK'
 
+def receipt_state(receipt):
+    if not isinstance(receipt,dict): return None
+    return receipt.get('state') or receipt.get('classification')
+
 def receipt_matches(receipt,phase):
-    if not isinstance(receipt,dict): return False
-    state=receipt.get('state') or receipt.get('classification')
-    return state=='APPLIED' and receipt.get('release_id')==phase.get('release_id') and receipt.get('target_revision')==phase.get('target_revision')
+    return isinstance(receipt,dict) and receipt_state(receipt)=='APPLIED' and receipt.get('release_id')==phase.get('release_id') and receipt.get('target_revision')==phase.get('target_revision')
 
 def select_phase(chain,receipt_loader,hold_state=None):
     ok,reason=validate_chain(chain)
@@ -50,12 +52,13 @@ def select_phase(chain,receipt_loader,hold_state=None):
         return {'classification':'HOLD_FOUNDER_GATE','reason':'PRIOR_HOLD'}
     phases_by_id={p['phase_id']:p for p in chain['phases']}
     for phase in chain['phases']:
-        own=receipt_loader(phase)
+        own=receipt_loader(phase); own_state=receipt_state(own)
         if receipt_matches(own,phase): continue
+        if own_state in {'ROLLED_BACK','HOLD_FOUNDER_GATE'}:
+            return {'classification':'HOLD_FOUNDER_GATE','phase_id':phase['phase_id'],'reason':f'PHASE_{own_state}'}
         dep=phase.get('depends_on')
         if dep:
-            predecessor=phases_by_id[dep]; receipt=receipt_loader(predecessor)
-            state=(receipt or {}).get('state') or (receipt or {}).get('classification')
+            predecessor=phases_by_id[dep]; receipt=receipt_loader(predecessor); state=receipt_state(receipt)
             if state in {'ROLLED_BACK','HOLD_FOUNDER_GATE'}:
                 return {'classification':'HOLD_FOUNDER_GATE','phase_id':phase['phase_id'],'reason':f'PREDECESSOR_{state}'}
             if not receipt_matches(receipt,predecessor):

@@ -4,19 +4,24 @@ set -euo pipefail
 ROOT="$HOME/daube-host-autopilot"
 RUNTIME="$ROOT/runtime"
 STATE="$ROOT/state"
-REF="${DAUBE_NATIVE_AUTOPILOT_REF:-${DAUBE_AUTOPILOT_TARGET_REVISION:-main}}"
 REPO="daubesonntag-dotcom/daube-public-release"
-RAW="https://raw.githubusercontent.com/$REPO/$REF/runtime/host-autopilot"
-FILES=(models.py manifest.py chain.py stage.py checks.py transaction.py controller.py watchdog.py run.py test_autopilot.py)
 SERVICE="daube-native-autopilot-chain.service"
 TIMER="daube-native-autopilot-chain.timer"
 BACKUP="$ROOT/native-chain-unit-backup"
+FILES=(models.py manifest.py chain.py stage.py checks.py transaction.py controller.py watchdog.py run.py test_autopilot.py)
 
 for cmd in curl python3 systemctl flock sudo; do
   command -v "$cmd" >/dev/null || { echo "NATIVE_AUTOPILOT_BLOCKED=${cmd^^}_MISSING"; exit 1; }
 done
+
+REF="${DAUBE_NATIVE_AUTOPILOT_REF:-${DAUBE_AUTOPILOT_TARGET_REVISION:-}}"
+if [[ ! "$REF" =~ ^[0-9a-f]{40}$ ]]; then
+  DESIRED_URL="https://raw.githubusercontent.com/$REPO/main/.daube/autopilot/host-desired-state.json"
+  REF="$(curl -fsSL "$DESIRED_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("target_revision",""))')"
+fi
 [[ "$REF" =~ ^[0-9a-f]{40}$ ]] || { echo "NATIVE_AUTOPILOT_BLOCKED=EXACT_REF_REQUIRED"; exit 1; }
 
+RAW="https://raw.githubusercontent.com/$REPO/$REF/runtime/host-autopilot"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 for f in "${FILES[@]}"; do curl -fsSL "$RAW/$f" -o "$STAGE/$f"; done

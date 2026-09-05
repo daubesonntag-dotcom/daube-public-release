@@ -1,7 +1,7 @@
 # D’AUBE Native Autopilot Chain V1 — Design
 
 ## Status
-Approved by Founder on 2026-09-05.
+Approved conceptually by Founder on 2026-09-05; written-spec review pending.
 
 ## Goal
 Move release-phase orchestration out of ChatGPT automations and Remote Desktop Commander into the persistent D’AUBE host runtime on `daube-host-01`, so D’AUBE can autonomously advance approved releases from desired state through verification, activation, health validation, receipt persistence, and rollback without requiring an active ChatGPT session.
@@ -46,7 +46,6 @@ Each phase contains:
 - `activation` — existing Host Autopilot activation contract
 - `health_units`
 - `depends_on` — zero or one predecessor phase in V1
-- `success_receipt`
 
 The chain manifest is declarative only. It cannot contain arbitrary privileged shell commands outside the existing activation contract.
 
@@ -59,7 +58,8 @@ Responsibilities:
 - read local chain state and prior Host Autopilot receipts;
 - select exactly one eligible next phase;
 - require predecessor `APPLIED` evidence before advancing;
-- materialize a local desired-state payload for the existing Host Autopilot transaction engine;
+- translate the eligible phase into the existing Host Autopilot transaction contract in memory;
+- execute the existing exact-SHA transaction engine locally;
 - never skip a failed, missing, ambiguous, or held predecessor;
 - classify results as `DISABLED`, `NOOP`, `WAITING_PREDECESSOR`, `READY`, `APPLIED`, `ROLLED_BACK`, or `HOLD_FOUNDER_GATE`.
 
@@ -80,7 +80,10 @@ New timer/service:
 
 Cadence: every 10 minutes with bounded randomized delay.
 
-The service uses a kernel `flock` separate from but compatible with the existing deploy lock. It must not run a second activation while Host Autopilot is already mutating production.
+The chain service and the existing Host Autopilot service use the same kernel lock file:
+`~/daube-host-autopilot/deploy.lock`.
+
+There is exactly one deployment mutation lock authority. If either service holds this lock, the other must exit without activation and retry on its next timer cycle.
 
 ### 5. Founder Kill Switch
 Existing local kill switch remains authoritative:
@@ -144,13 +147,13 @@ Unknown/missing evidence is recorded as `WAITING_PREDECESSOR` or `HOLD_FOUNDER_G
 
 ## Migration from ChatGPT Phase-2 Automation
 Migration is staged:
-1. merge and install Native Autopilot Chain runtime while the current ChatGPT Phase-2 automation remains enabled but unable to mutate unless its existing evidence gate passes;
+1. merge and install Native Autopilot Chain runtime while the current ChatGPT Phase-2 automation remains enabled but may only mutate GitHub desired state after its own evidence gate;
 2. publish a chain containing Host Autopilot self-update as already-applied Phase 1 and Execution Mesh V9 as Phase 2;
 3. verify the host-native controller reads Phase 1 receipt and autonomously applies Phase 2;
 4. verify V9 `APPLIED` receipt and required runtime timers;
 5. retire/disable the ChatGPT `D’AUBE Autopilot Phase 2` automation only after native evidence proves the chain works.
 
-The migration must never leave two independent actors able to activate the same new phase concurrently. Idempotency plus the deploy lock provide the technical guard; automation retirement completes the ownership transfer.
+During migration, ChatGPT automation is not permitted to issue a host activation command. Host activation remains serialized by the single shared deploy lock. Idempotency on exact `release_id` + `target_revision` prevents duplicate application if remote desired-state and native chain refer to the same phase.
 
 ## Initial Chain
 Phase 1:
@@ -187,7 +190,7 @@ Offline deterministic tests must cover:
 - prior Founder hold prevents successor;
 - exact revision propagation to activation;
 - receipt persistence;
-- deploy-lock mutual exclusion contract;
+- shared deploy-lock mutual exclusion contract;
 - no remote override of kill switch;
 - no arbitrary systemd restart authority.
 

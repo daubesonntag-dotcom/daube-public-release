@@ -11,34 +11,27 @@
   "canonical_source": {
     "repository": "daubesonntag-dotcom/daube-forge-os",
     "branch": "feat/spec-demo-vintage-journal-40691264",
-    "revision": "29ebba6369c22b7491537f1e4ba49d8acae01cc1",
+    "revision": "eb566be528fdb292180ff8a6d423a5b17c30893b",
+    "local_workspace_revision": "ccc4270",
     "path": "apps/speculative-demos/freelancer-40691264"
   },
-  "local_source": {
-    "host": "daube-host-01",
-    "revision": "550f72f",
-    "path": "~/daube-revenue-worker/speculative-demos/40691264-journal"
+  "offer": {
+    "posted_scope": "Studio Care Plus",
+    "posted_price_usd": 129,
+    "collector_optional_price_usd": 300,
+    "guardrails": ["no fake scarcity", "no fake discounting", "no unlimited support", "no silent repricing"]
   },
   "verification": {
-    "node_tests": "10/10 pass",
-    "preaward_tests": "8/8 pass",
-    "json_contracts": "PASS",
-    "python_compile": "PASS",
+    "host": "daube-host-01",
+    "node_tests": "14/14 pass",
     "git_diff_check": "PASS",
     "appdeploy": "BLOCKED_BY_FREE_PLAN_LIFETIME_QUOTA_125_OF_125"
-  },
-  "offer": {
-    "posted_scope_usd": 129,
-    "collector_optional_usd": 300,
-    "contract": "offer-contract.json",
-    "fake_scarcity": false,
-    "unlimited_support": false
   },
   "limitations": [
     "browser-local persistence only",
     "no backend or authentication",
     "no client assets or data",
-    "no final promo video before award",
+    "no final promo video",
     "not a production release"
   ]
 }

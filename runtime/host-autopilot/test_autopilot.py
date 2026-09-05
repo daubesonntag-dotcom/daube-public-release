@@ -54,7 +54,7 @@ class NativeChainRuntimeTests(unittest.TestCase):
         return mock.patch.multiple(run,ROOT=root,STATE=state,STAGING=root/'staging',SNAP=root/'snapshots')
     def test_local_kill_switch_wins_without_fetch(self):
         with tempfile.TemporaryDirectory() as d, self.patched_paths(d):
-            run.ROOT.mkdir(parents=True); (run.ROOT/'DISABLED').write_text('1'); calls=[]
+            run.ROOT.mkdir(parents=True,exist_ok=True); (run.ROOT/'DISABLED').write_text('1'); calls=[]
             result=run.native_chain_once(lambda:calls.append('fetch') or good_chain(),lambda m:None)
             self.assertEqual(result['classification'],'DISABLED'); self.assertEqual(calls,[])
     def test_one_invocation_executes_only_one_phase_and_writes_audit(self):

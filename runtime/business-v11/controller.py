@@ -1,4 +1,4 @@
-import fcntl, json, os
+import fcntl
 from pathlib import Path
 from crm import merge_client_records
 from dispatch import dispatch_action
@@ -8,11 +8,10 @@ from models import atomic_json, load_json, now, scrub
 from priority import build_queue
 
 class BusinessOperator:
-    def __init__(self, home: Path, runner=None):
+    def __init__(self, home: Path):
         self.home=Path(home)
         self.base=self.home/'daube-revenue-worker'/'business-v11'
         self.base.mkdir(parents=True,exist_ok=True)
-        self.runner=runner
 
     def _lock(self):
         f=(self.base/'business.lock').open('a+')
@@ -30,10 +29,7 @@ class BusinessOperator:
             crm=merge_client_records(existing,evidence)
             queue=build_queue(evidence,crm)
             conversion=summarize_conversion(outcomes_from_evidence(evidence))
-            dispatch=None
-            if queue:
-                action=queue[0]
-                dispatch=dispatch_action(action,self.runner) if self.runner else dispatch_action(action)
+            dispatch=dispatch_action(queue[0]) if queue else None
             tower={
                 'version':'business-operator-v11','at':now(),'classification':'BUSINESS_OPERATOR_READY',
                 'revenue_truth':revenue_truth(evidence),'queue_depth':len(queue),

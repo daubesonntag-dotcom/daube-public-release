@@ -1,0 +1,14 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 39900481,
+  "amount": 89,
+  "period": 1,
+  "milestone_percentage": 100,
+  "description": "Hi — this is a good fit for a bounded one-day WordPress implementation because your layout is already designed and WordPress is installed. I can reproduce the supplied layout as a responsive one-page build, create the contact form with spam/CAPTCHA protection, store submissions in WordPress for export, route administrator notifications and visitor confirmations, then verify the page on desktop/mobile before hand-off. I’d keep the implementation maintainable rather than mixing multiple builders unless your existing site specifically requires WPBakery or Elementor. D’AUBE SONNTAG’s relevant evidence is our own web, UX and QA product/system work; I won’t present internal D’AUBE work as past client history. My bid is $89 fixed with a 1-day target, assuming the supplied design/assets are complete and the scope remains one page plus the described form. Custom integrations, new copy/design direction, or unrelated site changes would be handled as a separate change order rather than hidden inside the fixed price. After award, I’d first confirm which builder is already standard on the installation and the exact form fields/CAPTCHA option you prefer.",
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "evidence_policy": "D'AUBE-owned internal/product-system work only; no fabricated WordPress/client history",
+  "scope_guard": "one supplied-layout WordPress page + responsive implementation + standard contact fields + CAPTCHA/spam protection + dashboard entry storage/export + visitor/admin email notifications + desktop/mobile QA + handoff; excludes new branding/copy, custom integrations, multi-page expansion and paid plugin purchases",
+  "source_url": "https://www.freelancer.com/projects/web-development/one-page-wordpress-site-webform"
+}

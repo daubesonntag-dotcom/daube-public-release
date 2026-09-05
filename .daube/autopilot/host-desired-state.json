@@ -2,7 +2,7 @@
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
   "target_revision": "4428b7192b143bcf3432cdf4b372ec7ce417fb4f",
-  "release_id": "full-wave-mesh-lane-v12-4428b719",
+  "release_id": "full-wave-mesh-v12-attested-4428b719",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",
@@ -28,6 +28,11 @@
       "path": "installers/install-full-wave-mesh-lane-v12.sh",
       "sha256": "8bf8436bd473ad263eecd50f1acd1dc4d9b04f53f7e9a35120ea350bf75620f8",
       "mode": "0755"
+    },
+    {
+      "path": "installers/attest-full-wave-mesh-v12.sh",
+      "sha256": "a5189f5befcfcb66be1ca64ce363365b9b2e791b764ad827a0923b961a3ccdd3",
+      "mode": "0755"
     }
   ],
   "checks": [
@@ -35,11 +40,12 @@
     ["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"],
     ["bash", "-n", "installers/install-native-revenue-autopilot-v10.sh"],
     ["bash", "-n", "installers/install-autonomous-business-operator-v11.sh"],
-    ["bash", "-n", "installers/install-full-wave-mesh-lane-v12.sh"]
+    ["bash", "-n", "installers/install-full-wave-mesh-lane-v12.sh"],
+    ["bash", "-n", "installers/attest-full-wave-mesh-v12.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-full-wave-mesh-lane-v12.sh"
+    "entrypoint": "installers/attest-full-wave-mesh-v12.sh"
   },
   "health_units": [
     "daube-executor-v2.service",

@@ -80,4 +80,22 @@ after="$(sha256sum "$bad" | awk '{print $1}')"
 grep -q 'EXECUTOR_DETECT_RUNTIME_FUNCTION_NOT_FOUND' "$TMP/err3" || fail "wrong missing-function error"
 pass "fail-closed missing function"
 
+pipe_fixture="$TMP/pipe-executor.py"
+cat > "$pipe_fixture" <<'PY'
+from pathlib import Path
+import shutil, subprocess
+HOME=Path.home()
+
+def detect_runtime():
+    candidate = shutil.which("codex")
+    return {"name": "codex", "path": candidate} if candidate else None
+PY
+if ! cat "$SCRIPT" | bash -s -- --patch-only "$pipe_fixture" "/home/test/.local/bin/codex" >"$TMP/pipe-out" 2>"$TMP/pipe-err"; then
+  cat "$TMP/pipe-err" >&2
+  fail "piped execution failed"
+fi
+grep -q '^PATCHED_AUTH_AWARE_RUNTIME_DETECTION$' "$TMP/pipe-out" || fail "piped entrypoint did not execute main"
+python3 -m py_compile "$pipe_fixture" || fail "piped patch produced invalid Python"
+pass "pipe-to-bash entrypoint"
+
 echo "ALL_V9_TESTS_PASS"

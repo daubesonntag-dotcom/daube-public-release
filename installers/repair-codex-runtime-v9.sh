@@ -188,6 +188,8 @@ PY
 
 _daube_source="${BASH_SOURCE[0]-}"
 if [ -z "$_daube_source" ] || [ "$_daube_source" = "$0" ]; then
+  unset _daube_source
   main "$@"
+else
+  unset _daube_source
 fi
-unset _daube_source

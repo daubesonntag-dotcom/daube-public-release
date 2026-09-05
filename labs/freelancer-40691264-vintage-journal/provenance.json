@@ -1,0 +1,30 @@
+{
+  "artifact": "freelancer-40691264-vintage-journal-speculative-demo",
+  "state": "PUBLIC_CANDIDATE_NOT_PRODUCTION",
+  "claims": {
+    "client_work": false,
+    "awarded": false,
+    "delivered": false,
+    "customer_accepted": false,
+    "settled_revenue": false
+  },
+  "canonical_source": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "branch": "feat/spec-demo-vintage-journal-40691264",
+    "revision": "834db7d502390fe184293ffc844fee9f9aac93e1",
+    "path": "apps/speculative-demos/freelancer-40691264"
+  },
+  "verification": {
+    "host": "daube-host-01",
+    "node_tests": "6/6 pass",
+    "http_smoke": "PASS",
+    "appdeploy": "BLOCKED_BY_FREE_PLAN_LIFETIME_QUOTA_125_OF_125"
+  },
+  "limitations": [
+    "browser-local persistence only",
+    "no backend or authentication",
+    "no client assets or data",
+    "no final promo video",
+    "not a production release"
+  ]
+}

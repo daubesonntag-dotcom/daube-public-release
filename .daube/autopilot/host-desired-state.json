@@ -1,24 +1,33 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "74bacb4630fef842827a337f78750363ed08d110",
-  "release_id": "native-autopilot-chain-74bacb46",
+  "target_revision": "e72f04d77704c95b8f3d7ab3d85e45325e7a33c2",
+  "release_id": "ci-platform-wave-full-host-e72f04d7",
   "artifacts": [
     {
-      "path": "installers/install-native-autopilot-chain-v1.sh",
-      "sha256": "fabb7d064a00e17d046e0a0d0ff7bc3ca48ea682daf7915b3e84ef9add376a30",
+      "path": "installers/install-ci-platform-wave-full-host-v1.sh",
+      "sha256": "38bc346a17a9f8dcc11de4f276b0671634fe75ac996dd055ed7638d9a76acd8a",
       "mode": "0755"
     }
   ],
-  "checks": [["bash", "-n", "installers/install-native-autopilot-chain-v1.sh"]],
+  "checks": [["bash", "-n", "installers/install-ci-platform-wave-full-host-v1.sh"]],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-native-autopilot-chain-v1.sh"
+    "entrypoint": "installers/install-ci-platform-wave-full-host-v1.sh"
   },
   "health_units": [
-    "daube-host-autopilot.timer",
-    "daube-host-autopilot-watchdog.timer",
-    "daube-native-autopilot-chain.timer"
+    "daube-executor-v2.service",
+    "daube-machine-heartbeat.timer",
+    "daube-wave-full-dispatcher.timer",
+    "daube-host-steward-v1.timer",
+    "daube-host-self-recovery-v1.timer",
+    "daube-host-boot-guardian-v1.timer",
+    "daube-customer-care-mail.service",
+    "daube-customer-care-mail-source-sync.timer",
+    "daube-revenue-opportunity-worker.timer",
+    "daube-enterprise-governor-v1.service",
+    "daube-enterprise-governor-source-sync-v1.timer",
+    "daube-enterprise-runtime-github-status-publisher.timer"
   ],
   "rollback": "required"
 }

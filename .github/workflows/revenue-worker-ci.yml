@@ -1,0 +1,31 @@
+name: Revenue Worker CI
+
+on:
+  pull_request:
+    paths:
+      - 'runtime/revenue-worker/**'
+      - '.github/workflows/autonomous-revenue-*.yml'
+      - '.github/workflows/revenue-worker-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python syntax
+        run: python -m py_compile runtime/revenue-worker/freelancer_official.py runtime/revenue-worker/submit_target.py
+      - name: Policy tests
+        run: node runtime/revenue-worker/worker.test.mjs
+      - name: Target packet parse
+        run: python -m json.tool runtime/revenue-worker/targets/freelancer-40684395.json >/dev/null

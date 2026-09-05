@@ -1,0 +1,14 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40691270,
+  "amount": 125,
+  "period": 3,
+  "milestone_percentage": 100,
+  "description": "Hi — I can keep this as a clean REST-first PayPal Subscriptions integration under your own PayPal Developer account. I’d implement and verify Sandbox first: OAuth/app setup, Products, Billing Plans and Subscriptions, lifecycle calls, and a webhook listener with signature verification plus idempotent event handling. You’ll get working cURL, PHP and JavaScript examples for create/update/pause/resume/cancel/plan changes, plus a concise hand-off covering endpoints, headers, stored IDs and webhook configuration. After you validate the Sandbox flow, I can mirror the configuration to Live and walk through the final verification call. D’AUBE SONNTAG’s relevant evidence is our own API, commerce and reconciliation systems, where provider receipts, webhook verification, idempotency and fail-closed promotion are core controls; I won’t present internal work as past client history. I’d target 3 days at $125, assuming you provide PayPal Developer access and a staging URL or endpoint for webhook testing. Scope excludes unrelated WordPress redesign or custom billing UI beyond the sample integration hooks. After award, the first detail I’d confirm is whether you want subscription actions exposed as WordPress REST endpoints or as standalone PHP/JS samples first.",
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "evidence_policy": "D'AUBE-owned internal/product-system work only; no fabricated client history or PayPal-specific past-client claim",
+  "scope_guard": "PayPal Subscriptions REST flow + webhook verification + sample integration calls + documentation; no unrelated WordPress redesign or custom billing UI",
+  "source_url": "https://www.freelancer.com/projects/api-developmet/paypal-flexible-payment-portal"
+}

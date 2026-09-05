@@ -1,37 +1,25 @@
 # D’AUBE Vintage Journal — Speculative Concept Proof
 
-This is D’AUBE-owned speculative work created before award to demonstrate understanding of the posted journal interaction brief. It is **not client work**, not an awarded delivery, not customer acceptance, and not revenue evidence.
+This is D’AUBE-owned speculative work created before award to demonstrate understanding of the posted journal brief. It is **not client work**, not an awarded delivery, not customer acceptance, and not revenue evidence.
 
-Included in this proof:
-- editable journal pages with browser-local persistence;
-- numbered tabs plus Previous/Next/final-to-cover navigation;
-- lightweight page-turn treatment;
-- petals and stardust motion with reduced-motion guardrail;
-- mobile-responsive layout;
-- JSON export and reset confirmation;
-- a truthful two-tier care offer.
-
-## Studio Care — posted scope $129
-- Posted journal scope + responsive QA
-- 1 revision round
-- 14-day in-scope bug care
-- 7-day launch check-in
-- 1 minor polish pass
-- Complimentary gift: one accent/theme variation
-- No surprise billing; scope expansion is quoted first
+## Studio Care Plus — posted scope $129
+The $129 tier is intentionally complete on its own:
+- polished vintage journal + responsive QA;
+- persistent page bookmarks;
+- 3 subtle paper accents (ivory / rose / sage);
+- entry date stamp + character counter;
+- live autosave feedback;
+- browser-local persistence + JSON export;
+- richer heirloom page depth, candlelight ambience and motion-safe detailing;
+- 1 revision round;
+- 14-day in-scope bug care + 7-day launch check-in;
+- 1 minor polish pass;
+- complimentary accent/theme variation + signature decorative motif;
+- no surprise billing.
 
 ## Collector Care Passport — optional $300 upgrade
-- Premium visual/motion polish + 3 curated mood themes
-- 2 revision rounds
-- 30-day in-scope bug care + 14-day launch hypercare
-- 1 compatibility check + priority in-scope handling
-- Complimentary seasonal theme, signature micro-interaction, and future minor enhancement credit
+Adds deeper premium visual/motion polish, 3 curated full mood themes, 2 revisions, 30-day bug care, 14-day launch hypercare, one compatibility check, priority in-scope handling, seasonal theme, signature micro-interaction, and a future minor enhancement credit.
 
-Reserved for an awarded project:
-- final art/asset polish;
-- production integration/hosting handoff;
-- full browser/device acceptance matrix;
-- 30–45 second promotional video;
-- client-specific revisions and final packaging.
+Truth guardrails: no fake scarcity, fake discounting, unlimited-support claim, silent repricing, or claim that this speculative proof was delivered to a client.
 
-Offer guardrails: the posted $129 scope remains available; the $300 tier is optional. No fake scarcity, fake discounting, unlimited support, or silent scope expansion is claimed.
+Verified source authority: `daube-forge-os` candidate branch head `eb566be528fdb292180ff8a6d423a5b17c30893b`; local workspace feature commit `ccc4270` passed 14/14 Node tests before mirror.

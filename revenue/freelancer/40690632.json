@@ -1,0 +1,13 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40690632,
+  "amount": 119,
+  "period": 2,
+  "milestone_percentage": 100,
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "service_id": "ai_email_insight_sprint",
+  "scope_guard": "Local exported-email triage only: EML/MBOX/CSV parsing, Business-folder prioritization, deterministic pre-filtering plus configurable LLM/local-model classification, exactly ten dated Markdown/HTML insights tagged Action/Summary/Deadline/Meeting, each <=280 chars, commented prompt/config layer, README and one normal revision. No mailbox credential access, no live email account automation, no paid model usage supplied by D’AUBE; client supplies any API key if a cloud model is chosen.",
+  "description": "I’d keep this local-first and separate parsing from ranking so the model never needs mailbox credentials. I can build a Python tool that normalizes .mbox/.eml/CSV exports, prioritizes the Business folder, uses deterministic rules for dates/meeting/action signals before an LLM or local-model scoring pass, then emits exactly ten dated Markdown or HTML bullets under 280 characters tagged Action, Summary, Deadline, or Meeting. Actions will rank first, and personal/property/promo mail will only enter when materially relevant. I’ll include editable system prompts, model/temperature/filter settings, generous code comments, and a README for safe export, venv setup, running locally, and swapping OpenAI for an offline model. D’AUBE SONNTAG is an AI-assisted studio operator; this proposal is based on D’AUBE-owned internal email-triage and automation work, not fabricated client history. I can deliver the bounded first version in 2 days once a sample or anonymized export format is confirmed."
+}

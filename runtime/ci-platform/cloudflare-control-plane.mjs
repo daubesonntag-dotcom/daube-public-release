@@ -45,12 +45,16 @@ export async function probeCloudflareControlPlane({
   if (!bearer) return { status: 'HOLD_CLOUDFLARE_TOKEN_MISSING', tokenVerified: false, zone: null, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
 
   try {
-    const verification = await cfApi({ token: bearer, pathname: '/user/tokens/verify', fetchImpl, timeoutMs });
-    const tokenVerified = verification?.result?.status === 'active';
-    if (!tokenVerified) return { status: 'HOLD_CLOUDFLARE_TOKEN_INACTIVE', tokenVerified: false, zone: null, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
+    const accountOwned = bearer.startsWith('cfat_');
+    let tokenVerified = false;
+    if (!accountOwned) {
+      const verification = await cfApi({ token: bearer, pathname: '/user/tokens/verify', fetchImpl, timeoutMs });
+      tokenVerified = verification?.result?.status === 'active';
+      if (!tokenVerified) return { status: 'HOLD_CLOUDFLARE_TOKEN_INACTIVE', tokenVerified: false, zone: null, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
+    }
     const zones = await cfApi({ token: bearer, pathname: '/zones', search: { name: zoneName, status: 'active', per_page: 5 }, fetchImpl, timeoutMs });
     const exact = (zones.result || []).filter((zone) => String(zone?.name || '').toLowerCase() === String(zoneName).toLowerCase());
-    if (exact.length !== 1) return { status: exact.length === 0 ? 'HOLD_CLOUDFLARE_ZONE_NOT_FOUND' : 'HOLD_CLOUDFLARE_ZONE_AMBIGUOUS', tokenVerified: true, zone: null, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
+    if (exact.length !== 1) return { status: exact.length === 0 ? 'HOLD_CLOUDFLARE_ZONE_NOT_FOUND' : 'HOLD_CLOUDFLARE_ZONE_AMBIGUOUS', tokenVerified, zone: null, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
     const rawZone = exact[0];
     const zone = {
       id: String(rawZone.id || ''),
@@ -58,6 +62,12 @@ export async function probeCloudflareControlPlane({
       status: String(rawZone.status || ''),
       accountId: String(rawZone.account?.id || ''),
     };
+    if (accountOwned) {
+      if (!zone.accountId) return { status: 'HOLD_CLOUDFLARE_ACCOUNT_ID_MISSING', tokenVerified: false, zone, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
+      const verification = await cfApi({ token: bearer, pathname: `/accounts/${encodeURIComponent(zone.accountId)}/tokens/verify`, fetchImpl, timeoutMs });
+      tokenVerified = verification?.result?.status === 'active';
+      if (!tokenVerified) return { status: 'HOLD_CLOUDFLARE_TOKEN_INACTIVE', tokenVerified: false, zone, dnsRecordCount: null, pages: { visible: false, projectCount: null, projectNames: [] } };
+    }
     const dns = await cfApi({ token: bearer, pathname: `/zones/${encodeURIComponent(zone.id)}/dns_records`, search: { per_page: 100 }, fetchImpl, timeoutMs });
     const dnsRecordCount = Number(dns?.result_info?.total_count ?? dns?.result?.length ?? 0);
     let pages = { visible: false, projectCount: null, projectNames: [] };

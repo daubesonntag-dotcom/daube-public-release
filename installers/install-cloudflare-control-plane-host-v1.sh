@@ -9,7 +9,7 @@ UNIT_DST="/etc/systemd/system/daube-executor-v2.service"
 NODE="/opt/daube/toolchains/node24/bin/node"
 STATE="/var/lib/daube-executor/cloudflare-control-plane.json"
 BACKUP="$HOME/daube-host-autopilot/snapshots/cloudflare-control-plane-host-v1-$(date +%s)"
-CI_SOURCE_SHA="faa2724a1ba27face856c92bdd865e2fb3d6d6a2"
+CI_SOURCE_SHA="0921123567d3dab4353d61e5e4f0e6abb7833434"
 
 for cmd in sudo systemctl python3; do command -v "$cmd" >/dev/null || { echo "BLOCKED_${cmd^^}_MISSING"; exit 1; }; done
 sudo -n true >/dev/null 2>&1 || { echo 'BLOCKED_SUDO_NONINTERACTIVE'; exit 1; }

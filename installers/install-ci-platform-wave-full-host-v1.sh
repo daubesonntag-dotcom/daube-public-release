@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TARGET_SHA="8fb19e5a22a4c9ab68ba479ffbfce6bd534eb8c6"
+TARGET_SHA="4f8502b06f07a00506775611016be2c7b27240a7"
 HOST_EXPECTED="daube-host-01"
 FOUNDER="founder_daubesonntag_com"
 

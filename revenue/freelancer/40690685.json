@@ -1,0 +1,13 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40690685,
+  "amount": 105,
+  "period": 3,
+  "milestone_percentage": 100,
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "service_id": "wordpress_booking_integration_sprint",
+  "scope_guard": "Three-page WordPress car-rental site + responsive layout + booking request/availability flow + Google Calendar integration + validation/conflict handling + confirmation messaging + basic spam/security + cross-device QA + handoff. Online payments, ecommerce, large fleet-management logic, custom CRM, and unrelated branding/content production excluded unless separately scoped.",
+  "description": "I’d keep this 3-page rental build lightweight and operationally reliable: responsive WordPress pages, a clear booking flow, and Google Calendar integration so reservations can be managed without adding unnecessary platform complexity. I’ll first lock the booking fields, vehicle/availability model, and whether Calendar should hold pending requests or confirmed bookings only. Then I’ll implement validation, conflict handling, confirmation messaging, basic spam protection, responsive QA, and a simple handoff so you can manage the site after delivery. D’AUBE SONNTAG is an AI-assisted studio operator; this proposal is based on D’AUBE-owned web, integration, and QA capability rather than fabricated client history. I can deliver the bounded first version in 3 days using your supplied content and vehicle details. Online payment/ecommerce is excluded unless you explicitly want that scoped as a separate change."
+}

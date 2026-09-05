@@ -1,0 +1,49 @@
+{
+  "source": "freelancer",
+  "projectId": 40684395,
+  "title": "AI Taxi Booking Chatbot",
+  "currency": "USD",
+  "budgetMin": 250,
+  "budgetMax": 750,
+  "bidAmount": 299,
+  "periodDays": 3,
+  "milestonePercentage": 100,
+  "scopeVersion": "1",
+  "idempotencyKey": "freelancer:40684395:proposal:1",
+  "freshEvidence": {
+    "observedAt": "2026-09-05T09:38:00Z",
+    "openForBidding": true,
+    "paymentMethodVerified": true,
+    "clientRating": 4.9,
+    "clientReviews": 10,
+    "clientMemberSince": "2011-11-01",
+    "publicBudget": "$250-750 USD"
+  },
+  "scopeFreeze": {
+    "included": [
+      "Conversational flow for pickup/contact, destination/instructions, and pickup time",
+      "Lightweight JavaScript/HTML/CSS chat widget",
+      "Provider adapter for OpenAI or Gemini with model-swappable interface",
+      "Validation and graceful re-asking for incomplete/ambiguous inputs",
+      "POST of validated booking payload to one existing staging API endpoint",
+      "End-to-end staging test cases for the agreed payload contract",
+      "Concise handoff documentation"
+    ],
+    "excluded": [
+      ".NET backend rewrite",
+      "fare/routing/dispatch engine",
+      "payment processing",
+      "geocoding service procurement or paid third-party spend",
+      "production infrastructure redesign",
+      "scope beyond one existing booking endpoint without a paid change order"
+    ],
+    "acceptanceCriteria": [
+      "Widget collects all three required booking data groups",
+      "Ambiguous/missing data triggers targeted re-ask instead of silent acceptance",
+      "Validated payload reaches the agreed staging endpoint in the agreed schema",
+      "LLM provider can be switched through the adapter/config boundary",
+      "Test evidence is supplied for the agreed staging flow"
+    ]
+  },
+  "proposal": "I can deliver this as a tightly bounded 3-day integration: a lightweight JS chat widget, a provider-neutral LLM adapter (OpenAI or Gemini), strict validation/re-asking for pickup/contact, destination/instructions and pickup time, and a validated POST into one existing staging booking endpoint. I would keep model/API keys out of the browser, use a structured schema so the model cannot silently invent booking fields, and provide staging E2E test evidence plus a concise handoff. D’AUBE SONNTAG can show owned product/system work in React/TypeScript, API automation and AI/RAG integration as capability evidence; I will not represent that work as prior client work. Bid: $299 fixed, 3 days, assuming the staging endpoint and payload contract are available at kickoff. Backend rewrite, routing/fare/payment logic and paid third-party services are outside this fixed scope unless separately agreed."
+}

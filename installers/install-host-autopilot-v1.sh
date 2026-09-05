@@ -11,13 +11,13 @@ else
 fi
 [[ "$REF" =~ ^[0-9a-f]{40}$ ]] || { echo "AUTOPILOT_BLOCKED=INVALID_REF"; exit 1; }
 RAW="https://raw.githubusercontent.com/$REPO/$REF/runtime/host-autopilot"
-FILES=(models.py manifest.py stage.py checks.py transaction.py controller.py watchdog.py run.py test_autopilot.py)
+FILES=(models.py manifest.py chain.py stage.py checks.py transaction.py controller.py watchdog.py run.py test_autopilot.py)
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
 for f in "${FILES[@]}"; do curl -fsSL "$RAW/$f" -o "$STAGE/$f"; done
 (
   cd "$STAGE"
   PYTHONPATH="$STAGE" python3 -m unittest -v test_autopilot.py
-  python3 -m py_compile models.py manifest.py stage.py checks.py transaction.py controller.py watchdog.py run.py
+  python3 -m py_compile models.py manifest.py chain.py stage.py checks.py transaction.py controller.py watchdog.py run.py
   PYTHONPATH="$STAGE" python3 run.py --verify
 )
 mkdir -p "$RUNTIME" "$STATE" "$ROOT/staging" "$ROOT/snapshots" "$ROOT/bootstrap-backup"

@@ -1,6 +1,5 @@
 import json, tempfile, unittest
 from pathlib import Path
-from types import SimpleNamespace
 
 from crm import merge_client_records
 from dispatch import dispatch_action
@@ -40,15 +39,13 @@ class V11Tests(unittest.TestCase):
         q=build_queue({'jobs':[],'watchdog':{}}, {})
         self.assertEqual(q[0]['type'],'SCOUT')
 
-    def test_dispatch_allowlist(self):
-        seen=[]
-        def run(argv): seen.append(argv); return SimpleNamespace(returncode=0)
-        got=dispatch_action({'type':'SCOUT'},run)
-        self.assertEqual(got['classification'],'DISPATCHED')
-        self.assertEqual(seen[0][-1],'daube-revenue-worker.service')
+    def test_dispatch_delegates_to_existing_timer(self):
+        got=dispatch_action({'type':'SCOUT'})
+        self.assertEqual(got['classification'],'DELEGATED_TIMER')
+        self.assertEqual(got['timer'],'daube-revenue-worker.timer')
 
     def test_dispatch_blocks_kyc(self):
-        got=dispatch_action({'type':'KYC'},lambda argv: self.fail('must not run'))
+        got=dispatch_action({'type':'KYC'})
         self.assertEqual(got['classification'],'FOUNDER_GATE')
 
     def test_conversion_paid_needs_authoritative_count(self):

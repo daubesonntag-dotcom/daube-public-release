@@ -2,6 +2,10 @@ name: D'AUBE Web Cloudflare rescue v2
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - release/cloudflare-daube-web-builds-rescue.json
 
 permissions:
   contents: read

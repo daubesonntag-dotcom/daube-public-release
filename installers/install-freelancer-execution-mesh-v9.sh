@@ -13,7 +13,7 @@ TIMER="/etc/systemd/system/daube-freelancer-executor.timer"
 FILES=(
   adapters.py contract.py controller.py delivery.py graph.py integration.py
   models.py planner.py qa.py red_team.py research.py run.py visual.py
-  worth_money.py test_v9.py
+  worth_money.py test_v9.py test_runtime.py
 )
 
 command -v curl >/dev/null || { echo "V9_BLOCKED=CURL_MISSING"; exit 1; }
@@ -32,7 +32,7 @@ done
 echo "=== V9 OFFLINE VERIFICATION ==="
 (
   cd "$STAGE"
-  PYTHONPATH="$STAGE" python3 -m unittest -v test_v9
+  PYTHONPATH="$STAGE" python3 -m unittest -v test_v9 test_runtime
   python3 -m py_compile \
     adapters.py contract.py controller.py delivery.py graph.py integration.py \
     models.py planner.py qa.py red_team.py research.py run.py visual.py worth_money.py

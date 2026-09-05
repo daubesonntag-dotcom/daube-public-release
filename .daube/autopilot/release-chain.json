@@ -60,8 +60,8 @@
     },
     {
       "phase_id": "autonomous-business-operator-v11",
-      "target_revision": "791725955eeac69170a2f8c709608cf9252e670a",
-      "release_id": "business-operator-v11-79172595",
+      "target_revision": "ae9974a3145a017ddc3f6eb693137d7d4fa9203a",
+      "release_id": "business-operator-v11-ae9974a3",
       "artifacts": [{"path": "installers/install-autonomous-business-operator-v11.sh", "sha256": "7e2ba8faac9794d72ba4ceae16e01a574f7bada3f9860242e75a009cc56b4605", "mode": "0755"}],
       "checks": [["bash", "-n", "installers/install-autonomous-business-operator-v11.sh"]],
       "activation": {"kind": "installer", "entrypoint": "installers/install-autonomous-business-operator-v11.sh"},

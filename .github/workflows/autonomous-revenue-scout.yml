@@ -1,0 +1,41 @@
+name: Autonomous Revenue Scout
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: autonomous-revenue-scout
+  cancel-in-progress: true
+
+jobs:
+  freelancer-official-scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install official Freelancer SDK
+        run: python -m pip install --disable-pip-version-check freelancersdk==0.1.20
+      - name: Scout through official Freelancer API
+        env:
+          FLN_OAUTH_TOKEN: ${{ secrets.FREELANCER_OFFICIAL_TOKEN }}
+          FLN_URL: https://www.freelancer.com
+          FREELANCER_PROPOSAL_WRITE_ALLOWED: ${{ secrets.FREELANCER_PROPOSAL_WRITE_ALLOWED }}
+        run: python runtime/revenue-worker/freelancer_official.py
+
+  policy-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node runtime/revenue-worker/worker.test.mjs

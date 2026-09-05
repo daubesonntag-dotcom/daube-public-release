@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-log(){ printf '[D'\''AUBE FULL WAVE V12] %s\n' "$*"; }
+log(){ printf '[DAUBE FULL WAVE V12] %s\n' "$*"; }
 fail(){ log "HOLD: $*" >&2; exit 1; }
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,41 +14,35 @@ command -v sudo >/dev/null 2>&1 || fail "sudo missing"
 sudo -n true >/dev/null 2>&1 || fail "passwordless sudo authority missing"
 
 publish_status() {
-  local state="$1" description="$2"
-  sudo -n /usr/bin/bash -c '
+  sudo -n /usr/bin/env REF="$REF" STATE="$1" DESC="$2" /usr/bin/bash -c '
     set -Eeuo pipefail
     set -a
     . /etc/daube/daube-executor-v2.env
     set +a
     export GH_TOKEN
-    gh api --method POST "repos/'"$REPO"'/statuses/'"$REF"'" \
-      -f state="'"$state"'" \
-      -f context="'"$CONTEXT"'" \
-      -f description="'"$description"'" >/dev/null
+    gh api --method POST "repos/daubesonntag-dotcom/daube-public-release/statuses/$REF" \
+      -f state="$STATE" -f context="daube/full-wave-v12" -f description="$DESC" >/dev/null
   ' || true
 }
 
-on_exit() {
-  local rc=$?
-  if (( rc != 0 )); then publish_status failure "FULL_WAVE_V12_HOLD"; fi
-  exit "$rc"
-}
+on_exit(){ rc=$?; if (( rc != 0 )); then publish_status failure "FULL_WAVE_V12_HOLD"; fi; exit "$rc"; }
 trap on_exit EXIT
 
 export DAUBE_V9_REF="$REF"
 export DAUBE_REVENUE_V10_REF="$REF"
 export DAUBE_V11_REF="$REF"
 
-for installer in \
-  install-ci-platform-wave-full-host-v1.sh \
-  install-freelancer-execution-mesh-v9.sh \
-  install-native-revenue-autopilot-v10.sh \
+INSTALLERS=(
+  install-ci-platform-wave-full-host-v1.sh
+  install-freelancer-execution-mesh-v9.sh
+  install-native-revenue-autopilot-v10.sh
   install-autonomous-business-operator-v11.sh
-do
-  test -x "$HERE/$installer" || fail "staged installer missing or not executable: $installer"
+)
+for installer in "${INSTALLERS[@]}"; do
+  test -x "$HERE/$installer" || fail "staged installer missing: $installer"
 done
 
-log "RUN install-ci-platform-wave-full-host-v1.sh ref=$REF"
+log "RUN platform convergence ref=$REF"
 bash "$HERE/install-ci-platform-wave-full-host-v1.sh"
 
 BASE_TIMERS=(
@@ -65,11 +59,7 @@ for unit in "${BASE_TIMERS[@]}"; do
   systemctl is-active --quiet "$unit" || fail "base timer inactive: $unit"
 done
 
-for installer in \
-  install-freelancer-execution-mesh-v9.sh \
-  install-native-revenue-autopilot-v10.sh \
-  install-autonomous-business-operator-v11.sh
-do
+for installer in "${INSTALLERS[@]:1}"; do
   log "RUN $installer ref=$REF"
   bash "$HERE/$installer"
 done
@@ -89,10 +79,8 @@ REQUIRED=(
   daube-native-revenue-autopilot.timer
   daube-business-operator.timer
 )
-
 for unit in "${REQUIRED[@]}"; do
-  sudo systemctl enable "$unit" >/dev/null 2>&1 || true
-  sudo systemctl start "$unit" >/dev/null 2>&1 || true
+  sudo systemctl enable --now "$unit" >/dev/null 2>&1 || true
   systemctl is-active --quiet "$unit" || fail "unit not active: $unit"
 done
 
@@ -109,8 +97,7 @@ KICK=(
 set +e
 for unit in "${KICK[@]}"; do
   sudo systemctl start "$unit"
-  rc=$?
-  log "KICK unit=$unit rc=$rc"
+  log "KICK unit=$unit rc=$?"
 done
 set -e
 
@@ -118,27 +105,26 @@ READY="$HOME/daube-revenue-worker/business-v11/BUSINESS_OPERATOR_READY.json"
 test -s "$READY" || fail "business operator readiness receipt missing"
 
 OUT="$HOME/daube-revenue-worker/full-wave-v12"
-mkdir -p "$OUT"
-chmod 700 "$OUT"
+mkdir -p "$OUT"; chmod 700 "$OUT"
 python3 - "$REF" "$OUT/receipt.json" "${REQUIRED[@]}" <<'PY'
 import json, subprocess, sys
 from datetime import datetime, timezone
 ref, out, *units = sys.argv[1:]
 states = {}
 for unit in units:
-    p = subprocess.run(["systemctl", "is-active", unit], text=True, capture_output=True)
+    p = subprocess.run(["systemctl","is-active",unit], text=True, capture_output=True)
     states[unit] = p.stdout.strip() or f"rc={p.returncode}"
 receipt = {
-    "schema": "daube.full-wave-v12.receipt.v1",
-    "classification": "FULL_WAVE_READY" if all(v == "active" for v in states.values()) else "HOLD",
-    "target_revision": ref,
-    "at": datetime.now(timezone.utc).isoformat(),
-    "units": states,
-    "revenue_truth": "EXTERNAL_SETTLEMENT_ONLY",
+    "schema":"daube.full-wave-v12.receipt.v1",
+    "classification":"FULL_WAVE_READY" if all(v=="active" for v in states.values()) else "HOLD",
+    "target_revision":ref,
+    "at":datetime.now(timezone.utc).isoformat(),
+    "units":states,
+    "revenue_truth":"EXTERNAL_SETTLEMENT_ONLY",
 }
-with open(out, "w", encoding="utf-8") as f:
-    json.dump(receipt, f, indent=2, sort_keys=True); f.write("\n")
-print(json.dumps(receipt, sort_keys=True))
+with open(out,"w",encoding="utf-8") as f:
+    json.dump(receipt,f,indent=2,sort_keys=True); f.write("\n")
+print(json.dumps(receipt,sort_keys=True))
 if receipt["classification"] != "FULL_WAVE_READY": raise SystemExit(1)
 PY
 

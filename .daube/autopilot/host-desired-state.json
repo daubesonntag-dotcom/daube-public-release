@@ -1,25 +1,43 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "747d344103827e3aabdcbac95b413cbd0cbba0ec",
-  "release_id": "host-autopilot-self-update-747d3441",
+  "target_revision": "bbf826216587a02f31da9fcf05d8a4ddde6ec74c",
+  "release_id": "cloudflare-control-plane-host-v1-bbf82621",
   "artifacts": [
     {
-      "path": "installers/install-host-autopilot-v1.sh",
-      "sha256": "061d88394a52ef4136e970b3c4d65ff22e81deb720c0c3bbfda0d0fdb6ea834f",
+      "path": "installers/install-cloudflare-control-plane-host-v1.sh",
+      "sha256": "a835a966e50609a04c8ae55e00b811bd87399bfe0b813c6395677dcb9acc796c",
       "mode": "0755"
+    },
+    {
+      "path": "runtime/ci-platform/cloudflare-control-plane.mjs",
+      "sha256": "9939d26a23b4c4baece55079b2a25176f5e8c2c89a0422cc728d720502e29dc9",
+      "mode": "0644"
+    },
+    {
+      "path": "runtime/ci-platform/cloudflare-control-plane-hook.mjs",
+      "sha256": "61430ef6171504772759a7e59659a23d49c5fa9382a3b3584f6f643c44c781e9",
+      "mode": "0644"
+    },
+    {
+      "path": "runtime/ci-platform/daube-executor-v2.service",
+      "sha256": "55f58e3110cdadb786ab5bd6bc70d07c58ff67cecea3878d49fd873a2d63f8e7",
+      "mode": "0644"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-host-autopilot-v1.sh"]
+    ["bash", "-n", "installers/install-cloudflare-control-plane-host-v1.sh"],
+    ["/opt/daube/toolchains/node24/bin/node", "--check", "runtime/ci-platform/cloudflare-control-plane.mjs"],
+    ["/opt/daube/toolchains/node24/bin/node", "--check", "runtime/ci-platform/cloudflare-control-plane-hook.mjs"],
+    ["systemd-analyze", "verify", "runtime/ci-platform/daube-executor-v2.service"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-host-autopilot-v1.sh"
+    "entrypoint": "installers/install-cloudflare-control-plane-host-v1.sh"
   },
   "health_units": [
-    "daube-host-autopilot.timer",
-    "daube-host-autopilot-watchdog.timer"
+    "daube-executor-v2.service",
+    "daube-host-autopilot.timer"
   ],
   "rollback": "required"
 }

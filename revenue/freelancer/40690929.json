@@ -1,0 +1,14 @@
+{
+  "source": "freelancer_official_api",
+  "project_id": 40690929,
+  "amount": 115,
+  "period": 2,
+  "milestone_percentage": 100,
+  "description": "Hi — I can migrate the current Google Sites content into a small, maintainable WordPress site without overcomplicating the build. I’d recreate Homepage, About Us, Interviews and Contact, migrate the existing text/images/links, configure Interviews as reusable WordPress posts with a native Spotify embed, wire and test contact-form delivery, then run responsive and link QA before hand-off. I’d use Gutenberg by default to keep plugin dependence low, unless your hosting already standardizes on Elementor. D’AUBE SONNTAG’s relevant evidence is our own web, UX and QA product work and production website systems; I won’t present D’AUBE-owned internal work as past client history. My bid is $115 fixed with a 2-day target, assuming the current Google Sites content is modest and the four core pages in your brief represent the migration scope. Domain pointing is included when registrar/hosting access is available; custom membership/e-commerce, major content expansion, or large legacy archives would be re-scoped rather than hidden inside the fixed price. After award, I’d first confirm current page count and whether WordPress is already installed on the target host.",
+  "confirm_standard_contract": true,
+  "paid_spend_required": false,
+  "nonstandard_legal_terms": false,
+  "evidence_policy": "D'AUBE-owned internal/product-system work only; no fabricated migration/client history",
+  "scope_guard": "four core pages + migrated existing Google Sites content + Interviews blog + Spotify embed + contact form + responsive/link QA + handoff; excludes custom membership/e-commerce and large legacy archive migration",
+  "source_url": "https://www.freelancer.com/projects/elementor/non-profit-wordpress-site-migration"
+}

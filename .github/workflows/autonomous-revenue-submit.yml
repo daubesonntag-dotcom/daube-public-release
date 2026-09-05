@@ -1,0 +1,34 @@
+name: Autonomous Revenue Submit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '31 * * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: autonomous-revenue-submit
+  cancel-in-progress: false
+
+jobs:
+  submit-qualified-target:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install official Freelancer SDK
+        run: python -m pip install --disable-pip-version-check freelancersdk==0.1.20
+      - name: Submit fresh pre-qualified target through official API
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FLN_OAUTH_TOKEN: ${{ secrets.FREELANCER_OFFICIAL_TOKEN }}
+          FLN_URL: https://www.freelancer.com
+          FREELANCER_PROPOSAL_WRITE_ALLOWED: ${{ secrets.FREELANCER_PROPOSAL_WRITE_ALLOWED }}
+          REVENUE_TARGET: runtime/revenue-worker/targets/freelancer-40684395.json
+        run: python runtime/revenue-worker/submit_target.py

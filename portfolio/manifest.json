@@ -1,0 +1,52 @@
+{
+  "schema_version": "daube/portfolio-manifest-v1",
+  "updated_at": "2026-09-05T21:46:00+07:00",
+  "truth_policy": "owned/internal work is never represented as paid client work; external revenue and testimonials require authoritative evidence",
+  "primary_skills": [
+    "n8n",
+    "AI Automation",
+    "API Integration",
+    "Automation",
+    "React.js",
+    "TypeScript",
+    "JavaScript",
+    "Python",
+    "Docker",
+    "DevOps"
+  ],
+  "available_scope": [
+    "workflow automation",
+    "API and webhook integration",
+    "AI workflow integration",
+    "React/TypeScript implementation",
+    "Python automation",
+    "Docker/Linux operations",
+    "QA and testing",
+    "technical documentation and handoff"
+  ],
+  "portfolio": [
+    {
+      "id": "autonomous-revenue-worker",
+      "title": "Autonomous Revenue Worker",
+      "kind": "owned_internal_system",
+      "evidence_url": "https://github.com/daubesonntag-dotcom/daube-public-release/tree/main/runtime/revenue-worker",
+      "capabilities": ["official API integration", "job discovery", "proposal submission", "award watching", "delivery gates", "settlement-only revenue recognition"]
+    },
+    {
+      "id": "execution-mesh-v9",
+      "title": "Execution Mesh V9",
+      "kind": "owned_internal_system",
+      "evidence_url": "https://github.com/daubesonntag-dotcom/daube-public-release/tree/main/runtime/freelancer-v9",
+      "capabilities": ["research", "planning", "integration validation", "implementation", "visual checks", "QA", "evidence receipts"]
+    },
+    {
+      "id": "public-release",
+      "title": "D’AUBE Public Release",
+      "kind": "owned_public_system",
+      "evidence_url": "https://daubesonntag.com/",
+      "capabilities": ["web implementation", "commerce surfaces", "pricing", "policy surfaces", "payment-state boundaries", "public release operations"]
+    }
+  ],
+  "external_client_projects_verified": 0,
+  "external_revenue_verified": 0
+}

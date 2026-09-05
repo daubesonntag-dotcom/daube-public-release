@@ -1,12 +1,12 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "394b8867d1c6fd37e3ea7e3c775077acbb110b72",
-  "release_id": "ci-platform-wave-full-host-394b8867",
+  "target_revision": "81f7129b01f7e5d9929a500584d50f63ac9ee946",
+  "release_id": "ci-platform-wave-full-host-81f7129b",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",
-      "sha256": "2966f783a9bf5336ae39a4b315ab9fc9730773b93487b02dd901e3cfb4ac2a7c",
+      "sha256": "1ecb87bd65f1065ff2d0bb2ef966beeff0644079dd6c979928392a53b45adad1",
       "mode": "0755"
     }
   ],

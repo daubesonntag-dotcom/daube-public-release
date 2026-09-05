@@ -63,10 +63,16 @@ def safe_start(service, starter):
 
 
 def systemd_starter(service):
+    """Best-effort acceleration only; existing timers remain the authority.
+
+    V10 never elevates privileges or widens polkit/sudo policy. If the host user
+    cannot start a system service directly, this returns False and the existing
+    worker timer performs the same action on its normal cadence.
+    """
     if service not in ALLOWED_SERVICES:
         return False
     result = subprocess.run(
-        ["sudo", "systemctl", "start", service],
+        ["systemctl", "start", service],
         capture_output=True,
         text=True,
         timeout=180,

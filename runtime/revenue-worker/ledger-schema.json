@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "recordRequired": [
+    "source",
+    "externalId",
+    "state",
+    "timestamp",
+    "evidenceRef",
+    "idempotencyKey"
+  ],
+  "statesCountedAsRevenue": ["SETTLED"],
+  "duplicateSuppression": {
+    "key": "idempotencyKey",
+    "authoritativeSuccessOnly": true
+  },
+  "forbiddenRevenueStates": [
+    "DISCOVER",
+    "QUALIFY",
+    "PREPARE_APPLICATION",
+    "OFFICIAL_SUBMIT",
+    "CLIENT_RESPONSE",
+    "ACCEPT_STANDARD",
+    "AWAIT_SETTLEMENT"
+  ]
+}

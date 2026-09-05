@@ -57,6 +57,17 @@
       "health_units": ["daube-native-revenue-autopilot.timer", "daube-revenue-worker.timer", "daube-freelancer-award-watcher.timer", "daube-freelancer-executor.timer", "daube-runtime-watchdog.timer", "daube-freelancer-money-closure.timer"],
       "depends_on": "execution-mesh-v9",
       "success_receipt": "APPLIED"
+    },
+    {
+      "phase_id": "autonomous-business-operator-v11",
+      "target_revision": "791725955eeac69170a2f8c709608cf9252e670a",
+      "release_id": "business-operator-v11-79172595",
+      "artifacts": [{"path": "installers/install-autonomous-business-operator-v11.sh", "sha256": "7e2ba8faac9794d72ba4ceae16e01a574f7bada3f9860242e75a009cc56b4605", "mode": "0755"}],
+      "checks": [["bash", "-n", "installers/install-autonomous-business-operator-v11.sh"]],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-autonomous-business-operator-v11.sh"},
+      "health_units": ["daube-business-operator.timer", "daube-native-revenue-autopilot.timer", "daube-revenue-worker.timer", "daube-freelancer-award-watcher.timer", "daube-freelancer-executor.timer", "daube-runtime-watchdog.timer", "daube-freelancer-money-closure.timer"],
+      "depends_on": "native-revenue-autopilot-v10",
+      "success_receipt": "APPLIED"
     }
   ]
 }

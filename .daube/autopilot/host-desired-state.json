@@ -1,0 +1,25 @@
+{
+  "schema": "daube.host-autopilot.v1",
+  "enabled": false,
+  "target_revision": "89e7ea9e2ece88f5ffbc3f856b746aefca6a5427",
+  "release_id": "bootstrap-inert-v1",
+  "artifacts": [
+    {
+      "path": "installers/install-freelancer-execution-mesh-v9.sh",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "mode": "0755"
+    }
+  ],
+  "checks": [
+    ["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"]
+  ],
+  "activation": {
+    "kind": "installer",
+    "entrypoint": "installers/install-freelancer-execution-mesh-v9.sh"
+  },
+  "health_units": [
+    "daube-freelancer-executor.timer",
+    "daube-runtime-watchdog.timer"
+  ],
+  "rollback": "required"
+}

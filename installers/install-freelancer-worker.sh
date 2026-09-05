@@ -32,7 +32,7 @@ from freelancersdk.resources.projects.helpers import (
     create_get_projects_user_details_object,
 )
 
-VERSION = "v3-full-detail-autobid"
+VERSION = "v4-hard-gated-autobid"
 HOME = Path.home()
 BASE = HOME / "daube-revenue-worker"
 TOKEN_FILE = HOME / ".config/daube/secrets/freelancer.token"
@@ -41,35 +41,58 @@ LOG_FILE = BASE / "opportunities.jsonl"
 PACKET_DIR = BASE / "packets"
 RECEIPT_DIR = BASE / "receipts"
 URL = "https://www.freelancer.com"
-AUTO_BID_THRESHOLD = 90
+AUTO_BID_THRESHOLD = 86
 MAX_AUTO_BIDS_PER_RUN = 2
-MAX_AUTO_BIDS_PER_DAY = 6
+MAX_AUTO_BIDS_PER_DAY = 4
 
 QUERIES = [
-    "React TypeScript", "Next.js", "API integration", "AI chatbot",
-    "LLM integration", "RAG", "automation", "n8n", "web testing",
-    "QA website", "FastAPI", "small website fix", "Google API integration"
+    "React TypeScript bug fix", "Next.js bug fix", "React frontend fix",
+    "REST API integration", "Google API integration", "webhook integration",
+    "AI chatbot", "OpenAI API integration", "LLM integration", "RAG chatbot",
+    "n8n automation", "Make.com automation", "FastAPI API",
+    "website QA testing", "web application testing", "UX QA"
 ]
-GOOD = {
-    "react", "typescript", "javascript", "next.js", "nextjs", "api", "rest",
-    "automation", "n8n", "make.com", "chatbot", "openai", "llm", "rag",
-    "python", "fastapi", "qa", "testing", "ux", "website", "frontend",
-    "full stack", "full-stack", "google api", "webhook", "integration"
+
+CAPABILITY_GROUPS = {
+    "frontend": {"react", "typescript", "javascript", "next.js", "nextjs", "frontend", "tailwind", "vite"},
+    "api": {"api integration", "rest api", "rest", "webhook", "google api", "oauth", "api"},
+    "ai": {"openai", "llm", "rag", "chatbot", "ai chatbot", "prompt", "embeddings"},
+    "automation": {"n8n", "make.com", "automation", "workflow automation", "zapier"},
+    "backend": {"python", "fastapi", "node.js", "nodejs", "backend"},
+    "qa": {"qa", "testing", "test website", "web testing", "ux testing", "bug testing"},
 }
-BLOCKED = {
-    "trading", "forex", "crypto bot", "betting", "gambling", "casino",
-    "medical diagnosis", "legal advice", "adult", "on-site", "onsite",
-    "tallyprime", "sap training", "dynamics training", "scraping captcha",
-    "bypass captcha", "mass account", "fake review"
+
+HARD_BLOCK = {
+    "trading", "forex", "cryptocurrency trading", "crypto bot", "algo trading",
+    "betting", "gambling", "casino", "medical diagnosis", "mental health",
+    "telehealth", "therapy", "clinical", "legal advice", "law firm",
+    "adult content", "on-site", "onsite", "tallyprime", "sap training",
+    "dynamics training", "dynamics hr", "microsoft dynamics", "power bi",
+    "gohighlevel", "highlevel", "seo campaign", "marketing campaign",
+    "cold calling", "lead generation", "appointment setter", "sales closer",
+    "three fiber", "react three fiber", "r3f", "3d game", "web rpg", "unity",
+    "unreal engine", "scraping captcha", "bypass captcha", "captcha bypass",
+    "mass account", "fake review", "fake reviews", "academic cheating",
 }
-HUGE = {
-    "complete platform", "full platform", "marketplace", "fleet management",
-    "multi-tenant", "payment gateway", "admin dashboard", "erp", "crm",
-    "native ios", "native android", "entire application", "from scratch"
+
+LARGE_SCOPE = {
+    "complete platform", "full platform", "entire platform", "marketplace",
+    "fleet management", "multi-tenant", "payment gateway", "erp", "crm",
+    "native ios", "native android", "entire application", "from scratch",
+    "booking platform", "social network", "complete saas", "full saas",
 }
+
+SCOPE_POSITIVE = {
+    "bug fix", "fix bug", "small fix", "integration", "connect api", "api integration",
+    "add feature", "single page", "landing page", "existing project", "existing app",
+    "existing website", "webhook", "automation", "workflow", "test", "qa",
+    "chatbot", "rag", "endpoint", "form", "dashboard fix"
+}
+
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
 
 def load_state():
     try:
@@ -77,25 +100,31 @@ def load_state():
     except Exception:
         s = {}
     if s.get("version") != VERSION:
-        return {"version": VERSION, "seen": [], "submitted": [], "daily": {}}
+        # Keep known submissions so a scorer upgrade can never duplicate a real bid.
+        old_submitted = s.get("submitted", []) if isinstance(s, dict) else []
+        return {"version": VERSION, "seen": [], "submitted": old_submitted, "daily": {}}
     return s
+
 
 def save_state(s):
     s["version"] = VERSION
     STATE_FILE.write_text(json.dumps(s, indent=2) + "\n")
 
+
 def token():
     return TOKEN_FILE.read_text().strip()
+
 
 def headers(json_body=False):
     h = {
         "Freelancer-OAuth-V1": token(),
         "Accept": "application/json",
-        "User-Agent": "D-AUBE-Revenue-Worker/3.0",
+        "User-Agent": "D-AUBE-Revenue-Worker/4.0",
     }
     if json_body:
         h["Content-Type"] = "application/json"
     return h
+
 
 def self_id():
     r = requests.get(f"{URL}/api/users/0.1/self/", headers=headers(), timeout=20)
@@ -104,6 +133,7 @@ def self_id():
     if uid <= 0:
         raise RuntimeError("FREELANCER_SELF_ID_MISSING")
     return uid
+
 
 def nested_truthy(obj, keys):
     if isinstance(obj, dict):
@@ -115,6 +145,7 @@ def nested_truthy(obj, keys):
     elif isinstance(obj, list):
         return any(nested_truthy(v, keys) for v in obj)
     return False
+
 
 def nested_positive_count(obj, keys):
     best = 0
@@ -128,6 +159,7 @@ def nested_positive_count(obj, keys):
             best = max(best, nested_positive_count(v, keys))
     return best
 
+
 def detail_batch(session, ids):
     q = create_get_projects_object(
         project_ids=ids,
@@ -140,6 +172,7 @@ def detail_batch(session, ids):
     )
     return get_projects(session, q)
 
+
 def user_for(result, p):
     owner = p.get("owner_id") or p.get("owner")
     users = result.get("users") or {}
@@ -151,6 +184,16 @@ def user_for(result, p):
                 return u
     return {}
 
+
+def capabilities(text):
+    matched = {}
+    for group, terms in CAPABILITY_GROUPS.items():
+        hits = sorted({term for term in terms if term in text})
+        if hits:
+            matched[group] = hits
+    return matched
+
+
 def score_project(p, user):
     title = (p.get("title") or "").strip()
     desc = (p.get("description") or "").strip()
@@ -159,12 +202,25 @@ def score_project(p, user):
     text = (title + " " + desc + " " + " ".join(skills)).lower()
     reasons = []
 
-    if any(x in text for x in BLOCKED):
-        return 0, ["risk_or_mismatch"], skills, 0
+    blocked_hits = sorted({x for x in HARD_BLOCK if x in text})
+    if blocked_hits:
+        return 0, ["hard_block:" + ",".join(blocked_hits[:4])], skills, 0, {}, False
     if (p.get("type") or "").lower() != "fixed":
-        return 0, ["not_fixed_price"], skills, 0
+        return 0, ["not_fixed_price"], skills, 0, {}, False
     if (p.get("status") or "").lower() != "active":
-        return 0, ["not_active"], skills, 0
+        return 0, ["not_active"], skills, 0, {}, False
+    if len(desc) < 80:
+        return 0, ["insufficient_scope_detail"], skills, 0, {}, False
+
+    caps = capabilities(text)
+    # Generic words like website/API alone are not enough. Require a strong approved lane.
+    strong_groups = {g for g in caps if g in {"frontend", "ai", "automation", "backend", "qa"}}
+    if not strong_groups:
+        return 0, ["no_approved_capability_lane"], skills, 0, caps, False
+
+    large_hits = sorted({x for x in LARGE_SCOPE if x in text})
+    if len(large_hits) >= 2:
+        return 0, ["scope_too_large:" + ",".join(large_hits[:4])], skills, 96, caps, False
 
     currency = (p.get("currency") or {}).get("code") or ""
     budget = p.get("budget") or {}
@@ -174,73 +230,88 @@ def score_project(p, user):
     except Exception:
         minimum = maximum = 0
 
-    score = 35
-    hits = sorted({x for x in GOOD if x in text})
-    score += min(len(hits) * 7, 35)
-    reasons.append(f"capability_hits={len(hits)}")
+    payment_verified = nested_truthy(user, {"payment_verified", "payment_verified_status", "verified_payment"})
+    client_history = nested_positive_count(
+        user.get("reputation", user),
+        {"reviews", "review_count", "reviews_count", "completed_projects", "project_count"},
+    )
+    credible_client = bool(payment_verified or client_history > 0)
 
-    if 100 <= len(desc) <= 4500:
+    score = 42
+    score += min(len(strong_groups) * 9, 27)
+    reasons.append("lanes=" + ",".join(sorted(strong_groups)))
+
+    all_hits = sum(len(v) for v in caps.values())
+    score += min(all_hits * 2, 10)
+
+    if 100 <= len(desc) <= 3000:
         score += 8
-        reasons.append("bounded_description")
-    elif len(desc) > 7000:
-        score -= 25
-        reasons.append("oversized_spec")
-
-    huge_hits = sum(1 for x in HUGE if x in text)
-    if huge_hits >= 3:
-        score -= 35
-        reasons.append("scope_too_large")
-    elif huge_hits == 2:
+        reasons.append("bounded_spec")
+    elif len(desc) > 4500:
         score -= 20
-        reasons.append("scope_large")
-    elif huge_hits == 1:
-        score -= 8
-        reasons.append("scope_watch")
+        reasons.append("large_spec")
 
-    if currency == "USD" and 80 <= maximum <= 1000 and maximum >= minimum >= 25:
-        score += 10
+    positive_scope_hits = sum(1 for x in SCOPE_POSITIVE if x in text)
+    if positive_scope_hits:
+        score += min(positive_scope_hits * 2, 8)
+        reasons.append(f"bounded_scope_signals={positive_scope_hits}")
+
+    if len(large_hits) == 1:
+        score -= 18
+        reasons.append("scope_watch=" + large_hits[0])
+
+    usd_budget_ok = currency == "USD" and 25 <= minimum <= maximum <= 1000 and maximum >= 80
+    if usd_budget_ok:
+        score += 8
         reasons.append("usd_budget_guard")
     else:
         reasons.append("manual_currency_or_budget_gate")
 
-    if nested_truthy(user, {"payment_verified", "payment_verified_status", "verified_payment"}):
+    if payment_verified:
         score += 5
         reasons.append("payment_verified")
-    reviews = nested_positive_count(user.get("reputation", user), {"reviews", "review_count", "reviews_count", "completed_projects", "project_count"})
-    if reviews > 0:
+    if client_history > 0:
         score += 4
         reasons.append("client_history")
 
     estimated_hours = 24
-    if len(desc) > 2500 or huge_hits == 1:
+    if len(desc) > 2200 or len(large_hits) == 1:
         estimated_hours = 48
-    if len(desc) > 4500 or huge_hits >= 2:
-        estimated_hours = 96
+    if len(desc) > 4000:
+        estimated_hours = 72
 
-    return max(0, min(score, 100)), reasons, skills, estimated_hours
+    # A real auto-bid needs client credibility. Missing metadata remains QUALIFIED/manual, never auto-submit.
+    auto_contract_safe = bool(usd_budget_ok and credible_client and estimated_hours <= 72 and len(large_hits) == 0)
+    if not credible_client:
+        reasons.append("client_credibility_unverified")
 
-def proposal(p, skills, hours):
+    return max(0, min(score, 100)), reasons, skills, estimated_hours, caps, auto_contract_safe
+
+
+def proposal(p, caps, hours):
     title = (p.get("title") or "your project").strip()
-    focus = ", ".join(skills[:5]) if skills else "the requested web/API scope"
-    days = 2 if hours <= 48 else 3
+    lane_names = ", ".join(sorted(caps.keys())) or "the requested implementation"
+    days = 1 if hours <= 24 else (2 if hours <= 48 else 3)
     return (
-        f"Hi — I reviewed the scope for {title}. The strongest fit on my side is {focus}. "
-        "I would start by freezing the acceptance criteria, reproduce or map the current workflow, "
-        "then implement the smallest production-ready slice with explicit error handling and evidence-based QA. "
-        f"For this bounded scope I can target a {days}-day delivery, including implementation, verification, "
-        "and a concise handoff. Relevant evidence I can provide is D’AUBE-owned product/system work; I will not "
-        "represent internal work as past client work. If the repository or credentials reveal an undisclosed blocker, "
-        "I will surface it before expanding scope rather than silently increasing the commitment."
+        f"Hi — I reviewed the requirements for {title}. This fits my {lane_names} workflow. "
+        "I would first freeze the acceptance criteria and reproduce/map the current behavior, then implement the "
+        "smallest production-ready change with explicit error handling and evidence-based QA. "
+        f"For the scope currently described I can target delivery within {days} day(s), including verification and a concise handoff. "
+        "My relevant evidence is D’AUBE-owned product/system work; I do not represent internal work as past client work. "
+        "If access or repository inspection exposes an undisclosed dependency that changes the scope, I will flag it before expanding the commitment."
     )
+
 
 def bid_amount(p):
     b = p.get("budget") or {}
     lo, hi = float(b.get("minimum") or 0), float(b.get("maximum") or 0)
-    return round(max(lo, min(hi, lo + 0.35 * (hi - lo))), 2)
+    # Stay competitive without bait-pricing: lower third of the published range.
+    return round(max(lo, min(hi, lo + 0.30 * (hi - lo))), 2)
+
 
 def submit_bid(p, score, desc, hours):
     amount = bid_amount(p)
-    period = 2 if hours <= 48 else 3
+    period = 1 if hours <= 24 else (2 if hours <= 48 else 3)
     payload = {
         "project_id": int(p["id"]),
         "bidder_id": self_id(),
@@ -255,16 +326,23 @@ def submit_bid(p, score, desc, hours):
         "qualification_score": score,
         "currency_code": (p.get("currency") or {}).get("code"),
         "estimated_hours": hours,
+        "paid_spend_required": False,
+        "standard_contract_guard": True,
         **payload,
     }
     (PACKET_DIR / f"{p['id']}.json").write_text(json.dumps(packet, indent=2) + "\n")
+
     r = requests.post(f"{URL}/api/projects/0.1/bids/", headers=headers(True), json=payload, timeout=30)
-    body = r.json() if r.content else {}
+    try:
+        body = r.json() if r.content else {}
+    except Exception:
+        body = {}
     if not r.ok:
         raise RuntimeError(body.get("message") or f"HTTP_{r.status_code}")
     bid_id = int((body.get("result") or {}).get("id") or 0)
     if bid_id <= 0:
         raise RuntimeError("AUTHORITATIVE_BID_ID_MISSING")
+
     receipt = {
         "type": "marketplace_submission_receipt",
         "authoritative": True,
@@ -280,14 +358,15 @@ def submit_bid(p, score, desc, hours):
     (RECEIPT_DIR / f"{p['id']}-{bid_id}.json").write_text(json.dumps(receipt, indent=2) + "\n")
     return receipt
 
+
 def main():
     t = token()
     if not t:
         print("TOKEN_MISSING")
         return
+
     session = Session(oauth_token=t, url=URL)
     state = load_state()
-    seen = set(map(int, state.get("seen", [])))
     submitted = set(map(int, state.get("submitted", [])))
     search_filter = create_search_projects_filter(sort_field="time_updated", or_search_query=True)
 
@@ -302,13 +381,15 @@ def main():
             pid = int(p.get("id") or 0)
             if pid > 0 and pid not in ids and pid not in submitted:
                 ids.append(pid)
-            if len(ids) >= 60:
+            if len(ids) >= 80:
                 break
-        if len(ids) >= 60:
+        if len(ids) >= 80:
             break
 
     qualified = []
     auto_ready = []
+    rejects = 0
+
     for start in range(0, len(ids), 20):
         batch = ids[start:start+20]
         try:
@@ -316,33 +397,61 @@ def main():
         except Exception as e:
             print("DETAIL_FAIL", type(e).__name__, str(e)[:200])
             continue
+
         for p in detail.get("projects", []):
             pid = int(p.get("id") or 0)
             user = user_for(detail, p)
-            score, reasons, skills, hours = score_project(p, user)
-            proposal_text = proposal(p, skills, hours) if score >= 75 else None
+            score, reasons, skills, hours, caps, auto_contract_safe = score_project(p, user)
+            proposal_text = proposal(p, caps, hours) if score >= 75 else None
             currency = (p.get("currency") or {}).get("code")
             budget = p.get("budget") or {}
+
+            if score >= AUTO_BID_THRESHOLD and auto_contract_safe:
+                decision = "AUTO_BID_READY"
+            elif score >= 75:
+                decision = "QUALIFIED"
+            else:
+                decision = "REJECT"
+                rejects += 1
+
             record = {
-                "timestamp": int(time.time()), "scorer_version": VERSION,
-                "project_id": pid, "title": p.get("title"), "type": p.get("type"),
-                "status": p.get("status"), "budget": budget, "currency": p.get("currency"),
-                "skills": skills, "score": score, "reasons": reasons,
+                "timestamp": int(time.time()),
+                "scorer_version": VERSION,
+                "project_id": pid,
+                "title": p.get("title"),
+                "type": p.get("type"),
+                "status": p.get("status"),
+                "budget": budget,
+                "currency": p.get("currency"),
+                "skills": skills,
+                "capability_lanes": caps,
+                "score": score,
+                "reasons": reasons,
                 "estimated_hours": hours,
-                "decision": "AUTO_BID_READY" if score >= AUTO_BID_THRESHOLD and hours <= 72 and currency == "USD" else ("QUALIFIED" if score >= 75 else "REJECT"),
+                "auto_contract_safe": auto_contract_safe,
+                "decision": decision,
                 "proposal": proposal_text,
                 "url": f"https://www.freelancer.com/projects/{pid}",
             }
             with LOG_FILE.open("a") as f:
                 f.write(json.dumps(record) + "\n")
-            seen.add(pid)
+
             if score >= 75:
                 qualified.append(record)
+
             try:
-                lo = float(budget.get("minimum") or 0); hi = float(budget.get("maximum") or 0)
+                lo = float(budget.get("minimum") or 0)
+                hi = float(budget.get("maximum") or 0)
             except Exception:
                 lo = hi = 0
-            if (score >= AUTO_BID_THRESHOLD and hours <= 72 and currency == "USD" and 25 <= lo <= hi <= 1000 and proposal_text):
+
+            if (
+                decision == "AUTO_BID_READY"
+                and currency == "USD"
+                and 25 <= lo <= hi <= 1000
+                and proposal_text
+                and pid not in submitted
+            ):
                 auto_ready.append((p, record))
 
     today = datetime.now(timezone.utc).date().isoformat()
@@ -350,10 +459,13 @@ def main():
     used = int(daily.get(today, 0))
     allowance = max(0, min(MAX_AUTO_BIDS_PER_RUN, MAX_AUTO_BIDS_PER_DAY - used))
     submitted_now = 0
+
     for p, rec in sorted(auto_ready, key=lambda x: x[1]["score"], reverse=True):
         pid = int(p["id"])
-        if submitted_now >= allowance or pid in submitted:
+        if submitted_now >= allowance:
             break
+        if pid in submitted:
+            continue
         try:
             receipt = submit_bid(p, rec["score"], rec["proposal"], rec["estimated_hours"])
             submitted.add(pid)
@@ -363,13 +475,16 @@ def main():
             print("BID_FAIL", pid, type(e).__name__, str(e)[:180])
 
     daily[today] = used + submitted_now
-    state["seen"] = sorted(seen)[-4000:]
     state["submitted"] = sorted(submitted)[-1000:]
     save_state(state)
 
-    print(f"SCANNED={len(ids)} QUALIFIED={len(qualified)} AUTO_READY={len(auto_ready)} SUBMITTED={submitted_now}")
-    for c in sorted(qualified, key=lambda x: x["score"], reverse=True)[:10]:
+    print(
+        f"VERSION={VERSION} SCANNED={len(ids)} REJECTED={rejects} "
+        f"QUALIFIED={len(qualified)} AUTO_READY={len(auto_ready)} SUBMITTED={submitted_now}"
+    )
+    for c in sorted(qualified, key=lambda x: x["score"], reverse=True)[:12]:
         print(c["score"], c["decision"], c["project_id"], c["title"], c["url"])
+
 
 if __name__ == "__main__":
     main()
@@ -389,7 +504,7 @@ chmod 700 "$BASE/run.sh"
 
 sudo tee /etc/systemd/system/daube-revenue-worker.service >/dev/null <<EOF2
 [Unit]
-Description=D'AUBE Freelancer Revenue Worker v3
+Description=D'AUBE Freelancer Revenue Worker v4
 After=network-online.target
 Wants=network-online.target
 
@@ -408,7 +523,7 @@ EOF2
 
 sudo tee /etc/systemd/system/daube-revenue-worker.timer >/dev/null <<'EOF2'
 [Unit]
-Description=Run D'AUBE Freelancer Revenue Worker v3
+Description=Run D'AUBE Freelancer Revenue Worker v4
 
 [Timer]
 OnBootSec=2min
@@ -424,7 +539,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now daube-revenue-worker.timer
 sudo systemctl start daube-revenue-worker.service || true
 
-echo "=== D'AUBE FREELANCER WORKER V3 ==="
+echo "=== D'AUBE FREELANCER WORKER V4 ==="
 "$BASE/run.sh" || true
 echo "=== TIMER ==="
 systemctl is-active daube-revenue-worker.timer || true

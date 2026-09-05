@@ -1,6 +1,7 @@
 import hashlib, tempfile, unittest
 from pathlib import Path
 import manifest, stage, checks, transaction, controller, watchdog
+import run
 
 def good_manifest():
     payload=b'echo ok\n'
@@ -39,6 +40,11 @@ class ControllerTests(unittest.TestCase):
         m=good_manifest(); m['enabled']=False; self.assertEqual(controller.poll_once({'repo':'x/y'},{'fetch_manifest':lambda:m,'run_transaction':lambda x:None})['classification'],'DISABLED')
     def test_same_release_noop(self):
         m=good_manifest(); r=controller.poll_once({'repo':'x/y','last_applied':{'release_id':'fixture-1','target_revision':m['target_revision']}},{'fetch_manifest':lambda:m,'run_transaction':lambda x:None}); self.assertEqual(r['classification'],'NOOP')
+class ActivationSafetyTests(unittest.TestCase):
+    def test_activation_env_pins_target_revision(self):
+        m=good_manifest(); env=run.activation_env(m); self.assertEqual(env['DAUBE_V9_REF'],m['target_revision']); self.assertEqual(env['DAUBE_AUTOPILOT_TARGET_REVISION'],m['target_revision'])
+    def test_timer_snapshot_includes_companion_service(self):
+        m=good_manifest(); names=run.snapshot_unit_names(m); self.assertIn('daube-runtime-watchdog.timer',names); self.assertIn('daube-runtime-watchdog.service',names)
 class WatchdogTests(unittest.TestCase):
     def test_unknown_unit_never_restarted(self):
         calls=[]; watchdog.self_heal({'units':{'evil.service':'inactive'}},lambda u:calls.append(u),{'daube-host-autopilot.timer'}); self.assertEqual(calls,[])

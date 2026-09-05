@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TARGET_SHA="4cc1e0334b9e4d4330254a9dab394b1f672719f7"
 HOST_EXPECTED="daube-host-01"
 FOUNDER="founder_daubesonntag_com"
 
@@ -13,18 +12,17 @@ die(){ log "HOLD: $*" >&2; exit 1; }
 command -v sudo >/dev/null 2>&1 || die "sudo missing"
 sudo -n true >/dev/null 2>&1 || die "passwordless sudo authority missing"
 
-log "request exact verified ci-platform revision ${TARGET_SHA}"
-sudo -n /usr/bin/bash -s -- "$TARGET_SHA" <<'ROOT'
+log "request canonical verified ci-platform main"
+sudo -n /usr/bin/bash -s <<'ROOT'
 set -Eeuo pipefail
 umask 077
-TARGET_SHA="$1"
 REPO="daubesonntag-dotcom/daube-ci-platform"
+BRANCH="main"
 ENVFILE="/etc/daube/daube-executor-v2.env"
 CONTROL="/opt/daube/control/daube-ci-platform"
 STATE="/var/lib/daube-executor"
 NODE="/opt/daube/toolchains/node24/bin/node"
 
-[[ "$TARGET_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo 'invalid exact target SHA' >&2; exit 20; }
 [[ -f "$ENVFILE" ]] || { echo 'executor secret plane missing' >&2; exit 21; }
 set -a
 # shellcheck disable=SC1090
@@ -32,13 +30,24 @@ set -a
 set +a
 [[ -n "${GH_TOKEN:-}" ]] || { echo 'GH_TOKEN missing in host secret plane' >&2; exit 22; }
 export GH_TOKEN
-for cmd in gh git jq rsync systemctl systemd-analyze bash mktemp; do
+for cmd in gh git jq rsync systemctl systemd-analyze bash mktemp tr; do
   command -v "$cmd" >/dev/null 2>&1 || { echo "missing command: $cmd" >&2; exit 23; }
 done
 
+TARGET_SHA="$(gh api "repos/${REPO}/branches/${BRANCH}" --jq '.commit.sha' | tr '[:upper:]' '[:lower:]')"
+[[ "$TARGET_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo 'canonical main target SHA invalid' >&2; exit 20; }
 VERIFIED="$(gh api "repos/${REPO}/commits/${TARGET_SHA}" --jq .commit.verification.verified)"
-[[ "$VERIFIED" == "true" ]] || { echo 'target commit is not GitHub verified' >&2; exit 24; }
+[[ "$VERIFIED" == "true" ]] || { echo 'canonical main commit is not GitHub verified' >&2; exit 24; }
 
+if [[ -f "$CONTROL/CONTROL_REVISION" ]]; then
+  CURRENT_SHA="$(tr -d '\r\n' < "$CONTROL/CONTROL_REVISION" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$CURRENT_SHA" =~ ^[a-f0-9]{40}$ && "$CURRENT_SHA" != "$TARGET_SHA" ]]; then
+    COMPARE_STATUS="$(gh api "repos/${REPO}/compare/${CURRENT_SHA}...${TARGET_SHA}" --jq '.status')"
+    [[ "$COMPARE_STATUS" == "ahead" ]] || { echo 'canonical main is not a fast-forward from installed control' >&2; exit 31; }
+  fi
+fi
+
+echo "resolved canonical verified target ${TARGET_SHA}"
 WORK="$(mktemp -d "${STATE}/ci-platform-bootstrap.XXXXXX")"
 BACKUP="${STATE}/ci-platform-bootstrap-lkg"
 cleanup(){ rm -rf "$WORK"; }
@@ -110,4 +119,4 @@ done
 echo "CI_PLATFORM_WAVE_FULL_PASS revision=${TARGET_SHA}"
 ROOT
 
-log "PASS exact ci-platform Wave Full bootstrap requested and read back"
+log "PASS canonical verified ci-platform main requested and read back"

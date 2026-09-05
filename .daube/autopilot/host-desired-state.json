@@ -1,33 +1,60 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "f7226a21c9f50c35ec2eb54fbcf7a8489aa9342c",
-  "release_id": "ci-platform-wave-full-host-f7226a21",
+  "target_revision": "3984b42054e72d513a6d0ba9fed0760e4e3d0510",
+  "release_id": "full-wave-mesh-lane-v12-3984b420",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",
       "sha256": "708b23aa8af15d9220b7542dd728afe095c70a102414718b30bcfee174e05b7c",
       "mode": "0755"
+    },
+    {
+      "path": "installers/install-freelancer-execution-mesh-v9.sh",
+      "sha256": "af94929f153a8ffcf425f434ae503957ccc8e4bb79b04045c61bf232f9765fe4",
+      "mode": "0755"
+    },
+    {
+      "path": "installers/install-native-revenue-autopilot-v10.sh",
+      "sha256": "78ebd0f2e2d196a8f146f03d60348a2a81e0a2152033060e30002a342f8bbb5b",
+      "mode": "0755"
+    },
+    {
+      "path": "installers/install-autonomous-business-operator-v11.sh",
+      "sha256": "7e2ba8faac9794d72ba4ceae16e01a574f7bada3f9860242e75a009cc56b4605",
+      "mode": "0755"
+    },
+    {
+      "path": "installers/install-full-wave-mesh-lane-v12.sh",
+      "sha256": "ce013220e8040b85820f914d9e6852044b35c45d27526bd39802c9d422f87264",
+      "mode": "0755"
     }
   ],
-  "checks": [["bash", "-n", "installers/install-ci-platform-wave-full-host-v1.sh"]],
+  "checks": [
+    ["bash", "-n", "installers/install-ci-platform-wave-full-host-v1.sh"],
+    ["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"],
+    ["bash", "-n", "installers/install-native-revenue-autopilot-v10.sh"],
+    ["bash", "-n", "installers/install-autonomous-business-operator-v11.sh"],
+    ["bash", "-n", "installers/install-full-wave-mesh-lane-v12.sh"]
+  ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-ci-platform-wave-full-host-v1.sh"
+    "entrypoint": "installers/install-full-wave-mesh-lane-v12.sh"
   },
   "health_units": [
     "daube-executor-v2.service",
-    "daube-machine-heartbeat.timer",
-    "daube-wave-full-dispatcher.timer",
-    "daube-host-steward-v1.timer",
-    "daube-host-self-recovery-v1.timer",
-    "daube-host-boot-guardian-v1.timer",
+    "daube-web-release-governor.service",
+    "daube-compute-mesh.service",
     "daube-customer-care-mail.service",
-    "daube-customer-care-mail-source-sync.timer",
     "daube-revenue-opportunity-worker.timer",
-    "daube-enterprise-governor-v1.service",
-    "daube-enterprise-governor-source-sync-v1.timer",
-    "daube-enterprise-runtime-github-status-publisher.timer"
+    "daube-revenue-worker.timer",
+    "daube-freelancer-preaward-conversation.timer",
+    "daube-freelancer-award-watcher.timer",
+    "daube-freelancer-executor.timer",
+    "daube-runtime-watchdog.timer",
+    "daube-freelancer-money-closure.timer",
+    "daube-native-revenue-autopilot.timer",
+    "daube-business-operator.timer"
   ],
   "rollback": "required"
 }

@@ -1,0 +1,37 @@
+{
+  "artifact": "freelancer-40691264-vintage-journal-speculative-demo",
+  "state": "PUBLIC_CANDIDATE_NOT_PRODUCTION",
+  "claims": {
+    "client_work": false,
+    "awarded": false,
+    "delivered": false,
+    "customer_accepted": false,
+    "settled_revenue": false
+  },
+  "canonical_source": {
+    "repository": "daubesonntag-dotcom/daube-forge-os",
+    "branch": "feat/spec-demo-vintage-journal-40691264",
+    "revision": "eb566be528fdb292180ff8a6d423a5b17c30893b",
+    "local_workspace_revision": "ccc4270",
+    "path": "apps/speculative-demos/freelancer-40691264"
+  },
+  "offer": {
+    "posted_scope": "Studio Care Plus",
+    "posted_price_usd": 129,
+    "collector_optional_price_usd": 300,
+    "guardrails": ["no fake scarcity", "no fake discounting", "no unlimited support", "no silent repricing"]
+  },
+  "verification": {
+    "host": "daube-host-01",
+    "node_tests": "14/14 pass",
+    "git_diff_check": "PASS",
+    "appdeploy": "BLOCKED_BY_FREE_PLAN_LIFETIME_QUOTA_125_OF_125"
+  },
+  "limitations": [
+    "browser-local persistence only",
+    "no backend or authentication",
+    "no client assets or data",
+    "no final promo video",
+    "not a production release"
+  ]
+}

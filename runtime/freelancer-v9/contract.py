@@ -14,6 +14,12 @@ TOP_LEVEL_KEYS = {
     "required_artifacts", "mandatory_gates", "revision_allowance", "authority_evidence",
 }
 
+EXPECTED_AUTHORITY = {
+    "state": "READY_FOR_EXECUTOR",
+    "status": "AWARDED_ACCEPTED",
+    "acceptance_guard": "STANDARD_AUTHORITY_PASS",
+}
+
 
 def _load_json(path: Path):
     try:
@@ -35,23 +41,38 @@ def _load_scope(job_dir: Path):
     return value
 
 
-def validate_contract(contract: dict):
-    if set(contract) != TOP_LEVEL_KEYS:
+def _mechanical_acceptance(scope: str):
+    criteria = []
+    for raw in scope.splitlines():
+        line = raw.strip()
+        lower = line.lower()
+        if lower.startswith("acceptance:"):
+            value = line.split(":", 1)[1].strip()
+            if value:
+                criteria.append(value)
+        elif lower.startswith("acceptance criterion:"):
+            value = line.split(":", 1)[1].strip()
+            if value:
+                criteria.append(value)
+    return criteria
+
+
+def validate_contract(current: dict):
+    if set(current) != TOP_LEVEL_KEYS:
         return False, "INVALID_TOP_LEVEL_KEYS"
-    if contract["authority_evidence"] != {
-        "status": "AWARDED_ACCEPTED",
-        "acceptance_guard": "STANDARD_AUTHORITY_PASS",
-    }:
+    if current["authority_evidence"] != EXPECTED_AUTHORITY:
         return False, "INVALID_AUTHORITY_EVIDENCE"
-    hours = contract.get("estimated_hours")
+    hours = current.get("estimated_hours")
     if not isinstance(hours, int) or isinstance(hours, bool) or hours < 0 or hours > 72:
         return False, "INVALID_ESTIMATED_HOURS"
-    criteria = contract.get("acceptance_criteria")
-    if not isinstance(criteria, list) or not criteria or not all(
-        isinstance(item, str) and item.strip() for item in criteria
+    criteria = current.get("acceptance_criteria")
+    if (
+        not isinstance(criteria, list)
+        or not criteria
+        or not all(isinstance(item, str) and item.strip() for item in criteria)
     ):
         return False, "AMBIGUOUS_ACCEPTANCE_CRITERIA"
-    if contract.get("revision_allowance") != 1:
+    if current.get("revision_allowance") != 1:
         return False, "INVALID_REVISION_ALLOWANCE"
     return True, "OK"
 
@@ -59,33 +80,41 @@ def validate_contract(contract: dict):
 def build_job_contract(job_dir: Path):
     job_dir = Path(job_dir)
     executor = _load_json(job_dir / "EXECUTOR_JOB.json")
-    fallback = _load_json(job_dir / "job.json")
+    manifest = _load_json(job_dir / "job.json")
+    scope = _load_scope(job_dir)
 
-    status = executor.get("status")
-    guard = executor.get("acceptance_guard")
+    state = executor.get("state")
+    status = manifest.get("status")
+    guard = manifest.get("acceptance_guard")
+    if state != "READY_FOR_EXECUTOR":
+        raise ContractError("READY_FOR_EXECUTOR_REQUIRED")
     if status != "AWARDED_ACCEPTED":
         raise ContractError("AUTHORITATIVE_ACCEPTANCE_REQUIRED")
     if guard != "STANDARD_AUTHORITY_PASS":
         raise ContractError("STANDARD_AUTHORITY_PASS_REQUIRED")
 
-    hours = executor.get("estimated_hours")
+    hours = manifest.get("estimated_hours")
     if not isinstance(hours, int) or isinstance(hours, bool) or hours < 0 or hours > 72:
         raise ContractError("ESTIMATED_HOURS_OUT_OF_BOUNDS")
 
-    criteria = executor.get("acceptance_criteria")
-    if not isinstance(criteria, list) or not criteria or not all(
-        isinstance(item, str) and item.strip() for item in criteria
+    criteria = manifest.get("acceptance_criteria")
+    if criteria is None:
+        criteria = _mechanical_acceptance(scope)
+    if (
+        not isinstance(criteria, list)
+        or not criteria
+        or not all(isinstance(item, str) and item.strip() for item in criteria)
     ):
         raise ContractError("AMBIGUOUS_ACCEPTANCE_CRITERIA")
 
-    contract = {
+    current = {
         "version": "v9-daube-execution-mesh",
-        "project_id": executor.get("project_id", fallback.get("project_id")),
-        "title": executor.get("title", fallback.get("title", "")).strip(),
-        "locked_scope": _load_scope(job_dir),
+        "project_id": manifest.get("project_id"),
+        "title": str(manifest.get("title") or "").strip(),
+        "locked_scope": scope,
         "acceptance_criteria": [item.strip() for item in criteria],
         "estimated_hours": hours,
-        "client_inputs": list(executor.get("client_inputs") or []),
+        "client_inputs": list(manifest.get("client_inputs") or []),
         "allowed_operations": [
             "read_job_workspace",
             "write_job_workspace",
@@ -96,17 +125,18 @@ def build_job_contract(job_dir: Path):
             "payout_change", "bank_change", "tax_change", "identity_change",
             "kyc_change", "off_platform_payment",
         ],
-        "required_artifacts": list(executor.get("required_artifacts") or ["work/"]),
+        "required_artifacts": list(manifest.get("required_artifacts") or ["work/"]),
         "mandatory_gates": ["qa", "red_team", "worth_the_money"],
         "revision_allowance": 1,
         "authority_evidence": {
+            "state": state,
             "status": status,
             "acceptance_guard": guard,
         },
     }
 
-    ok, reason = validate_contract(contract)
+    ok, reason = validate_contract(current)
     if not ok:
         raise ContractError(reason)
-    atomic_write_json(job_dir / "JOB_CONTRACT.json", contract)
-    return contract
+    atomic_write_json(job_dir / "JOB_CONTRACT.json", current)
+    return current

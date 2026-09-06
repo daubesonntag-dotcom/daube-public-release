@@ -1,8 +1,8 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "c3f8128a5847bc783b88cb6a4e369e0f928d854f",
-  "release_id": "full-wave-mesh-v12-attested-c3f8128a-recovery-nonblocking",
+  "target_revision": "71f7e9e27c1d56cd5e22f2b64d944602c021c2f0",
+  "release_id": "full-wave-mesh-v12-attested-71f7e9e2-rd-scheduler-intake",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",

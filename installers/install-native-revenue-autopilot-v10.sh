@@ -12,6 +12,16 @@ FILES=(evidence.py providers.py concierge.py controller.py test_v10.py)
 SERVICE="daube-native-revenue-autopilot.service"
 TIMER="daube-native-revenue-autopilot.timer"
 BACKUP="$V10/unit-backup"
+TRUSTED_ROOT_CARRIER="${DAUBE_TRUSTED_ROOT_CARRIER:-0}"
+FOUNDER_USER="founder_daubesonntag_com"
+SERVICE_USER="$(id -un)"
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  [[ "${EUID}" -eq 0 ]] || { echo "V10_BLOCKED=TRUSTED_CARRIER_NOT_ROOT"; exit 1; }
+  [[ "${HOME:-}" == "/home/${FOUNDER_USER}" ]] || { echo "V10_BLOCKED=TRUSTED_CARRIER_HOME"; exit 1; }
+  id "$FOUNDER_USER" >/dev/null 2>&1 || { echo "V10_BLOCKED=FOUNDER_USER_MISSING"; exit 1; }
+  SERVICE_USER="$FOUNDER_USER"
+fi
+SERVICE_GROUP="$(id -gn "$SERVICE_USER")"
 
 for cmd in curl python3 systemctl sudo; do
   command -v "$cmd" >/dev/null || { echo "V10_BLOCKED=${cmd^^}_MISSING"; exit 1; }
@@ -43,6 +53,11 @@ for name in "$SERVICE" "$TIMER"; do
   fi
 done
 
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  chown "$SERVICE_USER:$SERVICE_GROUP" "$BASE"
+  chown -R "$SERVICE_USER:$SERVICE_GROUP" "$V10"
+fi
+
 rollback_units() {
   for name in "$SERVICE" "$TIMER"; do
     if [ -f "$BACKUP/$name" ]; then
@@ -55,7 +70,6 @@ rollback_units() {
 }
 trap 'rc=$?; if [ $rc -ne 0 ]; then rollback_units; fi; rm -rf "$STAGE"; exit $rc' EXIT
 
-USER_NAME="$(id -un)"
 sudo tee "/etc/systemd/system/$SERVICE" >/dev/null <<EOF
 [Unit]
 Description=D'AUBE Native Revenue Autopilot V10
@@ -64,7 +78,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=$USER_NAME
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
 Environment=HOME=$HOME
 Environment=PYTHONPATH=$RUNTIME
 ExecStart=/usr/bin/python3 $RUNTIME/controller.py

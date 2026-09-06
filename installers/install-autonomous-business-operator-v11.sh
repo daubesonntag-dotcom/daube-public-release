@@ -5,7 +5,16 @@ REF="${DAUBE_V11_REF:-${DAUBE_AUTOPILOT_TARGET_REVISION:-}}"
 REPO="daubesonntag-dotcom/daube-public-release"
 BASE="$HOME/daube-revenue-worker/business-v11"
 RUNTIME="$BASE/runtime"
-USER_NAME="$(id -un)"
+TRUSTED_ROOT_CARRIER="${DAUBE_TRUSTED_ROOT_CARRIER:-0}"
+FOUNDER_USER="founder_daubesonntag_com"
+SERVICE_USER="$(id -un)"
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  [[ "${EUID}" -eq 0 ]] || { printf '[D\047AUBE BUSINESS V11] HOLD: trusted carrier requires root\n' >&2; exit 1; }
+  [[ "${HOME:-}" == "/home/${FOUNDER_USER}" ]] || { printf '[D\047AUBE BUSINESS V11] HOLD: trusted carrier founder HOME mismatch\n' >&2; exit 1; }
+  id "$FOUNDER_USER" >/dev/null 2>&1 || { printf '[D\047AUBE BUSINESS V11] HOLD: founder user missing\n' >&2; exit 1; }
+  SERVICE_USER="$FOUNDER_USER"
+fi
+SERVICE_GROUP="$(id -gn "$SERVICE_USER")"
 
 log(){ printf '[D\047AUBE BUSINESS V11] %s\n' "$*"; }
 fail(){ printf '[D\047AUBE BUSINESS V11] HOLD: %s\n' "$*" >&2; exit 1; }
@@ -31,6 +40,10 @@ chmod 700 "$RUNTIME/run.py"
   python3 run.py --verify
 ) || fail "V11 tests/compile/verify failed"
 
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  chown -R "$SERVICE_USER:$SERVICE_GROUP" "$BASE"
+fi
+
 sudo tee /etc/systemd/system/daube-business-operator.service >/dev/null <<EOF
 [Unit]
 Description=D'AUBE Autonomous Business Operator V11
@@ -39,8 +52,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=$USER_NAME
-Group=$USER_NAME
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
 Environment=HOME=$HOME
 WorkingDirectory=$RUNTIME
 ExecStart=/usr/bin/python3 $RUNTIME/run.py

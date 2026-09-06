@@ -1,21 +1,21 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "7f087f45cccdf3fd28f5abb5ccc2975af5c9fa52",
-  "release_id": "host-continuity-v4-7f087f45",
+  "target_revision": "cd3d0af9e044df566f6d07a061d6d3fd7c234449",
+  "release_id": "host-continuity-v6-cd3d0af9",
   "artifacts": [
     {
-      "path": "installers/install-host-continuity-v4.sh",
-      "sha256": "7a4308629c1a0a907dec32ab8033bad1cce18d34971d5a4f53d242fb6d9c3818",
+      "path": "installers/install-host-continuity-v6.sh",
+      "sha256": "ed04d1aa892c70e5958c5951dc1095622a4f54cdbc7e2a151be674d1011a36ea",
       "mode": "0755"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-host-continuity-v4.sh"]
+    ["bash", "-n", "installers/install-host-continuity-v6.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-host-continuity-v4.sh"
+    "entrypoint": "installers/install-host-continuity-v6.sh"
   },
   "health_units": [
     "daube-host-autopilot.timer",
@@ -24,7 +24,8 @@
     "daube-host-autonomous-update.timer",
     "daube-sovereign-execution.timer",
     "daube-host-ops-supervisor.timer",
-    "daube-remote-control-agent@founder_daubesonntag_com.service"
+    "daube-remote-control-agent@founder_daubesonntag_com.service",
+    "daube-remote-agent-watchdog.timer"
   ],
   "rollback": "required"
 }

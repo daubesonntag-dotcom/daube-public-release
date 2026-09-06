@@ -1,21 +1,21 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "f0e2ba9bbfee2617691a39abfee112e62466bddb",
-  "release_id": "host-continuity-v3-f0e2ba9b",
+  "target_revision": "7f087f45cccdf3fd28f5abb5ccc2975af5c9fa52",
+  "release_id": "host-continuity-v4-7f087f45",
   "artifacts": [
     {
-      "path": "installers/install-host-continuity-v3.sh",
-      "sha256": "3229ccddfae0eb6c7b5db9d0beea9d182e8f396a6f610406d9a0f52bed3b7690",
+      "path": "installers/install-host-continuity-v4.sh",
+      "sha256": "7a4308629c1a0a907dec32ab8033bad1cce18d34971d5a4f53d242fb6d9c3818",
       "mode": "0755"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-host-continuity-v3.sh"]
+    ["bash", "-n", "installers/install-host-continuity-v4.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-host-continuity-v3.sh"
+    "entrypoint": "installers/install-host-continuity-v4.sh"
   },
   "health_units": [
     "daube-host-autopilot.timer",

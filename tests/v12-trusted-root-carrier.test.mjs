@@ -14,3 +14,8 @@ test('trusted root carrier skips only redundant platform convergence', () => {
   assert.match(v12, /\/opt\/daube\/control\/daube-ci-platform\/CONTROL_REVISION/);
   assert.doesNotMatch(v12, /DAUBE_TRUSTED_ROOT_CARRIER.*sudoers|DAUBE_TRUSTED_ROOT_CARRIER.*NOPASSWD/i);
 });
+
+test('V12 re-arms native autopilot chain boot persistence', () => {
+  assert.match(v12, /BASE_TIMERS=\([\s\S]*daube-native-autopilot-chain\.timer/);
+  assert.match(v12, /systemctl enable --now \"\$unit\"/);
+});

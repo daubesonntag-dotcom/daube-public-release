@@ -12,29 +12,31 @@ READY="$HOME/daube-revenue-worker/full-wave-v12/receipt.json"
 test -x "$V12" || fail "V12 installer missing"
 
 receipt_ready() {
-  python3 - "$READY" <<'PY'
+  python3 - "$READY" "$REF" <<'PY'
 import json, pathlib, sys
 p=pathlib.Path(sys.argv[1])
+ref=sys.argv[2]
 try:
     v=json.loads(p.read_text())
 except Exception:
     raise SystemExit(1)
 ok=(v.get("schema")=="daube.full-wave-v12.receipt.v1"
     and v.get("classification")=="FULL_WAVE_READY"
+    and v.get("target_revision")==ref
     and isinstance(v.get("units"),dict)
-    and v.get("units")
+    and len(v["units"])==13
     and all(x=="active" for x in v["units"].values()))
 raise SystemExit(0 if ok else 1)
 PY
 }
 
 if receipt_ready; then
-  log "existing FULL_WAVE_READY receipt admitted; skip V12 re-execution"
+  log "existing exact-target FULL_WAVE_READY receipt admitted; skip V12 re-execution"
 else
-  log "no admissible V12 receipt; run one V12 transaction"
+  log "no admissible exact-target V12 receipt; run one V12 transaction"
   bash "$V12"
 fi
-receipt_ready || fail "V12 receipt missing or not FULL_WAVE_READY"
+receipt_ready || fail "V12 receipt missing, stale, or not FULL_WAVE_READY"
 
 REQUIRED=(
   daube-executor-v2.service

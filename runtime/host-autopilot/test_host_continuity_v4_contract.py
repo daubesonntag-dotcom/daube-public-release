@@ -23,8 +23,10 @@ def test_v4_accepts_only_trusted_fast_forward_descendant_and_pins_fetched_head()
 
 def test_v4_boot_enables_core_before_host_ops_first_readback():
     text = source()
-    enable_at = text.index('ensure_core_boot_persistence')
-    host_ops_at = text.index('scripts/install-host-ops-supervisor-safe.sh')
+    enable_call = '\nensure_core_boot_persistence\n'
+    host_ops_call = 'if ! sudo -n bash scripts/install-host-ops-supervisor-safe.sh; then'
+    enable_at = text.index(enable_call)
+    host_ops_at = text.index(host_ops_call)
     assert enable_at < host_ops_at
     assert 'systemctl enable daube-compute-mesh.service' in text
     assert 'systemctl add-wants multi-user.target daube-compute-mesh.service' in text

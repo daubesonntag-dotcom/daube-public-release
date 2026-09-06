@@ -59,6 +59,7 @@ else
 fi
 
 BASE_TIMERS=(
+  daube-native-autopilot-chain.timer
   daube-revenue-worker.timer
   daube-freelancer-preaward-conversation.timer
   daube-freelancer-award-watcher.timer

@@ -1,0 +1,70 @@
+name: Materialize 2K responsive hero
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/hero-materialize/**'
+      - '.github/workflows/materialize-2k-hero.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and verify 2K AVIF hero
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/founder-visual-lock
+          cat ops/hero-materialize/chunk-*.txt | tr -d '\n' | base64 -d > assets/founder-visual-lock/01-hero-dawn-2k.avif
+          echo 'a2d1e9093f68607ffe501061878faf5163894239fc8243757e8703c220e66fe  assets/founder-visual-lock/01-hero-dawn-2k.avif' | sha256sum -c -
+
+      - name: Wire hero across public surfaces and tune mobile crop
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          old = '/assets/founder-visual-lock/01-hero-dawn.webp'
+          new = '/assets/founder-visual-lock/01-hero-dawn-2k.avif'
+          for name in ('index.html', 'profile/index.html', 'portfolio/index.html'):
+              p = Path(name)
+              s = p.read_text()
+              if old in s:
+                  p.write_text(s.replace(old, new))
+              elif new not in s:
+                  raise SystemExit(f'hero reference not found in {name}')
+
+          p = Path('assets/mobile-first-flagship-v3.css')
+          s = p.read_text()
+          old_rule = 'object-position:center;transform:scale(1.025);filter:saturate(.86) contrast(1.03) brightness(.78)'
+          new_rule = 'object-position:68% center;transform:scale(1.005);filter:saturate(.9) contrast(1.04) brightness(.8)'
+          if old_rule in s:
+              s = s.replace(old_rule, new_rule, 1)
+          elif new_rule not in s:
+              raise SystemExit('hero image CSS rule not found')
+          marker = '@media(min-width:760px){'
+          desktop_rule = '.v3-hero-media img{object-position:center;transform:scale(1.01)}'
+          if desktop_rule not in s:
+              if marker not in s:
+                  raise SystemExit('desktop media query not found')
+              s = s.replace(marker, marker + desktop_rule, 1)
+          p.write_text(s)
+          PY
+
+      - name: Commit final hero and remove staging files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/founder-visual-lock/01-hero-dawn-2k.avif assets/mobile-first-flagship-v3.css index.html profile/index.html portfolio/index.html
+          git rm -r ops/hero-materialize
+          git rm .github/workflows/materialize-2k-hero.yml
+          git commit -m 'feat: install responsive 2K hero artwork'
+          git push

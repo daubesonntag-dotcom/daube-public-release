@@ -5,6 +5,17 @@
   "rollback_policy": "phase-local-required",
   "phases": [
     {
+      "phase_id": "host-continuity-v2",
+      "target_revision": "920273768f49a6b278f60cf83fc2730f221990f0",
+      "release_id": "host-continuity-v2-92027376",
+      "artifacts": [{"path": "installers/install-host-continuity-v2.sh", "sha256": "38bc079330f70fa549ead13b9eeba8168a12a153433607b8e0654c95e21be6d4", "mode": "0755"}],
+      "checks": [["bash", "-n", "installers/install-host-continuity-v2.sh"]],
+      "activation": {"kind": "installer", "entrypoint": "installers/install-host-continuity-v2.sh"},
+      "health_units": ["daube-host-autopilot.timer", "daube-host-autopilot-watchdog.timer", "daube-native-autopilot-chain.timer", "daube-compute-mesh.service", "daube-host-autonomous-update.timer", "daube-sovereign-execution.timer", "daube-host-ops-supervisor.timer", "daube-remote-control-agent@founder_daubesonntag_com.service"],
+      "depends_on": null,
+      "success_receipt": "APPLIED"
+    },
+    {
       "phase_id": "native-autopilot-bootstrap",
       "target_revision": "74bacb4630fef842827a337f78750363ed08d110",
       "release_id": "native-autopilot-chain-74bacb46",

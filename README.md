@@ -2,6 +2,18 @@
 
 Public install, update and static presentation boundary for the D’AUBE ecosystem.
 
+## Portfolio — inspect the work before the promise
+
+D’AUBE SONNTAG builds evidence-first digital systems across automation, AI integration, APIs/webhooks, web implementation, QA and technical handoff. Public demonstrations are clearly labelled as D’AUBE-owned proof work; client results, testimonials and revenue are only claimed after authoritative verification.
+
+- **[Open the live portfolio](https://work.daubesonntag.com/portfolio/?utm_source=github&utm_medium=owned-repository&utm_campaign=portfolio-distribution&utm_content=readme-top)**
+- **[Open the proof room](https://work.daubesonntag.com/labs/freelancer-proof-room/?utm_source=github&utm_medium=owned-repository&utm_campaign=portfolio-distribution&utm_content=readme-proof-room)**
+- [WhatsApp Business + AI automation proof](https://work.daubesonntag.com/labs/freelancer-proof-room/whatsapp-ai-40693475.html?utm_source=github&utm_medium=owned-repository&utm_campaign=portfolio-distribution&utm_content=whatsapp-ai)
+- [Google Sites → WordPress migration proof](https://work.daubesonntag.com/labs/freelancer-proof-room/wordpress-migration-40690929.html?utm_source=github&utm_medium=owned-repository&utm_campaign=portfolio-distribution&utm_content=wordpress-migration)
+- [End-to-end booking-system QA proof](https://work.daubesonntag.com/labs/freelancer-proof-room/beds-qa-audit-40685020.html?utm_source=github&utm_medium=owned-repository&utm_campaign=portfolio-distribution&utm_content=qa-audit)
+
+**Current capability lanes:** workflow automation · API/webhook integration · AI/messaging flows · Python · React/TypeScript · WordPress migration · Docker/Linux operations · QA/audits · technical documentation and handoff.
+
 ## D’AUBE Studio — Public Atelier
 
 **Build the world without exposing the private workshop.**

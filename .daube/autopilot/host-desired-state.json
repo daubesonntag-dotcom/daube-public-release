@@ -1,8 +1,8 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "18579cde1bc8f129bf80bdc5bdaa06044cf56720",
-  "release_id": "full-wave-mesh-v12-attested-18579cde",
+  "target_revision": "4631936241737b25b8184bc50d883e344006ad2c",
+  "release_id": "full-wave-mesh-v12-attested-46319362",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",
@@ -11,17 +11,17 @@
     },
     {
       "path": "installers/install-freelancer-execution-mesh-v9.sh",
-      "sha256": "af94929f153a8ffcf425f434ae503957ccc8e4bb79b04045c61bf232f9765fe4",
+      "sha256": "a823f9d546e53c66f92ad9c1ef0da8a334470cfb1e4fb958f381703d7efcb76d",
       "mode": "0755"
     },
     {
       "path": "installers/install-native-revenue-autopilot-v10.sh",
-      "sha256": "78ebd0f2e2d196a8f146f03d60348a2a81e0a2152033060e30002a342f8bbb5b",
+      "sha256": "43e6c28e83c0870fe8ac2c12e9f0cf83c80749d9b2d8cd02a846cb9024dca36d",
       "mode": "0755"
     },
     {
       "path": "installers/install-autonomous-business-operator-v11.sh",
-      "sha256": "7e2ba8faac9794d72ba4ceae16e01a574f7bada3f9860242e75a009cc56b4605",
+      "sha256": "fdae1b3cf913a48eb2201b5494958b8fc9343cd27b2576b370383bdf6e78f699",
       "mode": "0755"
     },
     {

@@ -1,0 +1,7 @@
+{
+  "schema": "daube.release-repin-marker.v1",
+  "purpose": "Create a GitHub-verified merge target after daube-ci-platform PR #193 so host activation resolves CI-platform main containing the persistent R&D scheduler.",
+  "ciPlatformExpectedAtOrAfter": "110f3c2991adc20be738636826c5bd755e975a40",
+  "unapprovedSpendUsd": 0,
+  "truth": "Marker only; host installation requires later exact-target readback."
+}

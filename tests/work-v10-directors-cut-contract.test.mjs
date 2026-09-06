@@ -3,12 +3,20 @@ import fs from "node:fs";
 import test from "node:test";
 
 const index = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const css = fs.readFileSync(new URL("../assets/work-v10-directors-cut.css", import.meta.url), "utf8");
-const js = fs.readFileSync(new URL("../assets/work-v10-directors-cut.js", import.meta.url), "utf8");
+const css = [
+  fs.readFileSync(new URL("../assets/work-v10-directors-cut.css", import.meta.url), "utf8"),
+  fs.readFileSync(new URL("../assets/work-v10-directors-cut-plus.css", import.meta.url), "utf8")
+].join("\n");
+const js = [
+  fs.readFileSync(new URL("../assets/work-v10-directors-cut.js", import.meta.url), "utf8"),
+  fs.readFileSync(new URL("../assets/work-v10-directors-cut-plus.js", import.meta.url), "utf8")
+].join("\n");
 
 test("homepage loads V10 Director's Cut assets", () => {
   assert.match(index, /assets\/work-v10-directors-cut\.css/);
   assert.match(index, /assets\/work-v10-directors-cut\.js/);
+  assert.match(index, /assets\/work-v10-directors-cut-plus\.css/);
+  assert.match(index, /assets\/work-v10-directors-cut-plus\.js/);
 });
 
 test("V10 exposes premium interactive stages without fake business claims", () => {

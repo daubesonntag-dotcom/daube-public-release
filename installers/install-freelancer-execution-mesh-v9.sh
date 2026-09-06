@@ -9,6 +9,16 @@ REF="${DAUBE_V9_REF:-main}"
 RAW="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${REF}/runtime/freelancer-v9"
 UNIT="/etc/systemd/system/daube-freelancer-executor.service"
 TIMER="/etc/systemd/system/daube-freelancer-executor.timer"
+TRUSTED_ROOT_CARRIER="${DAUBE_TRUSTED_ROOT_CARRIER:-0}"
+FOUNDER_USER="founder_daubesonntag_com"
+SERVICE_USER="$(id -un)"
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  [[ "${EUID}" -eq 0 ]] || { echo "V9_BLOCKED=TRUSTED_CARRIER_NOT_ROOT"; exit 1; }
+  [[ "${HOME:-}" == "/home/${FOUNDER_USER}" ]] || { echo "V9_BLOCKED=TRUSTED_CARRIER_HOME"; exit 1; }
+  id "$FOUNDER_USER" >/dev/null 2>&1 || { echo "V9_BLOCKED=FOUNDER_USER_MISSING"; exit 1; }
+  SERVICE_USER="$FOUNDER_USER"
+fi
+SERVICE_GROUP="$(id -gn "$SERVICE_USER")"
 
 FILES=(
   adapters.py contract.py controller.py delivery.py graph.py integration.py
@@ -99,12 +109,17 @@ echo "ROLLBACK=RESTORED_PRE_V9_EXECUTOR"
 SH
 chmod 700 "$V9/rollback-v8.sh"
 
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  chown "$SERVICE_USER:$SERVICE_GROUP" "$BASE" "$OPS"
+  chown -R "$SERVICE_USER:$SERVICE_GROUP" "$V9" "$ROLLBACK"
+  [[ ! -d "$PREV" ]] || chown -R "$SERVICE_USER:$SERVICE_GROUP" "$PREV"
+fi
+
 rollback() {
   echo "V9_ACTIVATION_FAILED=ROLLING_BACK"
   "$V9/rollback-v8.sh" || true
 }
 
-USER_NAME="$(id -un)"
 sudo tee "$UNIT" >/dev/null <<EOF
 [Unit]
 Description=D'AUBE Freelancer Execution Mesh v9
@@ -113,7 +128,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=$USER_NAME
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
 Environment=HOME=$HOME
 Environment=PYTHONPATH=$V9
 ExecStart=$V9/run.sh

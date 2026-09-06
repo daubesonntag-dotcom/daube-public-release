@@ -1,31 +1,25 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "cd3d0af9e044df566f6d07a061d6d3fd7c234449",
-  "release_id": "host-continuity-v6-cd3d0af9",
+  "target_revision": "142cb782dac626c60168754c88aa05901eec2d7f",
+  "release_id": "host-continuity-v7-resilience-ed25519-142cb782",
   "artifacts": [
     {
-      "path": "installers/install-host-continuity-v6.sh",
-      "sha256": "ed04d1aa892c70e5958c5951dc1095622a4f54cdbc7e2a151be674d1011a36ea",
+      "path": "installers/install-host-continuity-v7-resilience-ed25519.sh",
+      "sha256": "5241820f5a81494071806e93c6da573ff8db3490ddf752a3253390353d48f49c",
       "mode": "0755"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-host-continuity-v6.sh"]
+    ["bash", "-n", "installers/install-host-continuity-v7-resilience-ed25519.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/install-host-continuity-v6.sh"
+    "entrypoint": "installers/install-host-continuity-v7-resilience-ed25519.sh"
   },
   "health_units": [
     "daube-host-autopilot.timer",
-    "daube-host-autopilot-watchdog.timer",
-    "daube-compute-mesh.service",
-    "daube-host-autonomous-update.timer",
-    "daube-sovereign-execution.timer",
-    "daube-host-ops-supervisor.timer",
-    "daube-remote-control-agent@founder_daubesonntag_com.service",
-    "daube-remote-agent-watchdog.timer"
+    "daube-host-autopilot-watchdog.timer"
   ],
   "rollback": "required"
 }

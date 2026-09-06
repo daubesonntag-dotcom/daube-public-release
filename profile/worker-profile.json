@@ -1,0 +1,62 @@
+{
+  "schema": "daube.worker-profile.v1",
+  "profile_version": "2026.09.06-v4",
+  "identity": {
+    "name": "D’AUBE SONNTAG",
+    "profile_type": "independent automation and creative-technology operator",
+    "operating_mode": "AI-assisted, evidence-gated, human-governed",
+    "location": "Vietnam",
+    "work_mode": "remote"
+  },
+  "role": {
+    "title": "Automation & AI Integration Operator",
+    "mission": "Design, implement, verify and hand off bounded digital systems with explicit acceptance criteria and evidence.",
+    "responsibility_boundary": "Independent delivery within approved scope; fail-closed for identity, legal, financial, paid-spend, credential and other high-risk actions.",
+    "framework_note": "Competency structure is informed by SFIA 9 concepts of skills, responsibility, accountability and impact. This is not a claim of SFIA certification or formal SFIA assessment."
+  },
+  "competencies": [
+    {"domain":"Workflow automation","status":"operational","evidence_class":"owned_system","examples":["schedulers","retries","watchdogs","idempotency","bounded self-recovery"]},
+    {"domain":"API & webhook integration","status":"operational","evidence_class":"owned_system","examples":["REST APIs","authenticated adapters","payload validation","failure handling"]},
+    {"domain":"AI workflow integration","status":"operational","evidence_class":"owned_system","examples":["structured outputs","guardrails","fallbacks","evidence-aware execution"]},
+    {"domain":"Frontend implementation","status":"operational","evidence_class":"public_source","examples":["React","TypeScript","JavaScript","responsive interfaces"]},
+    {"domain":"Python automation tooling","status":"operational","evidence_class":"owned_system","examples":["workers","orchestration","data utilities","repeatable scripts"]},
+    {"domain":"Docker / Linux operations","status":"operational","evidence_class":"owned_system","examples":["systemd","health checks","watchdogs","containerized services"]},
+    {"domain":"QA & verification","status":"operational","evidence_class":"proof_room","examples":["acceptance tests","regression checks","integration evidence","release gates"]},
+    {"domain":"Documentation & handoff","status":"operational","evidence_class":"public_source","examples":["runbooks","SOPs","recovery instructions","operator handoff"]}
+  ],
+  "evidence_classes": {
+    "owned_system": "D’AUBE-owned implementation or runtime evidence; not represented as prior client work.",
+    "proof_room": "D’AUBE-owned demonstration derived from a public brief; not client work.",
+    "public_source": "Inspectable public source or documentation.",
+    "client_verified": "Client outcome only when authoritative external evidence exists.",
+    "issuer_verified_credential": "External credential only when issuer evidence or a verification URL exists."
+  },
+  "professional_development": {
+    "model": "continuous professional development with evidence-gated internal study and independent evaluation",
+    "internal_credit_label": "D’AUBE internal CPD — not university or professional-body credit",
+    "external_credentials_published": 0,
+    "publication_rule": "Never publish an external certificate, badge, degree or professional credential until the issuer has awarded it and verification evidence is available.",
+    "credential_data_model_note": "Credential records are designed around issuer, recipient, criteria, evidence, issue/expiry and verification concepts used by modern verifiable credential systems. No Open Badges conformance claim is made."
+  },
+  "operating_controls": [
+    "Scope and acceptance criteria before execution",
+    "Evidence before delivery claims",
+    "No fabricated client history, testimonials, certifications or revenue",
+    "No off-platform marketplace payment or deceptive sales tactics",
+    "No autonomous paid spend without explicit authority",
+    "High-risk actions fail closed",
+    "Versioned artifacts and reproducible QA where supported"
+  ],
+  "public_evidence": [
+    {"name":"Autonomous Revenue Worker","url":"/runtime/revenue-worker/","class":"owned_system"},
+    {"name":"Execution Mesh V9","url":"/runtime/freelancer-v9/","class":"owned_system"},
+    {"name":"Freelancer Proof Room","url":"/labs/freelancer-proof-room/","class":"proof_room"},
+    {"name":"Portfolio","url":"/portfolio/","class":"public_source"}
+  ],
+  "truth_boundary": {
+    "client_history_claims": "authoritative evidence required",
+    "external_credential_claims": "issuer evidence required",
+    "internal_learning": "must remain explicitly labelled internal",
+    "self_assessed_framework_levels": "not publicly presented as formal certification"
+  }
+}

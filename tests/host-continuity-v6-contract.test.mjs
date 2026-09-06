@@ -35,6 +35,6 @@ test('reconciles reviewed runtimes and installs bounded remote-agent watchdog', 
   assert.match(s, /install-host-ops-supervisor-safe-v2\.sh/);
   assert.match(s, /install-remote-control-agent\.sh/);
   assert.match(s, /OnUnitActiveSec=2min/);
-  assert.match(s, /RestartSec=10min/);
+  assert.match(s, /NOW - LAST >= 600/);
   assert.doesNotMatch(s, /gcloud compute firewall|billing|iam /i);
 });

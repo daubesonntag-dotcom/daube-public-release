@@ -8,6 +8,9 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REF="${DAUBE_AUTOPILOT_TARGET_REVISION:-}"
 REPO="daubesonntag-dotcom/daube-public-release"
 CONTEXT="daube/full-wave-v12"
+TRUSTED_ROOT_CARRIER="${DAUBE_TRUSTED_ROOT_CARRIER:-0}"
+FOUNDER_HOME="/home/founder_daubesonntag_com"
+CONTROL_REVISION_PATH="/opt/daube/control/daube-ci-platform/CONTROL_REVISION"
 
 [[ "$REF" =~ ^[0-9a-f]{40}$ ]] || fail "exact autopilot target revision required"
 command -v sudo >/dev/null 2>&1 || fail "sudo missing"
@@ -42,8 +45,18 @@ for installer in "${INSTALLERS[@]}"; do
   test -x "$HERE/$installer" || fail "staged installer missing: $installer"
 done
 
-log "RUN platform convergence ref=$REF"
-bash "$HERE/install-ci-platform-wave-full-host-v1.sh"
+if [[ "$TRUSTED_ROOT_CARRIER" == "1" ]]; then
+  [[ "${EUID}" -eq 0 ]] || fail "trusted root carrier requires root"
+  [[ "${HOME:-}" == "$FOUNDER_HOME" ]] || fail "trusted root carrier founder HOME mismatch"
+  [[ -f "$CONTROL_REVISION_PATH" ]] || fail "trusted root carrier CONTROL_REVISION missing"
+  CONTROL_SHA="$(tr -d '\r\n' < "$CONTROL_REVISION_PATH" | tr '[:upper:]' '[:lower:]')"
+  [[ "$CONTROL_SHA" =~ ^[a-f0-9]{40}$ ]] || fail "trusted root carrier CONTROL_REVISION invalid"
+  systemctl is-active --quiet daube-executor-v2.service || fail "trusted root carrier executor inactive"
+  log "trusted root carrier active; skip platform convergence control=$CONTROL_SHA"
+else
+  log "RUN platform convergence ref=$REF"
+  bash "$HERE/install-ci-platform-wave-full-host-v1.sh"
+fi
 
 BASE_TIMERS=(
   daube-revenue-worker.timer

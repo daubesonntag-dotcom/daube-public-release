@@ -1,27 +1,34 @@
 {
-  "schema_version": "daube/portfolio-manifest-v1",
-  "updated_at": "2026-09-05T21:46:00+07:00",
-  "truth_policy": "owned/internal work is never represented as paid client work; external revenue and testimonials require authoritative evidence",
+  "schema_version": "daube/portfolio-manifest-v2",
+  "updated_at": "2026-09-06T12:08:00+07:00",
+  "truth_policy": "owned/internal work and public-brief demonstrations are never represented as paid client work; external revenue, testimonials and client outcomes require authoritative evidence",
+  "positioning": "Evidence-first digital execution across automation, AI integration, web implementation, QA, operations and technical handoff.",
   "primary_skills": [
-    "n8n",
+    "Automation",
     "AI Automation",
     "API Integration",
-    "Automation",
+    "Webhooks",
+    "n8n",
     "React.js",
     "TypeScript",
     "JavaScript",
     "Python",
+    "WordPress",
     "Docker",
-    "DevOps"
+    "Linux",
+    "QA Testing",
+    "Technical Documentation"
   ],
   "available_scope": [
     "workflow automation",
     "API and webhook integration",
     "AI workflow integration",
+    "WhatsApp and messaging automation",
     "React/TypeScript implementation",
     "Python automation",
+    "WordPress migration and implementation",
     "Docker/Linux operations",
-    "QA and testing",
+    "QA, audit and regression testing",
     "technical documentation and handoff"
   ],
   "portfolio": [
@@ -45,8 +52,33 @@
       "kind": "owned_public_system",
       "evidence_url": "https://daubesonntag.com/",
       "capabilities": ["web implementation", "commerce surfaces", "pricing", "policy surfaces", "payment-state boundaries", "public release operations"]
+    },
+    {
+      "id": "wordpress-migration-proof",
+      "title": "Google Sites to WordPress Migration Proof",
+      "kind": "owned_public_brief_demo",
+      "source_project": "Freelancer 40690929",
+      "evidence_url": "https://work.daubesonntag.com/labs/freelancer-proof-room/wordpress-migration-40690929.html",
+      "capabilities": ["WordPress migration", "content parity", "Spotify embedding", "SEO and URL preservation", "cutover", "rollback planning"]
+    },
+    {
+      "id": "beds-qa-audit-proof",
+      "title": "Comprehensive Beds System Audit Proof",
+      "kind": "owned_public_brief_demo",
+      "source_project": "Freelancer 40685020",
+      "evidence_url": "https://work.daubesonntag.com/labs/freelancer-proof-room/beds-qa-audit-40685020.html",
+      "capabilities": ["guest journey QA", "admin journey QA", "email verification", "housekeeping checks", "reporting", "sandbox payment testing", "reproducible evidence"]
+    },
+    {
+      "id": "whatsapp-ai-proof",
+      "title": "WhatsApp Business + AI Optimisation Proof",
+      "kind": "owned_public_brief_demo",
+      "source_project": "Freelancer 40693475",
+      "evidence_url": "https://work.daubesonntag.com/labs/freelancer-proof-room/whatsapp-ai-40693475.html",
+      "capabilities": ["Make automation", "OpenAI integration", "ManyChat", "WhatsApp", "duplicate suppression", "latency tracing", "fallback logic", "handoff evidence"]
     }
   ],
+  "cross_platform_surfaces": ["website", "GitHub", "Freelancer", "Upwork", "Fiverr", "LinkedIn"],
   "external_client_projects_verified": 0,
   "external_revenue_verified": 0
 }

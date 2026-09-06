@@ -1,10 +1,36 @@
 (() => {
   const API = 'https://wilqsqndjgckqxbjptxm.supabase.co/functions/v1/daube-storefront-api';
   const header = document.querySelector('.v3-header');
+  const nav = header?.querySelector('.v3-nav');
   const products = document.getElementById('v3-products');
   const money = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(amount || 0));
 
-  const solidHeader = () => header?.classList.toggle('is-solid', scrollY > 24);
+  if (header && nav && !header.querySelector('.v3-menu-toggle')) {
+    const toggle = document.createElement('button');
+    toggle.className = 'v3-menu-toggle';
+    toggle.type = 'button';
+    toggle.setAttribute('aria-label', 'Open navigation');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.addEventListener('click', () => {
+      const open = header.classList.toggle('nav-open');
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    });
+    nav.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
+      header.classList.remove('nav-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open navigation');
+    }));
+    header.append(toggle);
+    addEventListener('resize', () => {
+      if (innerWidth >= 900) {
+        header.classList.remove('nav-open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    }, { passive: true });
+  }
+
+  const solidHeader = () => header?.classList.toggle('is-solid', scrollY > 28);
   solidHeader();
   addEventListener('scroll', solidHeader, { passive: true });
 
@@ -13,8 +39,11 @@
   if (reduced || !('IntersectionObserver' in window)) reveals.forEach((el) => el.classList.add('is-visible'));
   else {
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
-    }), { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    }), { threshold: .08, rootMargin: '0px 0px -6% 0px' });
     reveals.forEach((el) => observer.observe(el));
   }
 

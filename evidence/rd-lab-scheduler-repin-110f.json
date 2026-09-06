@@ -1,0 +1,8 @@
+{
+  "schema": "daube.release-repin-marker.v1",
+  "purpose": "Force a fresh trusted V12 activation after daube-ci-platform PR #193 merged, so the canonical verified CI-platform installer resolves main including the persistent R&D scheduler.",
+  "ciPlatformExpectedAtOrAfter": "110f3c2991adc20be738636826c5bd755e975a40",
+  "unapprovedSpendUsd": 0,
+  "productionMutationAuthority": "unchanged",
+  "truth": "This marker does not itself prove host installation; host readback remains required."
+}

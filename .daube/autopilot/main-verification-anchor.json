@@ -1,0 +1,6 @@
+{
+  "schema": "daube.main-verification-anchor.v1",
+  "source_revision": "f62555f1799ffdb43abaf3681e6814208391b533",
+  "v12_target_revision": "ff922227465bf48afc2c3e1c6d47cab2450b2f32",
+  "purpose": "preserve current content while restoring a GitHub-verified merge tip for fail-closed host repair"
+}

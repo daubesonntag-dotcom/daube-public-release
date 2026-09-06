@@ -1,0 +1,86 @@
+name: Work Arcade — Paid Slot Request
+description: Request a future paid D’AUBE Work Arcade slot. No payment is collected by this form.
+title: "[Paid Slot] "
+labels:
+  - work-arcade
+  - paid-slot-interest
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Rent the work. Pay for the experience. Keep the proof.
+        This form records interest in a **paid Work Arcade experience**. It is not an order, invoice, employment application, investment, or payment commitment. Real checkout remains closed until D’AUBE’s commerce/consumer/IP gates are admitted.
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Which paid slot would you consider?
+      options:
+        - Spark Mission — VND 199,000
+        - Builder Slot — VND 499,000
+        - World Residency — VND 1,290,000
+        - Team Simulation — VND 2,990,000
+    validations:
+      required: true
+
+  - type: dropdown
+    id: experience
+    attributes:
+      label: What do you want to rent?
+      options:
+        - Job / Problem
+        - Failure / Restoration
+        - Boss / Decision Challenge
+        - Mystery Mission
+        - Kiosk
+        - World Plot
+        - Team Simulation
+        - Company / Digital Twin
+        - Surprise me
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What would make this worth paying for?
+      description: Describe the experience, proof, review, tool access, learning, challenge, portfolio result or other value you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: Your background (optional)
+      description: Developer, designer, artist, founder, student, operator, worldbuilder, curious participant, etc.
+
+  - type: dropdown
+    id: commercial_use
+    attributes:
+      label: If D’AUBE later wants to use your artifact commercially, what should happen?
+      options:
+        - Ask me first and negotiate separate compensation / revenue share
+        - Ask me first and negotiate a license
+        - I am open to credits / access as part of a separate agreement
+        - I do not want commercial use
+        - Decide later
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I understand this is a paid experience concept, not a job, salary, internship, investment or guaranteed credential.
+          required: true
+        - label: I understand production use of my work requires a separate rights/compensation basis.
+          required: true
+        - label: I will not post passwords, OTPs, payment data, government IDs, API keys or confidential customer data here.
+          required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: What would make the experience feel memorable, weird, premium or worth telling someone about?

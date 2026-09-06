@@ -1,66 +1,31 @@
 {
   "schema": "daube.host-autopilot.v1",
   "enabled": true,
-  "target_revision": "253dce1fd57ea3cc223882b18d65fd4d1821c261",
-  "release_id": "full-wave-mesh-v12-attested-253dce1f-rd-scheduler-intake",
+  "target_revision": "920273768f49a6b278f60cf83fc2730f221990f0",
+  "release_id": "host-continuity-v2-92027376",
   "artifacts": [
     {
-      "path": "installers/install-ci-platform-wave-full-host-v1.sh",
-      "sha256": "708b23aa8af15d9220b7542dd728afe095c70a102414718b30bcfee174e05b7c",
-      "mode": "0755"
-    },
-    {
-      "path": "installers/install-freelancer-execution-mesh-v9.sh",
-      "sha256": "a823f9d546e53c66f92ad9c1ef0da8a334470cfb1e4fb958f381703d7efcb76d",
-      "mode": "0755"
-    },
-    {
-      "path": "installers/install-native-revenue-autopilot-v10.sh",
-      "sha256": "43e6c28e83c0870fe8ac2c12e9f0cf83c80749d9b2d8cd02a846cb9024dca36d",
-      "mode": "0755"
-    },
-    {
-      "path": "installers/install-autonomous-business-operator-v11.sh",
-      "sha256": "fdae1b3cf913a48eb2201b5494958b8fc9343cd27b2576b370383bdf6e78f699",
-      "mode": "0755"
-    },
-    {
-      "path": "installers/install-full-wave-mesh-lane-v12.sh",
-      "sha256": "cf9332b110ecf768049701cde3c985fc6975c42b4129fc682f2c45f48a6ed36d",
-      "mode": "0755"
-    },
-    {
-      "path": "installers/attest-full-wave-mesh-v12.sh",
-      "sha256": "44918b95513146369aeed3e217cc2f5a1a56fa6cd766b9b232a418acbbba698e",
+      "path": "installers/install-host-continuity-v2.sh",
+      "sha256": "38bc079330f70fa549ead13b9eeba8168a12a153433607b8e0654c95e21be6d4",
       "mode": "0755"
     }
   ],
   "checks": [
-    ["bash", "-n", "installers/install-ci-platform-wave-full-host-v1.sh"],
-    ["bash", "-n", "installers/install-freelancer-execution-mesh-v9.sh"],
-    ["bash", "-n", "installers/install-native-revenue-autopilot-v10.sh"],
-    ["bash", "-n", "installers/install-autonomous-business-operator-v11.sh"],
-    ["bash", "-n", "installers/install-full-wave-mesh-lane-v12.sh"],
-    ["bash", "-n", "installers/attest-full-wave-mesh-v12.sh"]
+    ["bash", "-n", "installers/install-host-continuity-v2.sh"]
   ],
   "activation": {
     "kind": "installer",
-    "entrypoint": "installers/attest-full-wave-mesh-v12.sh"
+    "entrypoint": "installers/install-host-continuity-v2.sh"
   },
   "health_units": [
-    "daube-executor-v2.service",
-    "daube-web-release-governor.service",
+    "daube-host-autopilot.timer",
+    "daube-host-autopilot-watchdog.timer",
+    "daube-native-autopilot-chain.timer",
     "daube-compute-mesh.service",
-    "daube-customer-care-mail.service",
-    "daube-revenue-opportunity-worker.timer",
-    "daube-revenue-worker.timer",
-    "daube-freelancer-preaward-conversation.timer",
-    "daube-freelancer-award-watcher.timer",
-    "daube-freelancer-executor.timer",
-    "daube-runtime-watchdog.timer",
-    "daube-freelancer-money-closure.timer",
-    "daube-native-revenue-autopilot.timer",
-    "daube-business-operator.timer"
+    "daube-host-autonomous-update.timer",
+    "daube-sovereign-execution.timer",
+    "daube-host-ops-supervisor.timer",
+    "daube-remote-control-agent@founder_daubesonntag_com.service"
   ],
   "rollback": "required"
 }

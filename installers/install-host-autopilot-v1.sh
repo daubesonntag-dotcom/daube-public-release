@@ -113,8 +113,10 @@ WantedBy=timers.target
 EOF
 privileged systemctl daemon-reload
 privileged systemctl enable --now daube-host-autopilot.timer daube-host-autopilot-watchdog.timer
-privileged systemctl start daube-host-autopilot.service
-privileged systemctl start daube-host-autopilot-watchdog.service
+# Recovery may invoke this installer while an autopilot oneshot is already active.
+# Queue service execution without synchronously waiting for that long-running unit.
+privileged systemctl --no-block start daube-host-autopilot.service
+privileged systemctl --no-block start daube-host-autopilot-watchdog.service
 test "$(systemctl is-active daube-host-autopilot.timer)" = active
 test "$(systemctl is-active daube-host-autopilot-watchdog.timer)" = active
 PYTHONPATH="$RUNTIME" python3 "$RUNTIME/run.py" --verify

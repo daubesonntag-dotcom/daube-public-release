@@ -18,3 +18,9 @@ test('autopilot bootstrap supports a trusted root recovery carrier without grant
   assert.match(installer, /install -o "\$USER_NAME" -g "\$USER_GROUP" -m 600/);
   assert.match(installer, /User=\$USER_NAME/);
 });
+
+test('autopilot bootstrap does not synchronously wait on long-running recovery starts', () => {
+  assert.match(installer, /systemctl --no-block start daube-host-autopilot\.service/);
+  assert.match(installer, /systemctl --no-block start daube-host-autopilot-watchdog\.service/);
+  assert.doesNotMatch(installer, /privileged systemctl start daube-host-autopilot\.service/);
+});

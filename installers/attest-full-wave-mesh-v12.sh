@@ -11,6 +11,15 @@ V12="$HERE/install-full-wave-mesh-lane-v12.sh"
 READY="$HOME/daube-revenue-worker/full-wave-v12/receipt.json"
 test -x "$V12" || fail "V12 installer missing"
 
+# Control-plane persistence must be repaired even when an exact-target runtime
+# receipt already exists and the expensive V12 transaction can be skipped.
+sudo -n systemctl enable --now daube-native-autopilot-chain.timer >/dev/null 2>&1 \
+  || fail "native autopilot chain persistence unavailable"
+systemctl is-active --quiet daube-native-autopilot-chain.timer \
+  || fail "native autopilot chain timer inactive"
+test "$(systemctl is-enabled daube-native-autopilot-chain.timer)" = enabled \
+  || fail "native autopilot chain timer not enabled"
+
 receipt_ready() {
   python3 - "$READY" "$REF" <<'PY'
 import json, pathlib, sys

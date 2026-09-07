@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#130b0d">
 <title>D’AUBE SONNTAG — La Rose de l’Aube</title>
-<meta name="description" content="La Rose de l’Aube — a classical rose reliquary gift experience with authored CGI motion, personalized artifacts and Debussy’s La plus que lente.">
-<meta property="og:title" content="D’AUBE SONNTAG — La Rose de l’Aube">
-<meta property="og:description" content="A rose, a slow waltz, and a small reliquary prepared in your name.">
-<meta property="og:image" content="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png">
+<meta name="description" content="La Rose de l’Aube — V14 Grand Reliquary, a luxury classical rose experience with refractive glass, authored CGI motion, in-glass falling petals, personalized artifacts and Debussy’s La plus que lente.">
+<meta property="og:title" content="D’AUBE SONNTAG — La Rose de l’Aube · V14 Grand Reliquary">
+<meta property="og:description" content="A rose, a slow waltz, petals beneath glass, then the gift.">
+<meta property="og:image" content="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png">
 <link rel="canonical" href="https://work.daubesonntag.com/campaigns/first-light/">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v12.css">
+<link rel="stylesheet" href="v12.css"><link rel="stylesheet" href="v14.css">
 </head>
-<body data-vfx-tier="booting" data-template="reliquary">
+<body data-vfx-tier="booting" data-template="reliquary" data-release="v14">
 <audio id="classicalScore" preload="metadata" loop><source src="https://commons.wikimedia.org/wiki/Special:Redirect/file/La_Plus_Que_Lente.ogg" type="audio/ogg"></audio>
 <header class="topbar shell">
   <a class="brand" href="#opening"><span class="seal">☼</span><span><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span></a>
@@ -26,32 +26,31 @@
   <div class="opening-atmosphere" aria-hidden="true"></div>
   <div class="shell opening-grid">
     <div class="opening-copy">
-      <p class="overline">LA ROSE DE L’AUBE · RELIQUARY EDITION</p>
+      <p class="overline">LA ROSE DE L’AUBE · V14 GRAND RELIQUARY</p>
       <h1 data-k="open">A rose, a slow waltz, then the gift.</h1>
       <p class="opening-lead" data-k="body">A classical rose reliquary staged like a miniature salon scene — glass, thorn, gold, paper and first light.</p>
       <div class="recipient-line"><span data-k="for">Prepared for</span> <strong id="recipient">Yến Nhi</strong></div>
       <div class="open-actions"><button id="openRose" class="open-btn"><span data-k="openRose">Open the reliquary</span><i>✦</i></button><button id="copyLink" class="text-btn" data-k="copy">Copy personal link</button></div>
       <p id="copyStatus" class="status" aria-live="polite"></p>
       <div class="music-plaque"><span>CLASSICAL SCORE</span><strong>Claude Debussy — <em>La plus que lente</em>, L. 121</strong><small>Valse lente · composed 1910 · performance: La Pianista</small></div>
-      <div class="tech-note" aria-hidden="true"><span>CGI RELIEF</span><span>REFRACTIVE GLASS</span><span>AUTHORED TIMELINE</span><span>FRAME QC</span></div>
+      <div class="tech-note" aria-hidden="true"><span>REFRACTIVE GLASS</span><span>THREE.QUARKS VFX</span><span>IN-GLASS PETALS</span><span>AUTHORED TIMELINE</span><span>FRAME QC</span></div>
     </div>
-    <div class="rose-stage" id="roseStage" aria-label="Enchanted crimson rose under refractive glass">
-      <img class="rose-fallback" src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Cinematic enchanted crimson rose under a glass dome">
+    <div class="rose-stage" id="roseStage" aria-label="Luxury enchanted crimson rose beneath refractive glass with falling petals">
+      <img class="rose-fallback" src="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png" alt="La Rose de l’Aube luxury crimson rose under a gilded glass dome">
       <canvas id="roseCanvas" aria-hidden="true"></canvas>
       <div class="rose-fallback-fx" aria-hidden="true"><div class="fallback-glass"></div><div class="fallback-caustic"></div><div class="fallback-halo"></div></div>
-      <div class="thorn-frame thorn-left" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="thorn-frame thorn-right" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="petal-field" aria-hidden="true"></div>
       <div class="reveal-note" id="revealNote"><span data-k="prepared">The reliquary opens for</span><strong id="revealName">Yến Nhi</strong><a href="#vault" data-k="enterVault">Enter the reliquary ↓</a></div>
     </div>
   </div>
 </section>
-<section id="vault" class="vault section-light rose-paper"><div class="shell"><div class="section-intro"><span>01</span><div><p class="overline">THE ROSE RELIQUARY</p><h2 data-k="vault">Eight keepsakes, composed as one collection.</h2><p class="section-note">Every downloadable artifact is personalized in-browser — no account, no upload, no tracking.</p></div></div><div id="giftGrid" class="artifact-grid"></div></div></section>
-<section id="collection" class="collection section-ivory"><div class="shell collection-grid"><div class="collection-copy"><p class="overline">THEME SYSTEM</p><h2>One rose, many ceremonial forms.</h2><p>This concept now works as a reusable D’AUBE template language: invitation, letter, pass, certificate, monogram, wallpaper and recipient page — all sharing the same rose, thorn, vellum and antique-gold vocabulary.</p><div class="template-chips"><span>Invitation</span><span>Pressed Letter</span><span>Thorn Key</span><span>Monogram</span><span>Certificate</span><span>Wallpaper</span></div></div><div class="collection-card"><div class="crest-preview" id="crestPreview"><span>☼</span><strong>YN</strong><em>La Rose de l’Aube</em></div></div></div></section>
-<section id="ceremony" class="ceremony section-dark"><div class="shell ceremony-grid"><div class="ceremony-image"><img src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Enchanted rose detail"><div class="ceremony-glow"></div></div><div class="ceremony-copy"><p class="overline">THE GOLDEN CEREMONY</p><h2><span data-k="congrats">For</span> <em id="ceremonyName">Yến Nhi</em>.</h2><p data-k="ceremony">A rose, a slow waltz, and eight keepsakes arranged as a small classical ceremony.</p><a href="#certificate" class="line-link" data-k="certificateLink">Keep the certificate →</a></div></div></section>
-<section id="certificate" class="certificate section-light rose-paper"><div class="shell cert-shell"><div class="cert-paper"><div class="corner-vine cv-a"></div><div class="corner-vine cv-b"></div><div class="cert-sun">☼</div><p class="overline">D’AUBE SONNTAG · LA ROSE DE L’AUBE</p><h2 data-k="presented">Presented to</h2><div id="certificateName" class="cert-name">Yến Nhi</div><p data-k="certBody">For arriving with first light, entering the rose garden, and becoming part of this little reliquary.</p><div class="cert-sign"><span>FIRST LIGHT GARDEN</span><span>RELIQUARY EDITION · 2026</span></div><button id="printCert" class="print-btn" data-k="print">Print certificate</button></div></div></section>
+<section id="vault" class="vault section-light rose-paper"><div class="shell"><div class="section-intro"><span>01</span><div><p class="overline">THE ROSE RELIQUARY</p><h2 data-k="vault">Nine keepsakes, composed as one collection.</h2><p class="section-note">Every downloadable artifact is personalized in-browser — no account, no upload, no tracking.</p></div></div><div id="giftGrid" class="artifact-grid"></div></div></section>
+<section id="collection" class="collection section-ivory"><div class="shell collection-grid"><div class="collection-copy"><p class="overline">THEME SYSTEM</p><h2>One rose, many ceremonial forms.</h2><p>This concept now works as a reusable D’AUBE template language: invitation, letter, pass, certificate, monogram, wallpaper, heraldic badge and recipient page — all sharing the same rose, thorn, vellum and antique-gold vocabulary.</p><div class="template-chips"><span>Invitation</span><span>Pressed Letter</span><span>Thorn Key</span><span>Monogram</span><span>Certificate</span><span>Wallpaper</span><span>Badge</span></div></div><div class="collection-card"><div class="crest-preview" id="crestPreview"><span>☼</span><strong>YN</strong><em>La Rose de l’Aube</em></div></div></div></section>
+<section id="ceremony" class="ceremony section-dark"><div class="shell ceremony-grid"><div class="ceremony-image"><img src="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png" alt="Luxury La Rose de l’Aube scene"><div class="ceremony-glow"></div></div><div class="ceremony-copy"><p class="overline">THE GOLDEN CEREMONY</p><h2><span data-k="congrats">For</span> <em id="ceremonyName">Yến Nhi</em>.</h2><p data-k="ceremony">A rose, a slow waltz, falling petals and nine keepsakes arranged as a small classical ceremony.</p><a href="#certificate" class="line-link" data-k="certificateLink">Keep the certificate →</a></div></div></section>
+<section id="certificate" class="certificate section-light rose-paper"><div class="shell cert-shell"><div class="cert-paper"><div class="corner-vine cv-a"></div><div class="corner-vine cv-b"></div><div class="cert-sun">☼</div><p class="overline">D’AUBE SONNTAG · LA ROSE DE L’AUBE</p><h2 data-k="presented">Presented to</h2><div id="certificateName" class="cert-name">Yến Nhi</div><p data-k="certBody">For arriving with first light, entering the rose garden, and becoming part of this little reliquary.</p><div class="cert-sign"><span>FIRST LIGHT GARDEN</span><span>GRAND RELIQUARY · 2026</span></div><button id="printCert" class="print-btn" data-k="print">Print certificate</button></div></div></section>
 <section id="credits" class="credits section-ivory"><div class="shell credits-grid"><div><p class="overline">MUSIC & PROVENANCE</p><h2>Classical, credited, and kept clean.</h2></div><div class="credit-card"><strong>Claude Debussy — La plus que lente, L. 121</strong><p>Composed and published in 1910. Performance by Wikimedia Commons user La Pianista. The file page marks the composition as free of known copyright restrictions and the performer’s recording under CC BY-SA 3.0; D’AUBE provides attribution and does not claim authorship of the classical work or performance.</p><a href="https://commons.wikimedia.org/wiki/File:La_Plus_Que_Lente.ogg" target="_blank" rel="noopener">Recording & license details ↗</a></div></div></section>
 <section id="faq" class="faq section-light"><div class="shell faq-shell"><div><p class="overline">FAQ</p><h2 data-k="faqTitle">Only the useful bits.</h2></div><div class="faq-list"><details><summary data-k="q1">What is this page?</summary><p data-k="a1">A personalized D’AUBE digital gift experience.</p></details><details><summary data-k="q2">Can the name change?</summary><p data-k="a2">Yes. Add ?name=Your%20Name to the URL.</p></details><details><summary data-k="q3">Do I need to buy anything?</summary><p data-k="a3">No. This is a goodwill digital gift experience.</p></details><details><summary data-k="q4">What music is playing?</summary><p data-k="a4">Claude Debussy’s La plus que lente, performed by La Pianista; attribution and license details are listed above.</p></details></div></div></section>
 </main>
-<footer class="footer shell"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><div>La Rose de l’Aube · V12 Grand Reliquary · 2026</div></footer>
-<script src="v12-gifts.js" defer></script><script src="v12-core.js" defer></script><script type="module" src="v12-scene.js"></script>
+<footer class="footer shell"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><div>La Rose de l’Aube · V14 Grand Reliquary · 2026</div></footer>
+<script src="v12-gifts.js" defer></script><script src="v12-core.js" defer></script><script src="v14-fallback.js" defer></script><script type="module" src="v14-scene.js"></script>
 </body></html>

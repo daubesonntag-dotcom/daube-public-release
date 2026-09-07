@@ -30,10 +30,10 @@
 - Consumes: six core route HTML files.
 - Produces: a single Node contract that fails until V16 shared route/media markers exist.
 
-- [ ] Write assertions requiring every route to reference `work-v15-navigation.css`, include explicit hero image dimensions, and expose shared brand/navigation semantics.
-- [ ] Assert homepage keeps exactly one external runtime JS and forbids V8–V11/Lenis/GSAP/Three/Barba/Swup tokens.
-- [ ] Assert each route contains AVIF/WebP `<picture>` source declarations and mobile crop media rules.
-- [ ] Run with `node tests/work-v16-full-stack-contract.test.mjs` and require RED before implementation.
+- [x] Write assertions requiring every route to reference `work-v15-navigation.css`, include explicit hero image dimensions, and expose shared brand/navigation semantics.
+- [x] Assert homepage keeps exactly one external runtime JS and forbids V8–V11/Lenis/GSAP/Three/Barba/Swup tokens.
+- [x] Assert each route contains AVIF/WebP `<picture>` source declarations and mobile crop media rules.
+- [x] Run on isolated-branch GitHub Actions and verify RED before implementation (`Work V16 TDD` run 34140206443, conclusion `failure`).
 
 ### Task 2: Generate truthful responsive hero media
 
@@ -44,8 +44,8 @@
 - Create: `assets/media/hero/daube-bloom-768.webp`
 - Create: `assets/media/hero/daube-bloom-1200.webp`
 - Create: `assets/media/hero/daube-bloom-1600.webp`
-- Create: `assets/media/hero/daube-bloom-mobile-768x1024.avif`
-- Create: `assets/media/hero/daube-bloom-mobile-768x1024.webp`
+- Create: `assets/media/hero/daube-bloom-mobile-706x941.avif`
+- Create: `assets/media/hero/daube-bloom-mobile-706x941.webp`
 - Create: `assets/media/hero/manifest.json`
 
 **Interfaces:**
@@ -53,9 +53,9 @@
 - Produces: non-upscaled responsive variants and manifest with source/derivative dimensions.
 
 - [ ] Generate landscape derivatives at 768/1200/1600 widths preserving aspect ratio.
-- [ ] Generate a portrait 768×1024 crop centered on the bloom without upscaling.
+- [ ] Generate the maximum truthful portrait crop at 706×941 centered on the bloom without upscaling.
 - [ ] Encode AVIF and WebP with high visual quality; record bytes, dimensions and SHA-256 in manifest.
-- [ ] Verify every derivative width is <= source width and manifest records `upscaled:false`.
+- [ ] Verify every derivative width/height stays within source dimensions and manifest records `upscaled:false`.
 
 ### Task 3: Activate responsive media and V15 continuity across routes
 
@@ -88,7 +88,7 @@
 - Produces: deterministic local/CI release failures for broken internal routes or dishonest media metadata.
 
 - [ ] Write internal-link checker that parses local `href="/..."` targets from the six route files and verifies file/directory targets exist; allow mailto/hash/external URLs.
-- [ ] Write media test asserting manifest source is 1672×941, all derivatives are non-upscaled, mobile crop is 768×1024, and required AVIF/WebP files exist in manifest.
+- [ ] Write media test asserting manifest source is 1672×941, all derivatives are non-upscaled, mobile crop is 706×941, and required AVIF/WebP files exist in manifest.
 - [ ] Run both checks and require GREEN.
 
 ### Task 5: Add V16 GitHub quality workflow

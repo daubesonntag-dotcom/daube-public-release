@@ -1,0 +1,59 @@
+name: First Light frame-by-frame visual QC
+on:
+  push:
+    paths:
+      - 'campaigns/first-light/**'
+      - '.github/workflows/first-light-visual-qc.yml'
+  pull_request:
+    paths:
+      - 'campaigns/first-light/**'
+  workflow_dispatch:
+concurrency:
+  group: first-light-visual-qc-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  visual-qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install QC dependencies
+        working-directory: campaigns/first-light/qa
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        working-directory: campaigns/first-light/qa
+        run: npx playwright install --with-deps chromium
+      - name: Serve repository
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/first-light-http.log 2>&1 &
+          echo $! > /tmp/first-light-http.pid
+          sleep 2
+      - name: Capture deterministic authored frames
+        working-directory: campaigns/first-light/qa
+        env:
+          QA_URL: http://127.0.0.1:4173/campaigns/first-light/
+        run: node capture.mjs
+      - name: Compare approved visual baselines
+        working-directory: campaigns/first-light/qa
+        run: node compare.mjs
+      - name: Build frame contact sheets
+        if: always()
+        working-directory: campaigns/first-light/qa
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          ffmpeg -hide_banner -loglevel error -pattern_type glob -i 'artifacts/desktop-*.png' -vf 'scale=480:-1,tile=4x2:padding=8:margin=8:color=0x160d0f' -frames:v 1 artifacts/contact-desktop.png || true
+          ffmpeg -hide_banner -loglevel error -pattern_type glob -i 'artifacts/mobile-*.png' -vf 'scale=260:-1,tile=4x2:padding=8:margin=8:color=0x160d0f' -frames:v 1 artifacts/contact-mobile.png || true
+      - name: Upload frame audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-light-v12-frame-audit
+          path: |
+            campaigns/first-light/qa/artifacts/**
+          if-no-files-found: error
+          retention-days: 30

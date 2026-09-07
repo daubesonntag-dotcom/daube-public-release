@@ -1,0 +1,39 @@
+name: Surface Fabric → Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'surface-fabric/**'
+      - '.github/workflows/surface-fabric-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: daube-surface-fabric-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify Cloudflare credential is available
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'CLOUDFLARE_API_TOKEN is not available to this repository'; exit 78; }
+
+      - name: Deploy canonical surface fabric
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 4457584ea99f52180c778f28e98e3400
+          command: pages deploy surface-fabric --project-name=daube-surface-fabric --branch=main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

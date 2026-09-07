@@ -20,15 +20,8 @@
   <link rel="stylesheet" href="/assets/work-v7.css?v=95f3cf4">
   <link rel="stylesheet" href="/assets/work-v12-pure-cinema.css?v=2761d5b">
   <link rel="stylesheet" href="/assets/work-v13-quality-gates.css?v=b931b94">
-  <style>
-    @view-transition{navigation:auto}
-    ::view-transition-old(root){animation:daube-page-out .18s ease both}
-    ::view-transition-new(root){animation:daube-page-in .34s cubic-bezier(.16,1,.3,1) both}
-    @keyframes daube-page-out{to{opacity:.84}}
-    @keyframes daube-page-in{from{opacity:.72}to{opacity:1}}
-    @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none!important}}
-    @media(hover:none),(pointer:coarse){body[data-v12-ready="true"] .work-card:hover,body[data-v12-ready="true"] .process-step:hover,body[data-v12-ready="true"] .evidence-item:hover{transform:none;box-shadow:none}}
-  </style>
+  <link rel="stylesheet" href="/assets/work-v15-navigation.css?v=44761b2">
+  <style>@media(hover:none),(pointer:coarse){body[data-v12-ready="true"] .work-card:hover,body[data-v12-ready="true"] .process-step:hover,body[data-v12-ready="true"] .evidence-item:hover{transform:none;box-shadow:none}}</style>
   <title>D’AUBE SONNTAG · Meaning, made visible</title>
 </head>
 <body>
@@ -40,7 +33,7 @@
 </header>
 <main id="main">
   <section class="hero" aria-labelledby="hero-title">
-    <figure class="hero__media"><img src="https://cdn.creativeclaw.co/u/218f016f/images/c2b5ff65-757c-4da3-b4fc-06a9e4f9a72f.png" alt="Translucent sculptural bloom illuminated by sunrise over reflective water" width="1672" height="941" sizes="100vw" fetchpriority="high" decoding="async"></figure>
+    <figure class="hero__media"><img src="https://cdn.creativeclaw.co/u/218f016f/images/c2b5ff65-757c-4da3-b4fc-06a9e4f9a72f.png" alt="Translucent sculptural bloom illuminated by sunrise over reflective water" width="1672" height="941" sizes="100vw" loading="eager" fetchpriority="high" decoding="async"></figure>
     <div class="hero__inner">
       <div class="hero__copy">
         <h1 class="hero__title" id="hero-title">Meaning,<br>made visible.</h1>
@@ -105,6 +98,7 @@
   if(c?.saveData||/2g/.test(c?.effectiveType||'')) return;
   if(!('IntersectionObserver' in window)) return;
   const seen=new Set();
+  const schedule=cb=>'requestIdleCallback' in window?requestIdleCallback(cb,{timeout:1200}):setTimeout(cb,0);
   const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
     if(!entry.isIntersecting) return;
     const a=entry.target;
@@ -112,11 +106,13 @@
     try{u=new URL(a.href,location.href)}catch{return}
     if(u.origin!==location.origin||seen.has(u.pathname)) return;
     seen.add(u.pathname);
-    const pre=document.createElement('link');
-    pre.rel='prefetch';
-    pre.href=u.pathname+u.search;
-    pre.as='document';
-    document.head.appendChild(pre);
+    schedule(()=>{
+      const pre=document.createElement('link');
+      pre.rel='prefetch';
+      pre.href=u.pathname+u.search;
+      pre.as='document';
+      document.head.appendChild(pre);
+    });
     io.unobserve(a);
   }),{rootMargin:'160px'});
   document.querySelectorAll('a[href^="/"]').forEach(a=>io.observe(a));

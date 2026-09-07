@@ -3,96 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#160e0e">
+<meta name="theme-color" content="#160d0f">
 <title>D’AUBE SONNTAG — First Light Rose Garden</title>
-<meta name="description" content="A personalized D’AUBE SONNTAG gift experience with a cinematic enchanted rose reveal, adaptive VFX, and an original waltz.">
+<meta name="description" content="A personalized D’AUBE SONNTAG gift experience with an authored CGI rose reveal, refractive glass, displacement and an original waltz.">
 <meta property="og:title" content="D’AUBE SONNTAG — First Light Rose Garden">
 <meta property="og:description" content="A rose, then a gift — prepared in your name.">
 <meta property="og:image" content="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png">
 <link rel="canonical" href="https://work.daubesonntag.com/campaigns/first-light/">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v10.css">
+<link rel="stylesheet" href="v11.css">
 </head>
 <body data-vfx-tier="booting">
-<header class="topbar shell">
-  <a class="brand" href="#opening"><span class="seal">☼</span><span><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span></a>
-  <nav class="nav"><a href="#vault">Gifts</a><a href="#ceremony">Ceremony</a><a href="#faq">FAQ</a></nav>
-  <div class="tools"><button id="langToggle" class="tool">EN</button><button id="soundToggle" class="tool sound">♫ Sound</button></div>
-</header>
-
+<header class="topbar shell"><a class="brand" href="#opening"><span class="seal">☼</span><span><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span></a><nav class="nav"><a href="#vault">Gifts</a><a href="#ceremony">Ceremony</a><a href="#faq">FAQ</a></nav><div class="tools"><button id="langToggle" class="tool">EN</button><button id="soundToggle" class="tool sound">♫ Sound</button></div></header>
 <main>
 <section id="opening" class="opening">
-  <div class="opening-noise" aria-hidden="true"></div>
+  <div class="opening-atmosphere" aria-hidden="true"></div>
   <div class="shell opening-grid">
     <div class="opening-copy">
       <p class="overline">FIRST LIGHT · ROSE GARDEN</p>
       <h1 data-k="open">A rose, before the gift.</h1>
-      <p class="opening-lead" data-k="body">A quiet enchanted reveal, made for one name at a time.</p>
+      <p class="opening-lead" data-k="body">A quiet enchanted reveal, authored like a miniature cinematic scene.</p>
       <div class="recipient-line"><span data-k="for">For</span> <strong id="recipient">Yến Nhi</strong></div>
-      <div class="open-actions">
-        <button id="openRose" class="open-btn"><span data-k="openRose">Open the rose</span><i>✦</i></button>
-        <button id="copyLink" class="text-btn" data-k="copy">Copy personal link</button>
-      </div>
+      <div class="open-actions"><button id="openRose" class="open-btn"><span data-k="openRose">Open the rose</span><i>✦</i></button><button id="copyLink" class="text-btn" data-k="copy">Copy personal link</button></div>
       <p id="copyStatus" class="status" aria-live="polite"></p>
-      <p class="score-credit">Original score · <strong>Enchanted Rose Waltz — Nocturne Mix</strong> · 3/4 · 72 BPM</p>
+      <p class="score-credit">Original score · <strong>Enchanted Rose Waltz — Nocturne II</strong> · 3/4 · 70 BPM</p>
+      <div class="tech-note" aria-hidden="true"><span>CGI RELIEF</span><span>REFRACTIVE GLASS</span><span>AUTHORED MOTION</span></div>
     </div>
-
-    <div class="rose-stage" aria-label="Enchanted crimson rose under a glass dome">
-      <canvas id="roseFx" aria-hidden="true"></canvas>
-      <div class="thorn-frame thorn-left" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="thorn-frame thorn-right" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-      <div class="rose-halo" aria-hidden="true"></div>
-      <div class="rose-reliquary">
-        <img class="rose-shot" src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Cinematic enchanted crimson rose under a glass dome">
-        <div class="glass-veil" aria-hidden="true"></div>
-        <div class="glass-caustic" aria-hidden="true"></div>
-        <div class="petal-field" aria-hidden="true"></div>
-      </div>
-      <div class="reveal-note" id="revealNote">
-        <span data-k="prepared">Prepared with first light for</span>
-        <strong id="revealName">Yến Nhi</strong>
-        <a href="#vault" data-k="enterVault">Enter the gift vault ↓</a>
-      </div>
+    <div class="rose-stage" id="roseStage" aria-label="Enchanted crimson rose under refractive glass">
+      <img class="rose-fallback" src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Cinematic enchanted crimson rose under a glass dome">
+      <canvas id="roseCanvas" aria-hidden="true"></canvas>
+      <div class="rose-fallback-fx" aria-hidden="true"><div class="fallback-glass"></div><div class="fallback-caustic"></div><div class="fallback-halo"></div></div>
+      <div class="thorn-frame thorn-left" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="thorn-frame thorn-right" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="petal-field" aria-hidden="true"></div>
+      <div class="reveal-note" id="revealNote"><span data-k="prepared">Prepared with first light for</span><strong id="revealName">Yến Nhi</strong><a href="#vault" data-k="enterVault">Enter the gift vault ↓</a></div>
     </div>
   </div>
 </section>
-
-<section id="vault" class="vault section-light">
-  <div class="shell">
-    <div class="section-intro"><span>01</span><div><p class="overline">GIFT VAULT</p><h2 data-k="vault">Six keepsakes, each with its own little weather.</h2></div></div>
-    <div id="giftGrid" class="gift-rail"></div>
-  </div>
-</section>
-
-<section id="ceremony" class="ceremony section-dark">
-  <div class="shell ceremony-grid">
-    <div class="ceremony-image"><img src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Enchanted rose detail"><div class="ceremony-glow"></div></div>
-    <div class="ceremony-copy"><p class="overline">GOLDEN CEREMONY</p><h2><span data-k="congrats">For</span> <em id="ceremonyName">Yến Nhi</em>.</h2><p data-k="ceremony">A page carrying your name, one rose, one score, and a collection prepared with care.</p><a href="#certificate" class="line-link" data-k="certificateLink">Keep the certificate →</a></div>
-  </div>
-</section>
-
-<section id="certificate" class="certificate section-light">
-  <div class="shell cert-shell">
-    <div class="cert-paper">
-      <div class="cert-sun">☼</div><p class="overline">D’AUBE SONNTAG · FIRST LIGHT</p><h2 data-k="presented">Presented to</h2><div id="certificateName" class="cert-name">Yến Nhi</div><p data-k="certBody">For arriving early, bringing warmth into the garden, and becoming part of the story from its first light.</p><button id="printCert" class="print-btn" data-k="print">Print certificate</button>
-    </div>
-  </div>
-</section>
-
-<section id="faq" class="faq section-light">
-  <div class="shell faq-shell"><div><p class="overline">FAQ</p><h2 data-k="faqTitle">Only the useful bits.</h2></div><div class="faq-list">
-    <details><summary data-k="q1">What is this page?</summary><p data-k="a1">A personalized D’AUBE digital gift experience.</p></details>
-    <details><summary data-k="q2">Can the name change?</summary><p data-k="a2">Yes. Add ?name=Your%20Name to the URL.</p></details>
-    <details><summary data-k="q3">Do I need to buy anything?</summary><p data-k="a3">No. This is a goodwill digital gift experience.</p></details>
-    <details><summary data-k="q4">Is the music original?</summary><p data-k="a4">Yes. The Nocturne Mix is composed for this Rose Garden experience.</p></details>
-  </div></div>
-</section>
+<section id="vault" class="vault section-light"><div class="shell"><div class="section-intro"><span>01</span><div><p class="overline">GIFT VAULT</p><h2 data-k="vault">Six keepsakes, each with its own little weather.</h2></div></div><div id="giftGrid" class="gift-rail"></div></div></section>
+<section id="ceremony" class="ceremony section-dark"><div class="shell ceremony-grid"><div class="ceremony-image"><img src="https://cdn.creativeclaw.co/u/218f016f/images/c9eb6d30-ac63-4b3a-a450-7e9a49d1bd59.png" alt="Enchanted rose detail"><div class="ceremony-glow"></div></div><div class="ceremony-copy"><p class="overline">GOLDEN CEREMONY</p><h2><span data-k="congrats">For</span> <em id="ceremonyName">Yến Nhi</em>.</h2><p data-k="ceremony">A page carrying your name, one rose, one score, and a collection prepared with care.</p><a href="#certificate" class="line-link" data-k="certificateLink">Keep the certificate →</a></div></div></section>
+<section id="certificate" class="certificate section-light"><div class="shell cert-shell"><div class="cert-paper"><div class="cert-sun">☼</div><p class="overline">D’AUBE SONNTAG · FIRST LIGHT</p><h2 data-k="presented">Presented to</h2><div id="certificateName" class="cert-name">Yến Nhi</div><p data-k="certBody">For arriving early, bringing warmth into the garden, and becoming part of the story from its first light.</p><button id="printCert" class="print-btn" data-k="print">Print certificate</button></div></div></section>
+<section id="faq" class="faq section-light"><div class="shell faq-shell"><div><p class="overline">FAQ</p><h2 data-k="faqTitle">Only the useful bits.</h2></div><div class="faq-list"><details><summary data-k="q1">What is this page?</summary><p data-k="a1">A personalized D’AUBE digital gift experience.</p></details><details><summary data-k="q2">Can the name change?</summary><p data-k="a2">Yes. Add ?name=Your%20Name to the URL.</p></details><details><summary data-k="q3">Do I need to buy anything?</summary><p data-k="a3">No. This is a goodwill digital gift experience.</p></details><details><summary data-k="q4">Is the music original?</summary><p data-k="a4">Yes. Nocturne II is composed for this Rose Garden experience.</p></details></div></div></section>
 </main>
-
-<footer class="footer shell"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><div>First Light Rose Garden · V10 · 2026</div></footer>
-<script src="v10-core.js" defer></script>
-<script type="module" src="v10-vfx.js"></script>
-</body>
-</html>
+<footer class="footer shell"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><div>First Light Rose Garden · V11 CGI · 2026</div></footer>
+<script src="v11-core.js" defer></script><script type="module" src="v11-scene.js"></script>
+</body></html>

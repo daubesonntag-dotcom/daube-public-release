@@ -1,0 +1,84 @@
+/* D’AUBE SONNTAG · V13 quality gates
+   Rendering/performance/accessibility only. This is not another motion or art-direction layer. */
+
+body[data-v12-ready="true"]{
+  font-kerning:normal;
+  font-synthesis-weight:none;
+}
+
+body[data-v12-ready="true"] :where(.hero__title,.section-title,.v12-reel__head h2,.v12-reel__copy h3,.cta-panel h2){
+  text-wrap:balance;
+}
+
+body[data-v12-ready="true"] :where(.hero__lead,.section-copy,.work-card p,.service p,.process-step p,.evidence-item p,.v12-reel__head p,.v12-reel__copy p){
+  text-wrap:pretty;
+}
+
+/* Skip paint/layout work for distant sections while retaining stable estimated geometry. */
+@supports(content-visibility:auto){
+  body[data-v12-ready="true"] :where(.services-section,.process-section,.evidence-section,.cta-section,.v12-reel){
+    content-visibility:auto;
+    contain-intrinsic-size:auto 820px;
+  }
+}
+
+body[data-v12-ready="true"] :where(.work-card,.v12-reel__stage){
+  contain:paint;
+}
+
+body[data-v12-ready="true"] :where(.button,.inline-link,.service,.process-step,.v12-reel__controls button,.main-nav a,.menu-button){
+  -webkit-tap-highlight-color:transparent;
+}
+
+body[data-v12-ready="true"] :where(a,button,[role="button"]):focus-visible{
+  outline:2px solid #f0d7a4;
+  outline-offset:4px;
+}
+
+/* Quality-lite devices keep the full composition but avoid persistent compositor promotion. */
+body[data-v12-quality="lite"] .hero__media img{
+  transform:scale(1.008)!important;
+  will-change:auto!important;
+}
+body[data-v12-quality="lite"] .work-card:hover,
+body[data-v12-quality="lite"] .process-step:hover,
+body[data-v12-quality="lite"] .evidence-item:hover{
+  transform:none;
+  box-shadow:none;
+}
+body[data-v12-quality="lite"] .v12-reel__art,
+body[data-v12-quality="lite"] .v12-reel__timeline i{
+  animation:none!important;
+}
+
+@media(hover:none),(pointer:coarse){
+  body[data-v12-ready="true"] :where(.button,.menu-button,.v12-reel__controls button){min-height:44px}
+  body[data-v12-ready="true"] :where(.service,.process-step){touch-action:manipulation}
+}
+
+@media(prefers-reduced-transparency:reduce){
+  body[data-v12-ready="true"] .site-header.is-solid,
+  body[data-v12-ready="true"] .site-header.is-open,
+  body[data-v12-ready="true"] .signature-strip__inner,
+  body[data-v12-ready="true"] .button{
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body[data-v12-ready="true"] .site-header.is-solid,
+  body[data-v12-ready="true"] .site-header.is-open{background:#071a29!important}
+  body[data-v12-ready="true"] .signature-strip__inner{background:#0a1d2d!important}
+}
+
+@media(prefers-contrast:more){
+  body[data-v12-ready="true"] .hero__lead{color:#fff}
+  body[data-v12-ready="true"] .section-copy{color:#3f4e59}
+  body[data-v12-ready="true"] .process-section .section-copy,
+  .v12-reel__head p,.v12-reel__copy p{color:rgba(255,255,255,.82)}
+  body[data-v12-ready="true"] :where(.service,.evidence-item){border-color:rgba(7,25,39,.26)}
+}
+
+@media(forced-colors:active){
+  body[data-v12-ready="true"] .hero::after,
+  .v12-reel__stage::before{display:none}
+  body[data-v12-ready="true"] :where(.button,.service,.process-step,.evidence-item,.v12-reel__controls button){forced-color-adjust:auto}
+}

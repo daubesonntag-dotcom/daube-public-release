@@ -11,7 +11,9 @@ on:
       - 'services/**'
       - 'pricing/**'
       - 'contact/**'
+      - 'assets/media/hero/**'
       - 'tests/work-v16-full-stack-contract.test.mjs'
+      - 'tests/work-v16-media-contract.test.mjs'
       - '.github/workflows/work-v16-tdd.yml'
   workflow_dispatch:
 
@@ -27,5 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run V16 red/green contract
+      - name: Run V16 full-site contract
         run: node tests/work-v16-full-stack-contract.test.mjs
+      - name: Run V16 media contract
+        run: node tests/work-v16-media-contract.test.mjs

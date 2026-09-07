@@ -1,0 +1,31 @@
+name: Work V16 TDD
+
+on:
+  push:
+    branches:
+      - feat/work-v16-full-stack-pack
+    paths:
+      - 'index.html'
+      - 'portfolio/**'
+      - 'profile/**'
+      - 'services/**'
+      - 'pricing/**'
+      - 'contact/**'
+      - 'tests/work-v16-full-stack-contract.test.mjs'
+      - '.github/workflows/work-v16-tdd.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run V16 red/green contract
+        run: node tests/work-v16-full-stack-contract.test.mjs

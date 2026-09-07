@@ -19,10 +19,10 @@ for (const [name, path] of routes) {
   assert.match(html, /<nav class="main-nav"[^>]+aria-label=/, `${name}: primary nav needs an accessible label`);
 
   assert.match(html, /<picture[^>]*class="(?:hero__picture|subhero__picture)"/, `${name}: hero must use a picture element`);
-  assert.match(html, /media="\(max-width: 700px\)"[^>]+type="image\/avif"/, `${name}: mobile AVIF source is required`);
-  assert.match(html, /media="\(max-width: 700px\)"[^>]+type="image\/webp"/, `${name}: mobile WebP source is required`);
-  assert.match(html, /type="image\/avif"[^>]+srcset="[^"]*768[^"]*1200[^"]*1600/, `${name}: desktop AVIF srcset must expose 768/1200/1600 widths`);
-  assert.match(html, /type="image\/webp"[^>]+srcset="[^"]*768[^"]*1200[^"]*1600/, `${name}: desktop WebP srcset must expose 768/1200/1600 widths`);
+  assert.match(html, /media="\(max-width: 700px\)"[^>]+type="image\/avif"[^>]+706w/, `${name}: truthful mobile AVIF crop is required`);
+  assert.match(html, /media="\(max-width: 700px\)"[^>]+type="image\/webp"[^>]+706w/, `${name}: truthful mobile WebP crop is required`);
+  assert.match(html, /type="image\/avif"[^>]+srcset="[^"]*768w[^"]*1200w[^"]*1600w/, `${name}: desktop AVIF srcset must expose 768/1200/1600 widths`);
+  assert.match(html, /type="image\/webp"[^>]+srcset="[^"]*768w[^"]*1200w[^"]*1600w/, `${name}: desktop WebP srcset must expose 768/1200/1600 widths`);
   assert.match(html, /width="1672"\s+height="941"/, `${name}: fallback hero dimensions must remain explicit`);
   assert.match(html, /loading="eager"[^>]*fetchpriority="high"/, `${name}: first hero must remain eager/high priority`);
 }

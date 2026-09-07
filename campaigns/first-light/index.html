@@ -3,54 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#130b0d">
-<title>D’AUBE SONNTAG — La Rose de l’Aube</title>
-<meta name="description" content="La Rose de l’Aube — V14 Grand Reliquary, a luxury classical rose experience with refractive glass, authored CGI motion, in-glass falling petals, personalized artifacts and Debussy’s La plus que lente.">
-<meta property="og:title" content="D’AUBE SONNTAG — La Rose de l’Aube · V14 Grand Reliquary">
-<meta property="og:description" content="A rose, a slow waltz, petals beneath glass, then the gift.">
-<meta property="og:image" content="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png">
+<meta name="theme-color" content="#12090c">
+<title>D’AUBE SONNTAG — First Light Gift Pack</title>
+<meta name="description" content="A personalized First Light gift pack from D’AUBE SONNTAG — La Rose de l’Aube.">
+<meta property="og:title" content="D’AUBE SONNTAG — First Light Gift Pack">
+<meta property="og:description" content="A rose, a slow waltz, then a gift prepared in your name.">
+<meta property="og:image" content="https://cdn.creativeclaw.co/u/218f016f/images/7fb47be0-40d3-4011-9d1a-b20756010815.png">
 <link rel="canonical" href="https://work.daubesonntag.com/campaigns/first-light/">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="v12.css"><link rel="stylesheet" href="v14.css">
+<link rel="stylesheet" href="v15.css">
 </head>
-<body data-vfx-tier="booting" data-template="reliquary" data-release="v14">
+<body data-release="v15">
 <audio id="classicalScore" preload="metadata" loop><source src="https://commons.wikimedia.org/wiki/Special:Redirect/file/La_Plus_Que_Lente.ogg" type="audio/ogg"></audio>
-<header class="topbar shell">
-  <a class="brand" href="#opening"><span class="seal">☼</span><span><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span></a>
-  <nav class="nav"><a href="#vault">Reliquary</a><a href="#collection">Collection</a><a href="#ceremony">Ceremony</a><a href="#credits">Credits</a></nav>
-  <div class="tools"><button id="langToggle" class="tool">EN</button><button id="soundToggle" class="tool sound">♫ La plus que lente</button></div>
+<header class="gift-topbar">
+  <a class="brand" href="#giftHero" aria-label="D’AUBE SONNTAG"><span class="brand-star">✦</span><span><strong>D’AUBE SONNTAG</strong><small>Meaning, made visible.</small></span></a>
+  <div class="top-tools"><button id="langToggle" class="ghost-btn" type="button">EN</button><button id="soundToggle" class="ghost-btn" type="button">♫</button></div>
 </header>
 <main>
-<section id="opening" class="opening">
-  <div class="opening-atmosphere" aria-hidden="true"></div>
-  <div class="shell opening-grid">
-    <div class="opening-copy">
-      <p class="overline">LA ROSE DE L’AUBE · V14 GRAND RELIQUARY</p>
-      <h1 data-k="open">A rose, a slow waltz, then the gift.</h1>
-      <p class="opening-lead" data-k="body">A classical rose reliquary staged like a miniature salon scene — glass, thorn, gold, paper and first light.</p>
-      <div class="recipient-line"><span data-k="for">Prepared for</span> <strong id="recipient">Yến Nhi</strong></div>
-      <div class="open-actions"><button id="openRose" class="open-btn"><span data-k="openRose">Open the reliquary</span><i>✦</i></button><button id="copyLink" class="text-btn" data-k="copy">Copy personal link</button></div>
-      <p id="copyStatus" class="status" aria-live="polite"></p>
-      <div class="music-plaque"><span>CLASSICAL SCORE</span><strong>Claude Debussy — <em>La plus que lente</em>, L. 121</strong><small>Valse lente · composed 1910 · performance: La Pianista</small></div>
-      <div class="tech-note" aria-hidden="true"><span>REFRACTIVE GLASS</span><span>THREE.QUARKS VFX</span><span>IN-GLASS PETALS</span><span>AUTHORED TIMELINE</span><span>FRAME QC</span></div>
+<section id="giftHero" class="gift-hero" aria-labelledby="giftHeroTitle">
+  <img class="hero-art" src="https://cdn.creativeclaw.co/u/218f016f/images/7fb47be0-40d3-4011-9d1a-b20756010815.png" alt="Rosa prima luce preserved beneath a gilded glass cloche at first light">
+  <div class="hero-shade" aria-hidden="true"></div>
+  <div class="petal-window" aria-hidden="true"></div>
+  <div class="hero-gift-card">
+    <p class="eyebrow" data-k="eyebrow">FIRST LIGHT · PRIVATE GIFT</p>
+    <h1 id="giftHeroTitle"><span data-k="prepared">A gift prepared for</span> <em id="recipient">Yến Nhi</em>.</h1>
+    <p class="hero-note" data-k="heroNote">A rose, a slow waltz, and nine keepsakes arranged only for you.</p>
+    <button id="openRose" class="primary-btn" type="button"><span data-k="openGift">Open your gift</span><b>✦</b></button>
+    <p class="score-line">Claude Debussy · <i>La plus que lente</i>, L.121</p>
+  </div>
+  <div class="scroll-cue" aria-hidden="true">D’AUBE SONNTAG · LA ROSE DE L’AUBE</div>
+</section>
+<section id="giftPack" class="gift-pack" aria-labelledby="giftPackTitle">
+  <div class="pack-shell">
+    <div class="pack-header">
+      <div class="pack-seal"><img src="https://cdn.creativeclaw.co/u/218f016f/images/ffffacda-c8f2-4015-81dd-af7e4cb45e50.png" alt="La Rose de l’Aube emblem"></div>
+      <div class="pack-copy">
+        <p class="eyebrow wine" data-k="inside">INSIDE YOUR RELIQUARY</p>
+        <h2 id="giftPackTitle"><span data-k="yourPack">Your First Light Gift Pack</span><br><em id="packName">Yến Nhi</em></h2>
+        <p data-k="packBody">Nine digital keepsakes, one classical rose concept, and one complete pack you can keep.</p>
+      </div>
+      <div class="pack-actions">
+        <button id="downloadPack" class="primary-btn dark" type="button">Download Full Gift Pack</button>
+        <button id="copyLink" class="outline-btn" type="button" data-k="copyLink">Copy personal link</button>
+        <span id="packStatus" role="status" aria-live="polite"></span>
+      </div>
     </div>
-    <div class="rose-stage" id="roseStage" aria-label="Luxury enchanted crimson rose beneath refractive glass with falling petals">
-      <img class="rose-fallback" src="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png" alt="La Rose de l’Aube luxury crimson rose under a gilded glass dome">
-      <canvas id="roseCanvas" aria-hidden="true"></canvas>
-      <div class="rose-fallback-fx" aria-hidden="true"><div class="fallback-glass"></div><div class="fallback-caustic"></div><div class="fallback-halo"></div></div>
-      <div class="petal-field" aria-hidden="true"></div>
-      <div class="reveal-note" id="revealNote"><span data-k="prepared">The reliquary opens for</span><strong id="revealName">Yến Nhi</strong><a href="#vault" data-k="enterVault">Enter the reliquary ↓</a></div>
-    </div>
+    <div id="giftGrid" class="gift-grid" aria-live="polite"></div>
   </div>
 </section>
-<section id="vault" class="vault section-light rose-paper"><div class="shell"><div class="section-intro"><span>01</span><div><p class="overline">THE ROSE RELIQUARY</p><h2 data-k="vault">Nine keepsakes, composed as one collection.</h2><p class="section-note">Every downloadable artifact is personalized in-browser — no account, no upload, no tracking.</p></div></div><div id="giftGrid" class="artifact-grid"></div></div></section>
-<section id="collection" class="collection section-ivory"><div class="shell collection-grid"><div class="collection-copy"><p class="overline">THEME SYSTEM</p><h2>One rose, many ceremonial forms.</h2><p>This concept now works as a reusable D’AUBE template language: invitation, letter, pass, certificate, monogram, wallpaper, heraldic badge and recipient page — all sharing the same rose, thorn, vellum and antique-gold vocabulary.</p><div class="template-chips"><span>Invitation</span><span>Pressed Letter</span><span>Thorn Key</span><span>Monogram</span><span>Certificate</span><span>Wallpaper</span><span>Badge</span></div></div><div class="collection-card"><div class="crest-preview" id="crestPreview"><span>☼</span><strong>YN</strong><em>La Rose de l’Aube</em></div></div></div></section>
-<section id="ceremony" class="ceremony section-dark"><div class="shell ceremony-grid"><div class="ceremony-image"><img src="https://cdn.creativeclaw.co/u/218f016f/images/3c6689fa-97cc-4e74-9195-e0475a961ede.png" alt="Luxury La Rose de l’Aube scene"><div class="ceremony-glow"></div></div><div class="ceremony-copy"><p class="overline">THE GOLDEN CEREMONY</p><h2><span data-k="congrats">For</span> <em id="ceremonyName">Yến Nhi</em>.</h2><p data-k="ceremony">A rose, a slow waltz, falling petals and nine keepsakes arranged as a small classical ceremony.</p><a href="#certificate" class="line-link" data-k="certificateLink">Keep the certificate →</a></div></div></section>
-<section id="certificate" class="certificate section-light rose-paper"><div class="shell cert-shell"><div class="cert-paper"><div class="corner-vine cv-a"></div><div class="corner-vine cv-b"></div><div class="cert-sun">☼</div><p class="overline">D’AUBE SONNTAG · LA ROSE DE L’AUBE</p><h2 data-k="presented">Presented to</h2><div id="certificateName" class="cert-name">Yến Nhi</div><p data-k="certBody">For arriving with first light, entering the rose garden, and becoming part of this little reliquary.</p><div class="cert-sign"><span>FIRST LIGHT GARDEN</span><span>GRAND RELIQUARY · 2026</span></div><button id="printCert" class="print-btn" data-k="print">Print certificate</button></div></div></section>
-<section id="credits" class="credits section-ivory"><div class="shell credits-grid"><div><p class="overline">MUSIC & PROVENANCE</p><h2>Classical, credited, and kept clean.</h2></div><div class="credit-card"><strong>Claude Debussy — La plus que lente, L. 121</strong><p>Composed and published in 1910. Performance by Wikimedia Commons user La Pianista. The file page marks the composition as free of known copyright restrictions and the performer’s recording under CC BY-SA 3.0; D’AUBE provides attribution and does not claim authorship of the classical work or performance.</p><a href="https://commons.wikimedia.org/wiki/File:La_Plus_Que_Lente.ogg" target="_blank" rel="noopener">Recording & license details ↗</a></div></div></section>
-<section id="faq" class="faq section-light"><div class="shell faq-shell"><div><p class="overline">FAQ</p><h2 data-k="faqTitle">Only the useful bits.</h2></div><div class="faq-list"><details><summary data-k="q1">What is this page?</summary><p data-k="a1">A personalized D’AUBE digital gift experience.</p></details><details><summary data-k="q2">Can the name change?</summary><p data-k="a2">Yes. Add ?name=Your%20Name to the URL.</p></details><details><summary data-k="q3">Do I need to buy anything?</summary><p data-k="a3">No. This is a goodwill digital gift experience.</p></details><details><summary data-k="q4">What music is playing?</summary><p data-k="a4">Claude Debussy’s La plus que lente, performed by La Pianista; attribution and license details are listed above.</p></details></div></div></section>
+<section class="closing-note">
+  <div class="closing-inner">
+    <img src="https://cdn.creativeclaw.co/u/218f016f/images/ffffacda-c8f2-4015-81dd-af7e4cb45e50.png" alt="" aria-hidden="true">
+    <p class="eyebrow">A NOTE FROM D’AUBE</p>
+    <h2 data-k="thankTitle">Thank you for arriving with first light.</h2>
+    <p data-k="thankBody">Keep what speaks to you. Leave the rest here. This little reliquary was made to feel personal, not promotional.</p>
+    <strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span>
+  </div>
+</section>
 </main>
-<footer class="footer shell"><div><strong>D’AUBE SONNTAG</strong><span>Meaning, made visible.</span></div><div>La Rose de l’Aube · V14 Grand Reliquary · 2026</div></footer>
-<script src="v12-gifts.js" defer></script><script src="v12-core.js" defer></script><script src="v14-fallback.js" defer></script><script type="module" src="v14-scene.js"></script>
-</body></html>
+<footer class="gift-footer"><span>La Rose de l’Aube · Gift Pack Edition · 2026</span><span>Debussy performance credit & license: Wikimedia Commons · La Pianista · CC BY-SA 3.0</span></footer>
+<script src="v15-core.js" defer></script>
+<script type="module" src="v15-gifts.js"></script>
+</body>
+</html>

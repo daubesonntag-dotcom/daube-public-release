@@ -1,9 +1,16 @@
-/* D’AUBE SONNTAG · V13 quality gates
+/* D’AUBE SONNTAG · V13/V14 quality gates
    Rendering/performance/accessibility only. This is not another motion or art-direction layer. */
+
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
 
 body[data-v12-ready="true"]{
   font-kerning:normal;
+  font-optical-sizing:auto;
   font-synthesis-weight:none;
+  font-synthesis-style:none;
 }
 
 body[data-v12-ready="true"] :where(.hero__title,.section-title,.v12-reel__head h2,.v12-reel__copy h3,.cta-panel h2){
@@ -12,6 +19,14 @@ body[data-v12-ready="true"] :where(.hero__title,.section-title,.v12-reel__head h
 
 body[data-v12-ready="true"] :where(.hero__lead,.section-copy,.work-card p,.service p,.process-step p,.evidence-item p,.v12-reel__head p,.v12-reel__copy p){
   text-wrap:pretty;
+}
+
+body[data-v12-ready="true"] :where(.section-inner,.section-head,.work-grid,.work-card__body,.service,.process-step,.evidence-item,.v12-reel__inner,.v12-reel__copy){
+  min-width:0;
+}
+
+body[data-v12-ready="true"] :where(#principles,.work-section,.services-section,.process-section,.evidence-section,.v12-reel,.cta-section){
+  scroll-margin-top:92px;
 }
 
 /* Skip paint/layout work for distant sections while retaining stable estimated geometry. */
@@ -28,6 +43,7 @@ body[data-v12-ready="true"] :where(.work-card,.v12-reel__stage){
 
 body[data-v12-ready="true"] :where(.button,.inline-link,.service,.process-step,.v12-reel__controls button,.main-nav a,.menu-button){
   -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
 
 body[data-v12-ready="true"] :where(a,button,[role="button"]):focus-visible{
@@ -54,6 +70,38 @@ body[data-v12-quality="lite"] .v12-reel__timeline i{
 @media(hover:none),(pointer:coarse){
   body[data-v12-ready="true"] :where(.button,.menu-button,.v12-reel__controls button){min-height:44px}
   body[data-v12-ready="true"] :where(.service,.process-step){touch-action:manipulation}
+}
+
+/* Short laptop and landscape-phone viewports should never force the hero copy below the fold. */
+@media(max-height:680px) and (min-width:701px){
+  body[data-v12-ready="true"] .hero__inner{padding-top:104px;padding-bottom:72px}
+  body[data-v12-ready="true"] .hero__title{font-size:clamp(62px,8.4vw,116px)}
+  body[data-v12-ready="true"] .hero__lead{margin-top:20px}
+  body[data-v12-ready="true"] .hero__actions{margin-top:24px}
+  body[data-v12-ready="true"] .hero__meta{bottom:14px}
+  body[data-v12-ready="true"] .hero__scroll{bottom:42px}
+}
+
+@media(max-width:700px){
+  body[data-v12-ready="true"] :where(.hero__title,.work-card h3,.v12-reel__copy h3,.cta-panel h2){overflow-wrap:break-word}
+  body[data-v12-ready="true"] .hero__actions{gap:10px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  body[data-v12-ready="true"] :where(.button,.inline-link,.service,.process-step,.work-card,.evidence-item,.v12-reel__art,.v12-reel__timeline i){
+    transition-duration:.001ms!important;
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+  }
+}
+
+/* E-ink / remote / slow-update displays get a stable composition without decorative motion. */
+@media(update:slow){
+  html{scroll-behavior:auto!important}
+  body[data-v12-ready="true"] .hero__media img{transform:scale(1.008)!important;will-change:auto!important}
+  body[data-v12-ready="true"] :where(.work-card,.process-step,.evidence-item){transform:none!important;box-shadow:none!important}
+  body[data-v12-ready="true"] :where(.v12-reel__art,.v12-reel__timeline i){animation:none!important}
 }
 
 @media(prefers-reduced-transparency:reduce){

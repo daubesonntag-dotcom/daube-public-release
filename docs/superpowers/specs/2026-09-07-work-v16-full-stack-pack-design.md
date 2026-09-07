@@ -34,7 +34,7 @@ The existing hero master is 1672×941. V16 must improve delivery without pretend
 Generate only non-upscaled derivatives:
 - desktop landscape widths: 768, 1200, 1600;
 - formats: AVIF and WebP;
-- mobile portrait crop: 768×1024 AVIF and WebP;
+- mobile portrait crop: 706×941 AVIF and WebP, using the full source height and a focal crop around the bloom;
 - retain the existing 1672×941 PNG only as the final fallback/source reference.
 
 HTML uses `<picture>`, `srcset`, `sizes`, explicit dimensions, eager/high-priority hero loading, and a mobile media query. Lower-priority page media may remain lazy where already appropriate.

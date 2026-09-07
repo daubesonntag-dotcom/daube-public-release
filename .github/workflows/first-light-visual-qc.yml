@@ -16,7 +16,7 @@ permissions:
 jobs:
   visual-qc:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 24
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +25,9 @@ jobs:
       - name: Install QC dependencies
         working-directory: campaigns/first-light/qa
         run: npm install --no-audit --no-fund
+      - name: V14 source contract
+        working-directory: campaigns/first-light/qa
+        run: npm run contract
       - name: Install Chromium
         working-directory: campaigns/first-light/qa
         run: npx playwright install --with-deps chromium
@@ -41,6 +44,13 @@ jobs:
       - name: Compare approved visual baselines
         working-directory: campaigns/first-light/qa
         run: node compare.mjs
+      - name: Lost Pixel OSS custom-shot audit
+        working-directory: campaigns/first-light/qa
+        run: |
+          rm -rf lost-pixel
+          mkdir -p lost-pixel
+          cp artifacts/*.png lost-pixel/ || true
+          npm run lostpixel
       - name: Build frame contact sheets
         if: always()
         working-directory: campaigns/first-light/qa
@@ -52,8 +62,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: first-light-v12-frame-audit
+          name: first-light-v14-frame-audit
           path: |
             campaigns/first-light/qa/artifacts/**
+            campaigns/first-light/qa/.lostpixel/**
           if-no-files-found: error
           retention-days: 30

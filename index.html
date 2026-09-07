@@ -15,9 +15,19 @@
   <link rel="canonical" href="https://work.daubesonntag.com/">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.creativeclaw.co" crossorigin>
   <link rel="preload" as="image" href="https://cdn.creativeclaw.co/u/218f016f/images/c2b5ff65-757c-4da3-b4fc-06a9e4f9a72f.png" fetchpriority="high">
   <link rel="stylesheet" href="/assets/work-v7.css?v=95f3cf4">
   <link rel="stylesheet" href="/assets/work-v12-pure-cinema.css?v=2761d5b">
+  <style>
+    @view-transition{navigation:auto}
+    ::view-transition-old(root){animation:daube-page-out .18s ease both}
+    ::view-transition-new(root){animation:daube-page-in .34s cubic-bezier(.16,1,.3,1) both}
+    @keyframes daube-page-out{to{opacity:.84}}
+    @keyframes daube-page-in{from{opacity:.72}to{opacity:1}}
+    @media(prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none!important}}
+    @media(hover:none),(pointer:coarse){body[data-v12-ready="true"] .work-card:hover,body[data-v12-ready="true"] .process-step:hover,body[data-v12-ready="true"] .evidence-item:hover{transform:none;box-shadow:none}}
+  </style>
   <title>D’AUBE SONNTAG · Meaning, made visible</title>
 </head>
 <body>
@@ -88,6 +98,29 @@
   <section class="cta-section"><div class="cta-panel reveal"><div><p class="section-label">Ready to build what’s next?</p><h2>Let’s build something meaningful.</h2></div><div><p>Bring the problem, constraints and desired outcome. D’AUBE will return a bounded path, the evidence standard and the clearest next step.</p><a class="button" href="/contact/">Work together</a></div></div></section>
 </main>
 <footer class="site-footer"><div class="footer-inner"><div><div class="footer-brand">D’AUBE SONNTAG</div><div class="footer-note">Creative Technology Studio · Meaning, made visible. · Vietnam · 2026</div></div><nav class="footer-nav" aria-label="Footer navigation"><a href="/profile/">Maison</a><a href="/portfolio/">Work</a><a href="/services/">Services</a><a href="/pricing/">Pricing</a><a href="/pay/">Products</a><a href="/terms/">Terms</a><a href="/privacy/">Privacy</a><a href="/contact/">Contact</a></nav></div></footer>
+<script>
+(() => {
+  const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(c?.saveData||/2g/.test(c?.effectiveType||'')) return;
+  if(!('IntersectionObserver' in window)) return;
+  const seen=new Set();
+  const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    if(!entry.isIntersecting) return;
+    const a=entry.target;
+    let u;
+    try{u=new URL(a.href,location.href)}catch{return}
+    if(u.origin!==location.origin||seen.has(u.pathname)) return;
+    seen.add(u.pathname);
+    const pre=document.createElement('link');
+    pre.rel='prefetch';
+    pre.href=u.pathname+u.search;
+    pre.as='document';
+    document.head.appendChild(pre);
+    io.unobserve(a);
+  }),{rootMargin:'160px'});
+  document.querySelectorAll('a[href^="/"]').forEach(a=>io.observe(a));
+})();
+</script>
 <script src="/assets/work-v12-pure-cinema.js?v=8bd98c8" defer></script>
 </body>
 </html>

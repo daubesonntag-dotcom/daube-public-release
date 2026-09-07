@@ -1,0 +1,31 @@
+/* D’AUBE SONNTAG · V15 navigation fidelity
+   Cross-document continuity with native View Transitions only. No JS router. */
+
+@view-transition{navigation:auto}
+
+.brand{view-transition-name:daube-brand}
+.hero__media,.subhero__media{view-transition-name:daube-hero-media}
+
+::view-transition-old(root){animation:daube-root-out .16s ease both}
+::view-transition-new(root){animation:daube-root-in .34s cubic-bezier(.16,1,.3,1) both}
+::view-transition-group(daube-brand){animation-duration:.38s;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+::view-transition-group(daube-hero-media){animation-duration:.52s;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+::view-transition-old(daube-hero-media),::view-transition-new(daube-hero-media){mix-blend-mode:normal}
+
+@keyframes daube-root-out{to{opacity:.86}}
+@keyframes daube-root-in{from{opacity:.72}to{opacity:1}}
+
+/* Very short viewports should scroll a complete hero instead of clipping copy. */
+@media(max-height:680px) and (min-width:701px){
+  body[data-v12-ready="true"] .hero{min-height:620px}
+  body[data-v12-ready="true"] .hero__inner{min-height:620px}
+}
+@media(max-height:560px) and (min-width:701px){
+  body[data-v12-ready="true"] .hero__aside{display:none}
+  body[data-v12-ready="true"] .hero__inner{grid-template-columns:1fr}
+  body[data-v12-ready="true"] .hero__copy{max-width:680px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root),::view-transition-group(daube-brand),::view-transition-group(daube-hero-media){animation:none!important}
+}

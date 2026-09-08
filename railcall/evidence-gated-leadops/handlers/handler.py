@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 import re
 import urllib.parse
 import urllib.request
@@ -10,9 +9,26 @@ API_ROOT = "https://api.airtable.com/v0"
 
 
 def _token() -> str:
-    token = os.getenv("AIRTABLE_API_KEY", "").strip()
+    helpers = globals().get("__rc_helpers__", {})
+    vault_get = helpers.get("vault_get") if isinstance(helpers, dict) else None
+    if not callable(vault_get):
+        raise RuntimeError("RailCall vault helper is unavailable")
+    credential = vault_get("airtable")
+    if not credential:
+        raise RuntimeError("Airtable credential is not configured in the RailCall vault")
+    if isinstance(credential, str):
+        token = credential.strip()
+    elif isinstance(credential, dict):
+        token = str(
+            credential.get("api_key")
+            or credential.get("token")
+            or credential.get("access_token")
+            or ""
+        ).strip()
+    else:
+        token = ""
     if not token:
-        raise RuntimeError("AIRTABLE_API_KEY is not set")
+        raise RuntimeError("Airtable vault credential does not contain an API token")
     return token
 
 

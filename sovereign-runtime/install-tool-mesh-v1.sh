@@ -7,7 +7,7 @@ STATE='/var/lib/daube/remote-commander'
 DB="$STATE/sovereign-runtime.db"
 AGENT='/opt/daube/remote-commander/agent.py'
 mkdir -p "$ROOT" "$STATE"
-fetch(){ local u="$1" d="$2" t="${d}.tmp.$$"; /usr/bin/curl -fsSL "$u" -o "$t"; /bin/chmod 0755 "$t"; /bin/mv -f "$t" "$d"; }
+fetch(){ local u d t; u="$1"; d="$2"; t="${d}.tmp.$$"; /usr/bin/curl -fsSL "$u" -o "$t"; /bin/chmod 0755 "$t"; /bin/mv -f "$t" "$d"; }
 fetch "$BASE/sovereign-runtime/tool-mesh-v1.py" "$ROOT/tool-mesh-v1.py"
 fetch "$BASE/sovereign-runtime/planner-v1.py" "$ROOT/planner-v1.py"
 /usr/bin/python3 "$ROOT/tool-mesh-v1.py" register --runtime "$ROOT/runtime.py" --db "$DB" > "$STATE/tool-mesh-register.json"

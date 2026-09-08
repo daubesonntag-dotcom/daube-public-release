@@ -7,7 +7,12 @@ LOG_DIR="$HOME/.daube-v3"; LOG_FILE="$LOG_DIR/resource-warehouse-v1.log"; mkdir 
 log(){ printf '[%s] %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG_FILE"; }
 case "${PREFIX:-}" in *com.termux*) ;; *) echo 'Run inside Termux.' >&2; exit 2;; esac
 termux-wake-lock 2>/dev/null || true
-pkg install -y openssh >/dev/null
+if ! command -v ssh >/dev/null 2>&1; then
+  log 'OpenSSH missing; repairing Termux apt cache directories before install.'
+  mkdir -p "$PREFIX/var/cache/apt/archives/partial" "$PREFIX/var/lib/apt/lists/partial" "${TMPDIR:-$PREFIX/tmp}"
+  apt-get update
+  apt-get install -y openssh
+fi
 ssh -G "$HOST_ALIAS" >/dev/null 2>&1 || { log "ERROR SSH alias missing: $HOST_ALIAS"; exit 10; }
 ssh -o BatchMode=yes -o ConnectTimeout=12 "$HOST_ALIAS" 'true' >/dev/null 2>&1 || { log "ERROR SSH unreachable: $HOST_ALIAS"; exit 11; }
 log "Verifying D’AUBE Resource Warehouse via $HOST_ALIAS branch=$BRANCH"

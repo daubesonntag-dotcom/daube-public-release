@@ -2,10 +2,11 @@
 set -euo pipefail
 INSTALLER='/opt/daube/remote-commander/railcall-install-official.sh'
 EXPECTED='1f14fa17969fa260437415689e5d1d87a5c67a194c4ac73756390b6a71c44e6b'
-RC_HOME='/var/lib/daube/railcall'
-RC_CONF='/var/lib/daube/railcall-conf'
-USER_HOME='/var/lib/daube/railcall-user'
-RECEIPT='/var/lib/daube/remote-commander/railcall-install-receipt.json'
+STATE='/var/lib/daube/remote-commander'
+RC_HOME="$STATE/railcall"
+RC_CONF="$STATE/railcall-conf"
+USER_HOME="$STATE/railcall-user"
+RECEIPT="$STATE/railcall-install-receipt.json"
 [[ -s "$INSTALLER" ]] || { echo 'official installer missing' >&2; exit 2; }
 GOT="$(sha256sum "$INSTALLER" | awk '{print $1}')"
 [[ "$GOT" == "$EXPECTED" ]] || { echo "installer sha mismatch expected=$EXPECTED got=$GOT" >&2; exit 3; }

@@ -1,0 +1,42 @@
+name: Machine Node Capability Contract
+
+on:
+  pull_request:
+    paths:
+      - 'farm/sovereign-agent/machine-node-worker.py'
+      - 'farm/sovereign-agent/install-machine-node-termux.sh'
+      - 'farm/sovereign-agent/test_machine_node_worker.py'
+      - '.github/workflows/machine-node-capability-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'farm/sovereign-agent/machine-node-worker.py'
+      - 'farm/sovereign-agent/install-machine-node-termux.sh'
+      - 'farm/sovereign-agent/test_machine_node_worker.py'
+      - '.github/workflows/machine-node-capability-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: machine-node-capability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Syntax and fixed-command contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            farm/sovereign-agent/machine-node-worker.py \
+            farm/sovereign-agent/test_machine_node_worker.py
+          bash -n farm/sovereign-agent/install-machine-node-termux.sh
+          python3 -m unittest farm/sovereign-agent/test_machine_node_worker.py -v

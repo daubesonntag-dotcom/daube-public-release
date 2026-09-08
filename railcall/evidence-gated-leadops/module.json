@@ -1,0 +1,18 @@
+{
+  "slug": "daubesonntag/evidence-gated-leadops",
+  "version": "0.1.0",
+  "description": "contest:round2 Evidence-gated Airtable lead operations with dedupe, qualification, assignment, archive safeguards, and auditable receipts.",
+  "auth": { "type": "api_key", "env_var": "AIRTABLE_API_KEY" },
+  "commands": [
+    {"name":"lead_search","description":"Search leads by email, phone, company, owner or source.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"query":{"type":"string"}},"required":["base_id","query"]},"side_effects":"none"},
+    {"name":"lead_get","description":"Get one Airtable lead record by record id.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"}},"required":["base_id","record_id"]},"side_effects":"none"},
+    {"name":"lead_dedupe_check","description":"Check for duplicate leads by normalized email and/or phone before writes.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"email":{"type":"string"},"phone":{"type":"string"}},"required":["base_id"]},"side_effects":"none"},
+    {"name":"lead_create","description":"Create a lead after dedupe guard passes.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"fields":{"type":"object"},"dedupe":{"type":"boolean","default":true}},"required":["base_id","fields"]},"side_effects":"external"},
+    {"name":"lead_update","description":"Update selected fields on one lead.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"},"fields":{"type":"object"}},"required":["base_id","record_id","fields"]},"side_effects":"external"},
+    {"name":"lead_qualify","description":"Set score, temperature, status and qualification notes.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"},"score":{"type":"integer","minimum":0,"maximum":100},"temperature":{"type":"string","enum":["Hot","Warm","Cold"]},"notes":{"type":"string"}},"required":["base_id","record_id","score","temperature"]},"side_effects":"external"},
+    {"name":"lead_assign","description":"Assign a lead owner and mark status Assigned.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"},"owner":{"type":"string"}},"required":["base_id","record_id","owner"]},"side_effects":"external"},
+    {"name":"lead_archive","description":"Archive one lead with an explicit reason.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"},"reason":{"type":"string"}},"required":["base_id","record_id","reason"]},"side_effects":"external"},
+    {"name":"audit_snapshot","description":"Return a deterministic snapshot digest for a lead record.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"}},"required":["base_id","record_id"]},"side_effects":"none"}
+  ],
+  "license_required": false
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "daube.resource-warehouse.v1",
+  "generatedAt": "2026-09-09",
+  "owner": "D’AUBE SONNTAG",
+  "objective": "Creative/media/GPU/local-inference/3D/visual-QC acquisition wave with separate code and model-license boundaries.",
+  "policy": {
+    "costCeilingUsdDefault": 0,
+    "preferReuseOverRebuild": true,
+    "modelLicenseMustBeVerifiedSeparately": true,
+    "weightsNeverInheritCodeLicense": true,
+    "productionRequiresRealHardwareEvidence": true
+  },
+  "resources": [
+    {"id":"comfyui","upstream":"https://github.com/comfyanonymous/ComfyUI","class":"creative-node-runtime","decision":"PILOT","license":"GPL-3.0","placement":"studio-runtime","notes":"Primary graph runtime candidate for image/video generation; custom nodes require separate provenance review."},
+    {"id":"diffusers","upstream":"https://github.com/huggingface/diffusers","class":"diffusion-library","decision":"ADOPT","license":"Apache-2.0","placement":"studio-runtime","notes":"Reference/library layer for diffusion pipelines; model licenses remain separate."},
+    {"id":"black-forest-labs-flux","upstream":"https://github.com/black-forest-labs/flux","class":"image-generation","decision":"PILOT_MODEL_LICENSE_GATED","license":"Apache-2.0","placement":"gpu-fabric","notes":"Code may be permissive while individual FLUX weights have separate terms; verify each exact model."},
+    {"id":"wan-video","upstream":"https://github.com/Wan-Video/Wan2.2","class":"video-generation","decision":"HOLD_LICENSE_VERIFY","license":"UNVERIFIED","placement":"gpu-fabric","notes":"High-value video lane; exact repo/model license and VRAM/runtime evidence required."},
+    {"id":"hunyuan-video","upstream":"https://github.com/Tencent-Hunyuan/HunyuanVideo","class":"video-generation","decision":"HOLD_LICENSE_VERIFY","license":"UNVERIFIED","placement":"gpu-fabric","notes":"Model-specific commercial terms and hardware footprint require explicit review."},
+    {"id":"ltx-video","upstream":"https://github.com/Lightricks/LTX-Video","class":"video-generation","decision":"HOLD_LICENSE_VERIFY","license":"UNVERIFIED","placement":"gpu-fabric","notes":"Evaluate speed/quality and exact model terms before production."},
+    {"id":"ace-step","upstream":"https://github.com/ace-step/ACE-Step","class":"music-generation","decision":"HOLD_LICENSE_VERIFY","license":"UNVERIFIED","placement":"audio-fabric","notes":"Promising local music generation; verify official upstream, code/model licenses and provenance."},
+    {"id":"whisper","upstream":"https://github.com/openai/whisper","class":"speech-recognition","decision":"ADOPT","license":"MIT","placement":"audio-fabric","notes":"Local ASR/transcription candidate."},
+    {"id":"faster-whisper","upstream":"https://github.com/SYSTRAN/faster-whisper","class":"speech-recognition","decision":"PILOT","license":"MIT","placement":"audio-fabric","notes":"Benchmark speed and memory against Whisper baseline."},
+    {"id":"piper","upstream":"https://github.com/rhasspy/piper","class":"text-to-speech","decision":"HOLD_ACTIVITY_VERIFY","license":"MIT","placement":"audio-fabric","notes":"Local TTS reference; verify current maintenance/upstream successor before adopting."},
+    {"id":"ffmpeg","upstream":"https://github.com/FFmpeg/FFmpeg","class":"media-processing","decision":"ADOPT_LICENSE_AWARE","license":"LGPL-2.1-or-later/GPL-options","placement":"media-kernel","notes":"Core transcode/render utility; build flags determine licensing obligations."},
+    {"id":"ollama","upstream":"https://github.com/ollama/ollama","class":"local-llm-runtime","decision":"PILOT","license":"MIT","placement":"compute-mesh","notes":"Simple local model management and API runtime."},
+    {"id":"llama-cpp","upstream":"https://github.com/ggml-org/llama.cpp","class":"local-llm-runtime","decision":"ADOPT","license":"MIT","placement":"compute-mesh","notes":"Portable CPU/GPU/Vulkan/Metal/CUDA inference; strong edge candidate."},
+    {"id":"vllm","upstream":"https://github.com/vllm-project/vllm","class":"gpu-llm-serving","decision":"PILOT","license":"Apache-2.0","placement":"gpu-fabric","notes":"High-throughput GPU serving; only route where GPU capacity is proven."},
+    {"id":"sglang","upstream":"https://github.com/sgl-project/sglang","class":"gpu-llm-serving","decision":"PILOT","license":"Apache-2.0","placement":"gpu-fabric","notes":"Benchmark against vLLM for prefix-heavy and structured workloads."},
+    {"id":"localai","upstream":"https://github.com/mudler/LocalAI","class":"local-ai-api","decision":"PILOT","license":"MIT","placement":"compute-mesh","notes":"Provider-neutral local OpenAI-compatible surface; compare footprint and modality support."},
+    {"id":"blender","upstream":"https://github.com/blender/blender","class":"3d-dcc","decision":"PILOT_LICENSE_AWARE","license":"GPL-3.0-or-later","placement":"studio-3d","notes":"3D production and automation; GPL boundary applies to distributed derivatives, not authored assets by default."},
+    {"id":"three-js","upstream":"https://github.com/mrdoob/three.js","class":"web-3d-runtime","decision":"ADOPT","license":"MIT","placement":"web-3d","notes":"Primary browser 3D rendering candidate."},
+    {"id":"babylon-js","upstream":"https://github.com/BabylonJS/Babylon.js","class":"web-3d-runtime","decision":"PILOT","license":"Apache-2.0","placement":"web-3d","notes":"Alternative full-featured web 3D engine; benchmark against Three.js per product."},
+    {"id":"storybook","upstream":"https://github.com/storybookjs/storybook","class":"ui-component-qc","decision":"ADOPT","license":"MIT","placement":"visual-qc","notes":"Component isolation and visual review substrate."},
+    {"id":"lighthouse","upstream":"https://github.com/GoogleChrome/lighthouse","class":"web-performance-qc","decision":"ADOPT","license":"Apache-2.0","placement":"visual-qc","notes":"Performance, best-practices and accessibility evidence input."},
+    {"id":"axe-core","upstream":"https://github.com/dequelabs/axe-core","class":"accessibility-qc","decision":"ADOPT","license":"MPL-2.0","placement":"visual-qc","notes":"Automated accessibility rules engine; manual review still required for non-machine-detectable issues."},
+    {"id":"pixelmatch","upstream":"https://github.com/mapbox/pixelmatch","class":"visual-regression","decision":"ADOPT","license":"ISC","placement":"visual-qc","notes":"Low-level deterministic pixel diff utility."},
+    {"id":"reg-suit","upstream":"https://github.com/reg-viz/reg-suit","class":"visual-regression","decision":"PILOT","license":"MIT","placement":"visual-qc","notes":"Visual regression orchestration candidate; compare storage/reporting path to D’AUBE evidence stack."},
+    {"id":"sharp","upstream":"https://github.com/lovell/sharp","class":"image-processing","decision":"ADOPT","license":"Apache-2.0","placement":"media-kernel","notes":"Fast image resize/format/metadata pipeline for asset factory and QC."}
+  ]
+}

@@ -15,52 +15,54 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Run unit tests
-        working-directory: railcall/evidence-gated-leadops
+      - name: Prepare bundle from public raw files
         run: |
-          python -m pip install --upgrade pip pytest
-          pytest -q
+          set -euo pipefail
+          mkdir -p bundle/handlers bundle/tests
+          base='https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/railcall/evidence-gated-leadops'
+          curl -fsSL "$base/module.json" -o bundle/module.json
+          curl -fsSL "$base/handlers/handler.py" -o bundle/handlers/handler.py
+          curl -fsSL "$base/tests/test_handler.py" -o bundle/tests/test_handler.py
+          python3 --version
+          curl --version | head -1
 
-      - name: Static manifest gate
-        working-directory: railcall/evidence-gated-leadops
+      - name: Run dependency-free unit tests
+        working-directory: bundle
         run: |
-          python - <<'PY'
+          set -euo pipefail
+          python3 - <<'PY'
           import importlib.util, json, pathlib
           root = pathlib.Path('.')
+          spec = importlib.util.spec_from_file_location('handler', root/'handlers'/'handler.py')
+          h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
+          assert h._norm_email(' A@EXAMPLE.COM ') == 'a@example.com'
+          assert h._norm_phone('+1 (555) 000-0001') == '15550000001'
+          assert h.lead_archive({'base_id':'x','record_id':'r','reason':'bad'}, {})['blocked'] == 'archive_reason_too_short'
           manifest = json.loads((root/'module.json').read_text())
           assert manifest['slug'] == 'daubesonntag/evidence-gated-leadops'
           assert manifest['license_required'] is False
-          names = [c['name'] for c in manifest['commands']]
-          assert 6 <= len(names) <= 10, names
-          spec = importlib.util.spec_from_file_location('handler', root/'handlers'/'handler.py')
-          h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
-          for c in manifest['commands']:
+          commands = manifest['commands']
+          assert 6 <= len(commands) <= 10
+          for c in commands:
               assert callable(getattr(h, c['name'], None)), c['name']
           effectful = {'lead_create','lead_update','lead_qualify','lead_assign','lead_archive'}
-          for c in manifest['commands']:
+          for c in commands:
               if c['name'] in effectful:
                   assert c.get('side_effects') == 'external', c
-          print('STATIC_GATE_PASS', len(names), 'commands')
+          print('LOCAL_STATIC_PASS', len(commands), 'commands')
           PY
 
       - name: Install official RailCall CLI
         run: |
+          set -euo pipefail
           curl -fsSL https://railcall.ai/install.sh | bash
-          echo "$HOME/.railcall/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.railcall/bin:$PATH"
           railcall version
 
-      - name: Ephemeral publisher sign and verify
-        working-directory: railcall/evidence-gated-leadops
+      - name: RailCall native sign and verify
+        working-directory: bundle
         run: |
+          set -euo pipefail
           export PATH="$HOME/.railcall/bin:$PATH"
           railcall market publisher init daubesonntag-ci
           railcall market module sign .

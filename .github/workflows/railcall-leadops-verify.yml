@@ -1,0 +1,70 @@
+name: RailCall LeadOps Verify
+
+on:
+  push:
+    paths:
+      - 'railcall/evidence-gated-leadops/**'
+      - '.github/workflows/railcall-leadops-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run unit tests
+        working-directory: railcall/evidence-gated-leadops
+        run: |
+          python -m pip install --upgrade pip pytest
+          pytest -q
+
+      - name: Static manifest gate
+        working-directory: railcall/evidence-gated-leadops
+        run: |
+          python - <<'PY'
+          import importlib.util, json, pathlib
+          root = pathlib.Path('.')
+          manifest = json.loads((root/'module.json').read_text())
+          assert manifest['slug'] == 'daubesonntag/evidence-gated-leadops'
+          assert manifest['license_required'] is False
+          names = [c['name'] for c in manifest['commands']]
+          assert 6 <= len(names) <= 10, names
+          spec = importlib.util.spec_from_file_location('handler', root/'handlers'/'handler.py')
+          h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
+          for c in manifest['commands']:
+              assert callable(getattr(h, c['name'], None)), c['name']
+          effectful = {'lead_create','lead_update','lead_qualify','lead_assign','lead_archive'}
+          for c in manifest['commands']:
+              if c['name'] in effectful:
+                  assert c.get('side_effects') == 'external', c
+          print('STATIC_GATE_PASS', len(names), 'commands')
+          PY
+
+      - name: Install official RailCall CLI
+        run: |
+          curl -fsSL https://railcall.ai/install.sh | bash
+          echo "$HOME/.railcall/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.railcall/bin:$PATH"
+          railcall version
+
+      - name: Ephemeral publisher sign and verify
+        working-directory: railcall/evidence-gated-leadops
+        run: |
+          export PATH="$HOME/.railcall/bin:$PATH"
+          railcall market publisher init daubesonntag-ci
+          railcall market module sign .
+          railcall market module verify .
+          test -s module.sig
+          sha256sum module.json handlers/handler.py module.sig
+          echo 'RAILCALL_NATIVE_VERIFY_PASS'

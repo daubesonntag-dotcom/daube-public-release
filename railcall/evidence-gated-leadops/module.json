@@ -1,8 +1,13 @@
 {
   "slug": "daubesonntag/evidence-gated-leadops",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "contest:round2 Evidence-gated Airtable lead operations with dedupe, qualification, assignment, archive safeguards, and auditable receipts.",
   "auth": { "type": "api_key", "env_var": "AIRTABLE_API_KEY" },
+  "requires": {
+    "network": ["api.airtable.com"],
+    "subprocess": false,
+    "filesystem_writes": []
+  },
   "commands": [
     {"name":"lead_search","description":"Search leads by email, phone, company, owner or source.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"query":{"type":"string"}},"required":["base_id","query"]},"side_effects":"none"},
     {"name":"lead_get","description":"Get one Airtable lead record by record id.","input_schema":{"type":"object","properties":{"base_id":{"type":"string"},"table_name":{"type":"string","default":"Leads"},"record_id":{"type":"string"}},"required":["base_id","record_id"]},"side_effects":"none"},

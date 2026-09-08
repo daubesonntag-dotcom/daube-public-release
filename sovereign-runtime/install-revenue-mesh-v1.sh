@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-RELEASE_SHA='ada966ce7d3123c40306294667d2d1444859f338'
+RELEASE_SHA='9dad65a3daab08ad44b8c6ccbde708c731b96bab'
 BASE="https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/${RELEASE_SHA}"
 ROOT='/opt/daube/remote-commander/sovereign-runtime'
 STATE='/var/lib/daube/remote-commander'

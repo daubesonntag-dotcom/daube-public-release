@@ -1,0 +1,5 @@
+D'AUBE SONNTAG — V12 exact-target recovery marker
+
+Purpose: create a new GitHub-verified immutable target revision so Host Autopilot cannot admit the stale c3f8128a FULL_WAVE_READY receipt and must execute the full V12 convergence transaction again.
+
+Authority: zero-spend recovery only. No billing, IAM, DNS, payment, credential, ownership, or arbitrary-shell expansion.

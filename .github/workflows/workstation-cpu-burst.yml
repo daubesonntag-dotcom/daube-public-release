@@ -1,0 +1,64 @@
+name: workstation-cpu-burst
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Bounded public-safe task
+        required: true
+        type: choice
+        options: [probe, node-test, node-build, python-test]
+      repo:
+        description: Public D'AUBE repo owner/name
+        required: false
+        default: daubesonntag-dotcom/daube-public-release
+      ref:
+        description: Git ref
+        required: false
+        default: main
+permissions:
+  contents: read
+jobs:
+  burst:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validate public D'AUBE source
+        env:
+          REPO: ${{ inputs.repo }}
+        run: |
+          set -euo pipefail
+          case "$REPO" in daubesonntag-dotcom/*) ;; *) echo 'owner denied' >&2; exit 64;; esac
+          private=$(curl -fsSL "https://api.github.com/repos/$REPO" | jq -r .private)
+          test "$private" = false || { echo 'private repo denied' >&2; exit 65; }
+      - uses: actions/checkout@v4
+        if: ${{ inputs.task != 'probe' }}
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.ref }}
+          path: work
+      - name: Execute bounded task
+        shell: bash
+        env:
+          TASK: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python3 - <<'PY'
+          import json,os,platform,shutil
+          r={'schema':'daube.workstation.cpu-burst.v1','task':os.environ['TASK'],'cpu_count':os.cpu_count(),'ram_gib':round(os.sysconf('SC_PAGE_SIZE')*os.sysconf('SC_PHYS_PAGES')/2**30,2),'disk_free_gib':round(shutil.disk_usage('.').free/2**30,2),'platform':platform.platform(),'paid_spend_authorized':False,'public_source_only':True}
+          open('evidence/workstation-cpu-burst.json','w').write(json.dumps(r,indent=2)); print(json.dumps(r))
+          PY
+          [ "$TASK" = probe ] && exit 0
+          cd work
+          case "$TASK" in
+            node-test) npm ci && npm test --if-present ;;
+            node-build) npm ci && npm run build --if-present ;;
+            python-test) python -m pip install -U pytest && pytest -q ;;
+            *) exit 66 ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workstation-cpu-burst
+          path: evidence/workstation-cpu-burst.json
+          retention-days: 7

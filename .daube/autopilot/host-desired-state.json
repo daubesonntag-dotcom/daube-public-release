@@ -3,7 +3,7 @@
   "enabled": true,
   "target_revision": "40c57026749db8e0abc30ee38beb7dadbf7810c6",
   "release_id": "full-wave-mesh-v12-attested-40c57026-forced-convergence-20260908T1817Z",
-  "rearm_nonce": "2026-09-15T21:13:30+07:00",
+  "rearm_nonce": "2026-09-15T21:18:00+07:00",
   "artifacts": [
     {
       "path": "installers/install-ci-platform-wave-full-host-v1.sh",

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="600" viewBox="0 0 1800 600" role="img" aria-labelledby="title desc">
+  <title id="title">D’AUBE SONNTAG — Meaning, made visible.</title>
+  <desc id="desc">Canonical D’AUBE SONNTAG footer banner with champagne ribbon, dawn motif and ivory editorial plaque.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset=".55" stop-color="#f7ead8"/><stop offset="1" stop-color="#fff8ed"/></linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dfcb"/><stop offset=".42" stop-color="#d8b594"/><stop offset=".72" stop-color="#f3d8bf"/><stop offset="1" stop-color="#b98b68"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d7b06f"/><stop offset=".5" stop-color="#a8783d"/><stop offset="1" stop-color="#e5c58d"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#6c513e" flood-opacity=".18"/></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="230" y="190" width="1340" height="230" rx="10" fill="url(#paper)" stroke="#c59a63" stroke-width="2"/>
+    <path d="M250 213H1550" stroke="#fff" stroke-opacity=".72"/>
+  </g>
+
+  <!-- left ribbon -->
+  <g fill="url(#ribbon)" stroke="#b58c6c" stroke-width="2" filter="url(#shadow)">
+    <path d="M306 224C236 166 161 153 125 196c-33 39 36 90 150 88 33 0 57-15 71-35-7-10-22-18-40-25z"/>
+    <path d="M334 229c48-71 109-91 145-65 40 29 10 86-65 113-36 13-68 6-84-8 13-8 18-23 4-40z"/>
+    <path d="M301 264c-27 45-65 85-131 118-53 27-102 28-121 7 55-9 111-46 159-96 35-36 61-56 93-29z"/>
+    <path d="M335 265c27 38 70 81 135 111 57 27 93 23 116 8-58-15-111-49-154-94-30-31-61-48-97-25z"/>
+    <ellipse cx="318" cy="246" rx="43" ry="35"/>
+  </g>
+
+  <!-- left tag -->
+  <g transform="rotate(-9 282 338)" filter="url(#shadow)">
+    <rect x="237" y="278" width="92" height="118" rx="5" fill="#fff9ee" stroke="#b88b55" stroke-width="2"/>
+    <circle cx="283" cy="294" r="4" fill="#b88b55"/>
+    <g transform="translate(283 338)" stroke="#b88b55" stroke-width="2" fill="none" stroke-linecap="round">
+      <circle r="6"/><path d="M0-28v12M0 16v12M-28 0h12M16 0h12M-20-20l9 9M11 11l9 9M20-20l-9 9M-11 11l-9 9"/>
+    </g>
+  </g>
+
+  <!-- botanical sprigs -->
+  <g stroke="#b79063" stroke-width="2" fill="#f4e3ce" stroke-linecap="round">
+    <path d="M234 207c-28-44-53-65-85-84M236 211c-19-52-18-79-9-110M245 212c8-49 26-75 57-101" fill="none"/>
+    <circle cx="147" cy="121" r="7"/><circle cx="165" cy="136" r="6"/><circle cx="182" cy="148" r="5"/><circle cx="227" cy="100" r="7"/><circle cx="229" cy="124" r="5"/><circle cx="301" cy="110" r="7"/><circle cx="284" cy="129" r="5"/>
+    <path d="M1565 218c35-43 67-62 103-78M1557 218c21-49 24-74 17-105M1547 219c-5-44-24-70-57-95" fill="none"/>
+    <circle cx="1670" cy="139" r="7"/><circle cx="1646" cy="152" r="5"/><circle cx="1574" cy="112" r="7"/><circle cx="1571" cy="137" r="5"/><circle cx="1489" cy="124" r="7"/><circle cx="1507" cy="143" r="5"/>
+  </g>
+
+  <!-- right ribbon -->
+  <g fill="url(#ribbon)" stroke="#b58c6c" stroke-width="2" filter="url(#shadow)">
+    <path d="M1515 282c64-50 132-58 172-20 32 30 8 67-47 82-46 13-91 6-132-21 16-9 18-23 7-41z"/>
+    <path d="M1595 326c61 22 111 58 148 107 30 39 22 65 4 79-24-41-70-74-132-93-52-16-76-56-20-93z"/>
+  </g>
+
+  <!-- sunrise -->
+  <g transform="translate(900 193)" stroke="url(#gold)" fill="none" stroke-linecap="round">
+    <path d="M-54 2a54 54 0 0 1 108 0" fill="#d9ad72" stroke="#a87b49" stroke-width="2"/>
+    <path d="M0-74v40M-29-67l12 35M29-67L17-32M-55-50l24 27M55-50L31-23M-72-24l34 14M72-24L38-10M-82 3h39M82 3H43" stroke-width="3"/>
+    <path d="M0-98v15M-8-90h16" stroke-width="2.5"/>
+    <path d="M0-105l4 8 8 4-8 4-4 8-4-8-8-4 8-4z" fill="#d7b06f" stroke="none"/>
+  </g>
+
+  <!-- editorial dividers -->
+  <g stroke="#b58a55" stroke-width="2" opacity=".8"><path d="M635 250h105M1060 250h105"/><path d="M670 362h95M1035 362h95"/></g>
+
+  <!-- typography -->
+  <text x="900" y="332" text-anchor="middle" fill="#34261f" font-family="Georgia, 'Times New Roman', serif" font-size="86" letter-spacing="4">D’AUBE SONNTAG</text>
+  <text x="900" y="384" text-anchor="middle" fill="#4a382e" font-family="Georgia, 'Times New Roman', serif" font-size="32" font-style="italic" letter-spacing="2">Meaning, made visible.</text>
+
+  <!-- sparkles -->
+  <g fill="url(#gold)">
+    <path d="M1702 207l6 13 13 6-13 6-6 13-6-13-13-6 13-6z"/>
+    <circle cx="1744" cy="252" r="4"/><circle cx="1681" cy="274" r="3"/>
+  </g>
+</svg>

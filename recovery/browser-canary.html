@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>D'AUBE Browser Canary</title>
+</head>
+<body>
+  <main>
+    <h1>D'AUBE Browser Canary</h1>
+    <label for="name">Name</label>
+    <input id="name" autocomplete="off" value="">
+    <button id="go" type="button">Run</button>
+    <p id="result">READY</p>
+  </main>
+  <script>
+    document.getElementById('go').addEventListener('click', () => {
+      const value = document.getElementById('name').value;
+      document.getElementById('result').textContent = `RESULT:${value}`;
+    });
+  </script>
+</body>
+</html>

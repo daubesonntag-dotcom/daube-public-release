@@ -1,0 +1,8 @@
+{
+  "channel": "stable",
+  "version": "2.0.1",
+  "url": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/windows/performance-autopilot/autopilot.ps1",
+  "sha256": "6B2DCEDA1B747E195F883C9EE7733A4E965340F95A6C52D887B165B4D6747B6E",
+  "published_at": "2026-09-19T15:20:00+07:00",
+  "notes": "Bootstrap verified remote update channel for D'AUBE Performance Autopilot."
+}

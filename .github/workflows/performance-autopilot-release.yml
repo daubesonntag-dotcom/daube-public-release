@@ -1,0 +1,66 @@
+name: D'AUBE Performance Autopilot Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - windows/performance-autopilot/autopilot.ps1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "$PWD/windows/performance-autopilot/autopilot.ps1",
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+            exit 1
+          }
+
+      - name: Regenerate stable manifest
+        shell: python
+        run: |
+          import hashlib, json, os
+          from datetime import datetime, timezone
+          path = "windows/performance-autopilot/autopilot.ps1"
+          with open(path, "rb") as f:
+              digest = hashlib.sha256(f.read()).hexdigest().upper()
+          version = f"2.1.{os.environ['GITHUB_RUN_NUMBER']}"
+          manifest = {
+              "channel": "stable",
+              "version": version,
+              "url": "https://raw.githubusercontent.com/daubesonntag-dotcom/daube-public-release/main/windows/performance-autopilot/autopilot.ps1",
+              "sha256": digest,
+              "published_at": datetime.now(timezone.utc).isoformat(),
+              "notes": "Automatically validated and published by GitHub Actions."
+          }
+          with open("windows/performance-autopilot/manifest.json", "w", encoding="utf-8", newline="\n") as f:
+              json.dump(manifest, f, indent=2)
+              f.write("\n")
+
+      - name: Commit manifest
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add windows/performance-autopilot/manifest.json
+          if git diff --cached --quiet; then
+            echo "Manifest already current."
+          else
+            git commit -m "chore: publish validated autopilot manifest [skip ci]"
+            git push
+          fi

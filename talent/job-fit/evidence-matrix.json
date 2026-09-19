@@ -1,0 +1,36 @@
+{
+  "schema": "daube.job-fit-evidence.v1",
+  "generated": "2026-09-20",
+  "truth_boundary": "D'AUBE-owned public evidence only; no fabricated client history",
+  "implemented": [
+    "api-webhook-automation",
+    "oauth-official-api-patterns",
+    "python-automation",
+    "node-javascript-automation",
+    "linux-systemd-operations",
+    "docker-container-operations",
+    "kubernetes-ephemeral-validation",
+    "kubernetes-rbac-isolation",
+    "terraform-iac",
+    "github-actions-ci-cd",
+    "reliability-fail-closed-gates",
+    "qa-evidence-runbooks"
+  ],
+  "bounded": [
+    "llm-workflow-integration",
+    "mcp-tool-integration"
+  ],
+  "adopted_not_production_claim": [
+    "prometheus",
+    "opentelemetry-collector",
+    "pgvector"
+  ],
+  "pilot_not_production_claim": [
+    "langgraph",
+    "ragas",
+    "deepeval"
+  ],
+  "target_rate_usd_per_hour": [50, 80],
+  "delivery_model": "async-first written brief -> acceptance criteria -> implementation -> verification evidence -> handoff",
+  "fast_cash_delivery_window": "same-day to 72h"
+}

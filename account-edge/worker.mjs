@@ -19,7 +19,7 @@ const PAGE_HEADERS = Object.freeze({
   'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
   'cross-origin-opener-policy': 'same-origin',
   'cross-origin-resource-policy': 'same-origin',
-  'content-security-policy': "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'",
+  'content-security-policy': "default-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; connect-src 'self' https://challenges.cloudflare.com; img-src 'self' data:; style-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; manifest-src 'self'",
 });
 
 const ACCOUNT_HTML = `<!doctype html>
@@ -32,7 +32,7 @@ const ACCOUNT_HTML = `<!doctype html>
   <title>D’AUBE Account</title>
   <link rel="stylesheet" href="/account/style.css">
 </head>
-<body>
+<body data-turnstile="__TURNSTILE_ENABLED__">
   <main class="shell" aria-labelledby="account-title">
     <section class="brand" aria-label="D’AUBE SONNTAG">
       <span class="eyebrow">D’AUBE SONNTAG · PUBLIC ACCOUNT</span>
@@ -53,6 +53,7 @@ const ACCOUNT_HTML = `<!doctype html>
         <form id="signin-panel" class="panel" novalidate>
           <label>Email<input id="signin-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254"></label>
           <label>Password<input id="signin-password" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="256"></label>
+          __TURNSTILE_SIGNIN__
           <button class="primary" type="submit">Sign in</button>
         </form>
 
@@ -61,6 +62,7 @@ const ACCOUNT_HTML = `<!doctype html>
           <label>Email<input id="signup-email" name="email" type="email" autocomplete="email" inputmode="email" required maxlength="254"></label>
           <label>Password<input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="256" aria-describedby="password-note"></label>
           <p id="password-note" class="hint">Use at least 10 characters. Email confirmation may be required before first sign in.</p>
+          __TURNSTILE_SIGNUP__
           <button class="primary" type="submit">Create account</button>
         </form>
       </div>
@@ -84,13 +86,39 @@ const ACCOUNT_HTML = `<!doctype html>
       <noscript><p class="message error">JavaScript is required for account sign-in.</p></noscript>
     </section>
   </main>
+  __TURNSTILE_SCRIPT__
   <script src="/account/app.js" defer></script>
 </body>
 </html>`;
 
 const ACCOUNT_CSS = `:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1f211d;background:#f4f1e8;line-height:1.5}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 10%,rgba(221,255,58,.2),transparent 28rem),linear-gradient(145deg,#f8f5ec,#ebe7dc);color:#1f211d}.shell{width:min(1040px,calc(100% - 32px));min-height:100vh;margin:auto;display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,6vw,88px);align-items:center;padding:48px 0}.brand{max-width:560px}.eyebrow{font-size:.72rem;letter-spacing:.16em;font-weight:750;text-transform:uppercase;color:#62675a}h1{font-size:clamp(3rem,8vw,7.2rem);line-height:.88;letter-spacing:-.065em;margin:.35em 0 .28em;font-weight:760;max-width:8ch}.lede{font-size:clamp(1rem,2vw,1.22rem);max-width:42ch;color:#5b5f55}.trust-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}.trust-grid span{border:1px solid rgba(31,33,29,.15);border-radius:999px;padding:7px 11px;font-size:.78rem;background:rgba(255,255,255,.45)}.card{background:rgba(255,255,255,.72);border:1px solid rgba(31,33,29,.12);box-shadow:0 24px 80px rgba(43,45,38,.12);backdrop-filter:blur(20px);border-radius:28px;padding:clamp(22px,4vw,38px)}.tabs{display:grid;grid-template-columns:1fr 1fr;background:#efede5;border-radius:14px;padding:4px;margin-bottom:24px}.tab{border:0;border-radius:11px;padding:11px 12px;background:transparent;font:inherit;font-weight:700;color:#676b61;cursor:pointer}.tab.active{background:#fff;color:#20221e;box-shadow:0 2px 10px rgba(20,20,18,.08)}.panel,.profile-form{display:grid;gap:16px}label{display:grid;gap:7px;font-size:.82rem;font-weight:700;color:#4f534b}input{width:100%;font:inherit;border:1px solid #c9c8c0;border-radius:13px;background:rgba(255,255,255,.86);color:#20221e;padding:13px 14px;outline:none}input:focus-visible,button:focus-visible{outline:3px solid rgba(126,154,0,.35);outline-offset:2px;border-color:#7e9a00}.primary,.secondary,.ghost{font:inherit;font-weight:760;border-radius:13px;min-height:48px;padding:12px 16px;cursor:pointer}.primary{border:1px solid #20221e;background:#20221e;color:white}.secondary{border:1px solid #697253;background:#edf5d1;color:#293019}.ghost{margin-top:16px;border:1px solid #c9c8c0;background:transparent;color:#30332d;width:100%}button:disabled{opacity:.55;cursor:wait}.hint,.message{font-size:.82rem;color:#70746a}.message{min-height:1.5em;margin:18px 0 0}.message.error{color:#9b342d}.message.success{color:#42600b}.hidden{display:none!important}.status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#8daf12;margin-right:7px}.card h2{font-size:2rem;margin:.45em 0 .7em;letter-spacing:-.035em}.account-facts{display:grid;gap:10px;margin:0 0 24px}.account-facts div{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid rgba(31,33,29,.09)}dt{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#777b70}dd{margin:0;font-size:.9rem;overflow-wrap:anywhere}@media(max-width:780px){.shell{grid-template-columns:1fr;padding:38px 0 48px;align-items:start}.brand{padding-top:24px}h1{font-size:clamp(3.6rem,18vw,6.5rem)}.card{border-radius:22px}.trust-grid{margin-bottom:4px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}@media(prefers-color-scheme:dark){:root{color:#eeeade;background:#171914}body{background:radial-gradient(circle at 15% 10%,rgba(194,230,29,.09),transparent 28rem),linear-gradient(145deg,#171914,#20231c);color:#eeeade}.eyebrow,.lede,.hint,.message{color:#afb3a7}.trust-grid span{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.04)}.card{background:rgba(30,33,27,.78);border-color:rgba(255,255,255,.11)}.tabs{background:#252820}.tab{color:#aeb1a7}.tab.active{background:#35392e;color:#f2efe5}.panel label,.profile-form label{color:#ced1c7}input{background:#20231c;border-color:#4e5248;color:#f2efe5}.primary{background:#e9efcf;border-color:#e9efcf;color:#1d2116}.secondary{background:#303b1c;color:#dceeb0;border-color:#596b32}.ghost{border-color:#4e5248;color:#ddd9cf}.account-facts div{border-color:rgba(255,255,255,.1)}dt{color:#a7aa9f}}`;
 
-const ACCOUNT_JS = `(()=>{'use strict';const q=(s)=>document.querySelector(s);const msg=q('#message');const signedOut=q('#signed-out-view');const signedIn=q('#signed-in-view');const signinTab=q('#signin-tab');const signupTab=q('#signup-tab');const signinPanel=q('#signin-panel');const signupPanel=q('#signup-panel');function message(text,type){msg.textContent=text||'';msg.className='message'+(type?' '+type:'')}function busy(form,on){for(const el of form.querySelectorAll('button,input'))el.disabled=on}function tab(which){const signIn=which==='signin';signinTab.classList.toggle('active',signIn);signupTab.classList.toggle('active',!signIn);signinTab.setAttribute('aria-selected',String(signIn));signupTab.setAttribute('aria-selected',String(!signIn));signinPanel.classList.toggle('hidden',!signIn);signupPanel.classList.toggle('hidden',signIn);message('')}signinTab.addEventListener('click',()=>tab('signin'));signupTab.addEventListener('click',()=>tab('signup'));async function api(path,options){const res=await fetch(path,Object.assign({headers:{'content-type':'application/json'},credentials:'same-origin'},options||{}));let body={};try{body=await res.json()}catch{}return{res,body}}function showUser(user){signedOut.classList.add('hidden');signedIn.classList.remove('hidden');q('#welcome').textContent='Welcome'+(user.displayName?' back, '+user.displayName:'')+'.';q('#session-email').textContent=user.email||'Private';q('#session-origin').textContent=user.accountOrigin||'—';q('#session-provider').textContent=user.primaryProvider||'—';q('#daube-handle').value=user.daubeHandle||''}function showSignedOut(){signedIn.classList.add('hidden');signedOut.classList.remove('hidden')}signinPanel.addEventListener('submit',async(e)=>{e.preventDefault();message('Signing in…');busy(signinPanel,true);try{const{res,body}=await api('/account/api/signin',{method:'POST',body:JSON.stringify({email:q('#signin-email').value,password:q('#signin-password').value})});if(!res.ok)throw new Error(body.error||'signin_failed');showUser(body.user);message('Signed in securely.','success')}catch(err){message(err.message==='rate_limited'?'Too many attempts. Try again shortly.':'Sign in failed. Check your email and password.','error')}finally{busy(signinPanel,false)}});signupPanel.addEventListener('submit',async(e)=>{e.preventDefault();message('Creating account…');busy(signupPanel,true);try{const{res,body}=await api('/account/api/signup',{method:'POST',body:JSON.stringify({displayName:q('#signup-name').value,email:q('#signup-email').value,password:q('#signup-password').value})});if(!res.ok)throw new Error(body.error||'signup_failed');if(body.user){showUser(body.user);message('Account created and signed in.','success')}else{tab('signin');q('#signin-email').value=q('#signup-email').value;message('Account request accepted. Check your email to confirm, then sign in here.','success')}}catch(err){message(err.message==='rate_limited'?'Too many attempts. Try again shortly.':'Account creation is unavailable for that request.','error')}finally{busy(signupPanel,false)}});q('#profile-form').addEventListener('submit',async(e)=>{e.preventDefault();const form=e.currentTarget;busy(form,true);message('Saving…');try{const raw=q('#daube-handle').value.trim();const{res,body}=await api('/account/api/profile',{method:'PATCH',body:JSON.stringify({daubeHandle:raw||null})});if(!res.ok)throw new Error(body.error||'profile_failed');showUser(body.user);message('Handle saved.','success')}catch(err){message(err.message==='handle_conflict'?'That handle is already in use.':'Could not save that handle.','error')}finally{busy(form,false)}});q('#signout').addEventListener('click',async()=>{message('Signing out…');try{await api('/account/api/session',{method:'DELETE',body:'{}'});}finally{showSignedOut();message('Signed out.','success')}});(async()=>{try{const{res,body}=await api('/account/api/session',{method:'GET',headers:{}});if(res.ok&&body.user){showUser(body.user);message('Session restored.','success')}else showSignedOut()}catch{showSignedOut()}})();})();`;
+const ACCOUNT_JS = `(()=>{'use strict';const q=(s)=>document.querySelector(s);const msg=q('#message');const signedOut=q('#signed-out-view');const signedIn=q('#signed-in-view');const signinTab=q('#signin-tab');const signupTab=q('#signup-tab');const signinPanel=q('#signin-panel');const signupPanel=q('#signup-panel');function message(text,type){msg.textContent=text||'';msg.className='message'+(type?' '+type:'')}function busy(form,on){for(const el of form.querySelectorAll('button,input'))el.disabled=on}function tab(which){const signIn=which==='signin';signinTab.classList.toggle('active',signIn);signupTab.classList.toggle('active',!signIn);signinTab.setAttribute('aria-selected',String(signIn));signupTab.setAttribute('aria-selected',String(!signIn));signinPanel.classList.toggle('hidden',!signIn);signupPanel.classList.toggle('hidden',signIn);message('')}signinTab.addEventListener('click',()=>tab('signin'));signupTab.addEventListener('click',()=>tab('signup'));async function api(path,options){const res=await fetch(path,Object.assign({headers:{'content-type':'application/json'},credentials:'same-origin'},options||{}));let body={};try{body=await res.json()}catch{}return{res,body}}function showUser(user){signedOut.classList.add('hidden');signedIn.classList.remove('hidden');q('#welcome').textContent='Welcome'+(user.displayName?' back, '+user.displayName:'')+'.';q('#session-email').textContent=user.email||'Private';q('#session-origin').textContent=user.accountOrigin||'—';q('#session-provider').textContent=user.primaryProvider||'—';q('#daube-handle').value=user.daubeHandle||''}function showSignedOut(){signedIn.classList.add('hidden');signedOut.classList.remove('hidden')}signinPanel.addEventListener('submit',async(e)=>{e.preventDefault();message('Signing in…');busy(signinPanel,true);try{const{res,body}=await api('/account/api/signin',{method:'POST',body:JSON.stringify({email:q('#signin-email').value,password:q('#signin-password').value,captchaToken:captchaToken||undefined})});if(!res.ok)throw new Error(body.error||'signin_failed');showUser(body.user);message('Signed in securely.','success')}catch(err){message(err.message==='rate_limited'?'Too many attempts. Try again shortly.':'Sign in failed. Check your email and password.','error')}finally{if(window.turnstile)try{window.turnstile.reset(signinPanel.querySelector('.cf-turnstile'))}catch{}busy(signinPanel,false)}});signupPanel.addEventListener('submit',async(e)=>{e.preventDefault();message('Creating account…');busy(signupPanel,true);try{const{res,body}=await api('/account/api/signup',{method:'POST',body:JSON.stringify({displayName:q('#signup-name').value,email:q('#signup-email').value,password:q('#signup-password').value,captchaToken:captchaToken||undefined})});if(!res.ok)throw new Error(body.error||'signup_failed');if(body.user){showUser(body.user);message('Account created and signed in.','success')}else{tab('signin');q('#signin-email').value=q('#signup-email').value;message('Account request accepted. Check your email to confirm, then sign in here.','success')}}catch(err){message(err.message==='rate_limited'?'Too many attempts. Try again shortly.':'Account creation is unavailable for that request.','error')}finally{if(window.turnstile)try{window.turnstile.reset(signupPanel.querySelector('.cf-turnstile'))}catch{}busy(signupPanel,false)}});q('#profile-form').addEventListener('submit',async(e)=>{e.preventDefault();const form=e.currentTarget;busy(form,true);message('Saving…');try{const raw=q('#daube-handle').value.trim();const{res,body}=await api('/account/api/profile',{method:'PATCH',body:JSON.stringify({daubeHandle:raw||null})});if(!res.ok)throw new Error(body.error||'profile_failed');showUser(body.user);message('Handle saved.','success')}catch(err){message(err.message==='handle_conflict'?'That handle is already in use.':'Could not save that handle.','error')}finally{busy(form,false)}});q('#signout').addEventListener('click',async()=>{message('Signing out…');try{await api('/account/api/session',{method:'DELETE',body:'{}'});}finally{showSignedOut();message('Signed out.','success')}});(async()=>{try{const{res,body}=await api('/account/api/session',{method:'GET',headers:{}});if(res.ok&&body.user){showUser(body.user);message('Session restored.','success')}else showSignedOut()}catch{showSignedOut()}})();})();`;
+
+function normalizeTurnstileSiteKey(value) {
+  const key = typeof value === 'string' ? value.trim() : '';
+  return key && key.length <= 128 && /^[A-Za-z0-9_-]+$/.test(key) ? key : '';
+}
+
+function normalizeCaptchaToken(value) {
+  const token = typeof value === 'string' ? value.trim() : '';
+  return token.length > 0 && token.length <= 4096 ? token : '';
+}
+
+function accountHtml(env) {
+  const siteKey = normalizeTurnstileSiteKey(env.DAUBE_TURNSTILE_SITE_KEY);
+  const widget = (action) => siteKey
+    ? '<div class="cf-turnstile" data-sitekey="' + siteKey + '" data-action="' + action + '"></div>'
+    : '';
+  const script = siteKey
+    ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
+    : '';
+  return ACCOUNT_HTML
+    .replace('__TURNSTILE_ENABLED__', siteKey ? '1' : '0')
+    .replace('__TURNSTILE_SIGNIN__', widget('account-signin'))
+    .replace('__TURNSTILE_SIGNUP__', widget('account-signup'))
+    .replace('__TURNSTILE_SCRIPT__', script);
+}
 
 function json(status, body, headers = new Headers()) {
   for (const [key, value] of Object.entries(JSON_HEADERS)) headers.set(key, value);
@@ -307,7 +335,12 @@ async function signIn(request, env, fetchImpl) {
   try { body = await readJsonObject(request); } catch { return json(400, { ok: false, error: 'invalid_request' }); }
   let email, password;
   try { email = normalizeEmail(body.email); password = normalizePassword(body.password, 8); } catch { return json(400, { ok: false, error: 'invalid_credentials' }); }
-  const response = await supabaseFetch(env, fetchImpl, '/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email, password }) });
+  const captcha = normalizeCaptchaToken(body.captchaToken);
+  if (normalizeTurnstileSiteKey(env.DAUBE_TURNSTILE_SITE_KEY) && !captcha) return json(400, { ok: false, error: 'captcha_required' });
+  const response = await supabaseFetch(env, fetchImpl, '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, gotrue_meta_security: captcha ? { captcha_token: captcha } : undefined }),
+  });
   if (response.status === 429) return json(429, { ok: false, error: 'rate_limited' });
   if (!response.ok) return json(401, { ok: false, error: 'invalid_credentials' });
   let session;
@@ -328,7 +361,12 @@ async function signUp(request, env, fetchImpl) {
   try { body = await readJsonObject(request); } catch { return json(400, { ok: false, error: 'invalid_request' }); }
   let email, password, displayName;
   try { email = normalizeEmail(body.email); password = normalizePassword(body.password, 10); displayName = normalizeDisplayName(body.displayName); } catch { return json(400, { ok: false, error: 'invalid_registration' }); }
-  const response = await supabaseFetch(env, fetchImpl, '/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email, password, data: { display_name: displayName } }) });
+  const captcha = normalizeCaptchaToken(body.captchaToken);
+  if (normalizeTurnstileSiteKey(env.DAUBE_TURNSTILE_SITE_KEY) && !captcha) return json(400, { ok: false, error: 'captcha_required' });
+  const response = await supabaseFetch(env, fetchImpl, '/auth/v1/signup', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, data: { display_name: displayName }, gotrue_meta_security: captcha ? { captcha_token: captcha } : undefined }),
+  });
   if (response.status === 429) return json(429, { ok: false, error: 'rate_limited' });
   if (!response.ok) return json(400, { ok: false, error: 'registration_unavailable' });
   let session;
@@ -414,7 +452,7 @@ export function createAccountWorker({ fetchImpl = fetch } = {}) {
         const url = new URL(request.url);
         const path = url.pathname.replace(/\/+$/, '') || '/';
         const head = request.method === 'HEAD';
-        if ((request.method === 'GET' || head) && path === '/account') return asset(ACCOUNT_HTML, 'text/html; charset=utf-8', head);
+        if ((request.method === 'GET' || head) && path === '/account') return asset(accountHtml(env), 'text/html; charset=utf-8', head);
         if ((request.method === 'GET' || head) && path === '/account/style.css') return asset(ACCOUNT_CSS, 'text/css; charset=utf-8', head);
         if ((request.method === 'GET' || head) && path === '/account/app.js') return asset(ACCOUNT_JS, 'text/javascript; charset=utf-8', head);
         if ((request.method === 'GET' || head) && path === '/account/healthz') return head ? new Response('', { status: 200, headers: JSON_HEADERS }) : health(env);

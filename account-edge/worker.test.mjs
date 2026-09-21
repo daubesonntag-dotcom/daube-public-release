@@ -187,3 +187,79 @@ test('source contract contains no privileged key or external provider authority'
   assert.equal(ACCOUNT_EDGE_TRUTH_BOUNDARY.externalGitIntegrationRequired, false);
   assert.equal(ACCOUNT_EDGE_TRUTH_BOUNDARY.vercelRequired, false);
 });
+
+
+test('Turnstile account UI is feature-gated and keeps secrets out of HTML', async () => {
+  const siteKey = '0x4AAAAAAATESTSITEKEY';
+  const response = await createAccountWorker().fetch(req('/account'), {
+    ...ENV,
+    DAUBE_TURNSTILE_SITE_KEY: siteKey,
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(siteKey));
+  assert.match(html, /class="cf-turnstile"/);
+  assert.match(html, /challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/);
+  assert.match(response.headers.get('content-security-policy') || '', /https:\/\/challenges\.cloudflare\.com/);
+  assert.doesNotMatch(html, /TURNSTILE_SECRET|secret_key|service_role/i);
+});
+
+test('configured Turnstile fails closed before Supabase when captcha token is missing', async () => {
+  let calls = 0;
+  const worker = createAccountWorker({ fetchImpl: async () => { calls += 1; throw new Error('must_not_call'); } });
+  const response = await worker.fetch(req('/account/api/signin', {
+    method: 'POST',
+    headers: { origin: 'https://commerce.daubesonntag.com', 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'member@example.com', password: 'correct-password' }),
+  }), {
+    ...ENV,
+    DAUBE_TURNSTILE_SITE_KEY: '0x4AAAAAAATESTSITEKEY',
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { ok: false, error: 'captcha_required' });
+  assert.equal(calls, 0);
+});
+
+test('captcha token is forwarded only through gotrue_meta_security', async () => {
+  const access = 'a'.repeat(96);
+  const refresh = 'r'.repeat(48);
+  const userId = '123e4567-e89b-42d3-a456-426614174000';
+  const captcha = 'turnstile-token-123';
+  let authPayload = null;
+  const fetchImpl = async (url, init = {}) => {
+    const parsed = new URL(url);
+    if (parsed.pathname === '/auth/v1/token' && parsed.searchParams.get('grant_type') === 'password') {
+      authPayload = JSON.parse(String(init.body || '{}'));
+      return jsonResponse({ access_token: access, refresh_token: refresh, expires_in: 3600 });
+    }
+    if (parsed.pathname === '/auth/v1/user') {
+      return jsonResponse({ id: userId, email: 'member@example.com', is_anonymous: false, identities: [{ provider: 'email' }] });
+    }
+    if (parsed.pathname === '/rest/v1/daube_customer_profiles') {
+      return jsonResponse([{
+        user_id: userId,
+        display_name: 'Member',
+        status: 'active',
+        account_origin: 'daube_native',
+        primary_provider: 'email',
+        passport_code: null,
+        daube_handle: 'member',
+        native_since: '2026-08-29T00:00:00Z',
+      }]);
+    }
+    throw new Error('unexpected_fetch:' + parsed.pathname);
+  };
+  const worker = createAccountWorker({ fetchImpl });
+  const response = await worker.fetch(req('/account/api/signin', {
+    method: 'POST',
+    headers: { origin: 'https://commerce.daubesonntag.com', 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'member@example.com', password: 'correct-password', captchaToken: captcha }),
+  }), {
+    ...ENV,
+    DAUBE_TURNSTILE_SITE_KEY: '0x4AAAAAAATESTSITEKEY',
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(authPayload.gotrue_meta_security, { captcha_token: captcha });
+  assert.equal(authPayload.email, 'member@example.com');
+  assert.equal(authPayload.password, 'correct-password');
+});

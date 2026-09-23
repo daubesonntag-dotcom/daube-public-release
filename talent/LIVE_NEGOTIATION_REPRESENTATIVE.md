@@ -53,3 +53,12 @@ For each funded live assignment, compensation is agreed in writing before partic
 Async-first preparation and reporting. Live attendance is used only for calls that have a justified live requirement. D’AUBE supplies the meeting packet, proof links, negotiation boundaries and reporting template.
 
 Contact: hello@daubesonntag.com
+
+
+## Private qualification form
+
+Candidates who prefer not to place qualification responses in a public GitHub issue can use D’AUBE’s private structured qualification form:
+
+https://tally.so/r/1A87al
+
+The form collects professional qualification responses only. Do not submit government ID, bank details, passwords, API keys, home address, or private customer data.

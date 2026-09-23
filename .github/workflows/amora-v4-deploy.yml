@@ -1,0 +1,88 @@
+name: AMORA V4 Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'amora-v4/**'
+      - '.github/workflows/amora-v4-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amora-v4-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+
+      - name: Static release integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f amora-v4/index.html
+          test -f amora-v4/en/index.html
+          test -f amora-v4/privacy/index.html
+          test -f amora-v4/en/privacy/index.html
+          test -f amora-v4/styles.css
+          test -f amora-v4/ship.json
+          ! grep -RniE '<script|javascript:|on(click|load|error)=' amora-v4 --include='*.html'
+          ! grep -RniE 'Cambridge Authori[sz]ed|Cambridge English Center' amora-v4 --include='*.html'
+          grep -q 'hreflang="vi"' amora-v4/index.html
+          grep -q 'hreflang="en"' amora-v4/index.html
+          grep -q 'hreflang="vi"' amora-v4/en/index.html
+          grep -q 'hreflang="en"' amora-v4/en/index.html
+          echo "AMORA static integrity: PASS"
+
+      - name: Deploy immutable preview
+        id: ship
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx -y @shipstatic/ship ./amora-v4 --label amora-v4 --json --no-color | tee /tmp/amora-ship.json
+          DEPLOY_URL="$(jq -r '.url' /tmp/amora-ship.json)"
+          CLAIM_URL="$(jq -r '.claim // empty' /tmp/amora-ship.json)"
+          EXPIRES="$(jq -r '.expires // empty' /tmp/amora-ship.json)"
+          test -n "$DEPLOY_URL"
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "claim=$CLAIM_URL" >> "$GITHUB_OUTPUT"
+          echo "expires=$EXPIRES" >> "$GITHUB_OUTPUT"
+          {
+            echo "## AMORA International V4"
+            echo
+            echo "**Preview:** $DEPLOY_URL"
+            echo
+            echo "**Claim URL:** $CLAIM_URL"
+            echo
+            echo "**Expires:** $EXPIRES"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Live smoke test
+        shell: bash
+        env:
+          URL: ${{ steps.ship.outputs.url }}
+        run: |
+          set -euo pipefail
+          for path in / /en/ /privacy/ /en/privacy/ /robots.txt /sitemap.xml; do
+            code="$(curl -L -sS -o /tmp/body -w '%{http_code}' "$URL$path")"
+            test "$code" = "200"
+          done
+          curl -fsSI "$URL/" | tee /tmp/headers
+          grep -qi '^content-security-policy:' /tmp/headers
+          grep -qi '^x-content-type-options:.*nosniff' /tmp/headers
+          grep -qi '^x-frame-options:.*DENY' /tmp/headers
+          echo "AMORA live smoke/security headers: PASS"
+
+      - name: Preserve deployment receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: amora-v4-deployment-receipt
+          path: /tmp/amora-ship.json
+          retention-days: 3

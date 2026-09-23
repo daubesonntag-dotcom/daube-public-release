@@ -1,0 +1,94 @@
+name: Live Negotiation Representative
+description: Join the D’AUBE live-call representative talent pool. No job or paid mission is guaranteed.
+title: "[Live Rep] "
+labels:
+  - talent-pool
+  - live-negotiation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in D’AUBE SONNTAG.
+
+        This is a **Talent Pool**, not a current employment offer or guaranteed paid assignment.
+        Do not post ID documents, bank details, home address, passwords, API keys, private client information, or other sensitive data.
+
+        Representatives must use their own disclosed identity and may never impersonate the Founder or another candidate.
+  - type: input
+    id: display_name
+    attributes:
+      label: Display name / handle
+    validations:
+      required: true
+  - type: dropdown
+    id: lane
+    attributes:
+      label: Representative lane
+      options:
+        - AI / Software Job & Technical Negotiator
+        - Commercial / Partnership Negotiator
+        - Project Delivery / PDM Representative
+        - Multi-lane
+    validations:
+      required: true
+  - type: textarea
+    id: expertise
+    attributes:
+      label: Relevant domain expertise
+      description: Describe concrete domains, technologies, industries, or deal types you can represent credibly.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Public evidence / portfolio
+      description: Add links to public work, profile, case studies, writing, or other verifiable evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: live_experience
+    attributes:
+      label: Live negotiation / meeting experience
+      description: Describe recruiter, client, partner, technical, sales, or project calls you have handled. Do not include confidential customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: languages
+    attributes:
+      label: Languages and proficiency
+    validations:
+      required: true
+  - type: input
+    id: timezone
+    attributes:
+      label: Time zone
+      placeholder: UTC+7
+    validations:
+      required: true
+  - type: input
+    id: availability
+    attributes:
+      label: Availability
+      placeholder: e.g. 5 hours/week, evenings UTC+7
+    validations:
+      required: true
+  - type: input
+    id: compensation
+    attributes:
+      label: Approximate per-call / hourly / project compensation preference
+      description: Optional. Final compensation is agreed per funded assignment.
+    validations:
+      required: false
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Authority & identity boundaries
+      options:
+        - label: I will represent myself truthfully and will not impersonate the Founder or another candidate.
+          required: true
+        - label: I understand that binding terms outside my written delegation envelope must be deferred for approval.
+          required: true
+        - label: I agree to produce a written post-meeting report for each authorized live assignment.
+          required: true
+        - label: I will only record/transcribe where permitted by law, platform rules, and required consent.
+          required: true

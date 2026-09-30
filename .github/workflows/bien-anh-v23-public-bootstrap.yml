@@ -1,0 +1,162 @@
+name: BIEN ANH V2.9 Canonical Reality WIDE
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'compute/bien-anh-v23/**'
+      - '.github/workflows/bien-anh-v23-public-bootstrap.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bien-anh-v29-canonical-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  physical-wide:
+    name: Canonical V2.9 public-safe WIDE on free Linux runner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BLENDER_VERSION: '5.2.0'
+      DAUBE_ZERO_SPEND_MODE: '1'
+      CANONICAL_FORGE_HANDOFF_REVISION: '1aea77152ff04deb09d91a0bcccfa2d1a45ffb1c'
+      PUBLIC_RENDERER_BASE_REVISION: '16a7990e9c29aadccac17e54f3b518a89354279f'
+      PUBLIC_EXECUTION_REVISION: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove canonical handoff, zero-spend and privacy boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.repository.private }}" = "false"
+          test "$DAUBE_ZERO_SPEND_MODE" = "1"
+          test "$(git rev-parse HEAD)" = "$PUBLIC_EXECUTION_REVISION"
+          test "$CANONICAL_FORGE_HANDOFF_REVISION" = '1aea77152ff04deb09d91a0bcccfa2d1a45ffb1c'
+          git fetch --no-tags --depth=1 origin "$PUBLIC_RENDERER_BASE_REVISION"
+          git diff --quiet "$PUBLIC_RENDERER_BASE_REVISION" HEAD -- compute/bien-anh-v23
+          grep -qi 'PUBLIC_DISTRIBUTED_SANITIZED_ENVIRONMENT_ONLY' compute/bien-anh-v23/bootstrap_scene.py
+          if grep -Eiq 'ERINA|Nguyễn Thị Thu Hà|Wai Aye Win|Lâm Chiêu Ninh|body master|identity master|private story' \
+            compute/bien-anh-v23/bootstrap_scene.py \
+            compute/bien-anh-v23/bootstrap_scene_pbr.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v24.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v25.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v26.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v27.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v27_fast.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v28_fix.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v29.py \
+            compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py; then
+            echo '::error::Private character/story marker detected in public renderer source.'
+            exit 2
+          fi
+
+      - name: Bind headless EGL runtime required by Blender 5 compositor
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+          ldconfig -p | grep -F 'libEGL.so.1'
+
+      - name: Download official Blender 5.2 LTS portable
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://download.blender.org/release/Blender5.2"
+          curl -fL --retry 4 --retry-delay 3 -o blender.tar.xz "$base/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl -fL --retry 4 --retry-delay 3 -o blender.sha256 "$base/blender-${BLENDER_VERSION}.sha256"
+          expected="$(grep "blender-${BLENDER_VERSION}-linux-x64.tar.xz" blender.sha256 | awk '{print $1}')"
+          test -n "$expected"
+          echo "$expected  blender.tar.xz" | sha256sum -c -
+          tar -xf blender.tar.xz
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" --version | head -n 2
+
+      - name: Download fixed CC0 physical materials and overcast HDRI
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir='compute/bien-anh-v23/assets_runtime'
+          mkdir -p "$dir"
+          get() { curl -fL --retry 4 --retry-delay 2 -o "$dir/$1" "$2"; test -s "$dir/$1"; }
+          root='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k'
+          get dirty_concrete_diff_1k.jpg "$root/dirty_concrete/dirty_concrete_diff_1k.jpg"
+          get dirty_concrete_nor_gl_1k.jpg "$root/dirty_concrete/dirty_concrete_nor_gl_1k.jpg"
+          get dirty_concrete_rough_1k.jpg "$root/dirty_concrete/dirty_concrete_rough_1k.jpg"
+          get worn_plaster_wall_diff_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_diff_1k.jpg"
+          get worn_plaster_wall_nor_gl_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_nor_gl_1k.jpg"
+          get worn_plaster_wall_rough_1k.jpg "$root/worn_plaster_wall/worn_plaster_wall_rough_1k.jpg"
+          get worn_corrugated_iron_diff_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_diff_1k.jpg"
+          get worn_corrugated_iron_nor_gl_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_nor_gl_1k.jpg"
+          get worn_corrugated_iron_rough_1k.jpg "$root/worn_corrugated_iron/worn_corrugated_iron_rough_1k.jpg"
+          get weathered_planks_diff_1k.jpg "$root/weathered_planks/weathered_planks_diff_1k.jpg"
+          get weathered_planks_nor_gl_1k.jpg "$root/weathered_planks/weathered_planks_nor_gl_1k.jpg"
+          get weathered_planks_rough_1k.jpg "$root/weathered_planks/weathered_planks_rough_1k.jpg"
+          get hlaing_thar_yar_hut_cc0_1600.jpg 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hut_at_Yangon_Suburb_Hlaing_Thar_Yar.JPG?width=1600'
+          get overcast_soil_puresky_1k.hdr 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/overcast_soil_puresky_1k.hdr'
+          sha256sum "$dir"/* > "$dir/SHA256SUMS"
+          printf '%s\n' \
+            'Poly Haven CC0: dirty_concrete, worn_plaster_wall, worn_corrugated_iron, weathered_planks, overcast_soil_puresky HDRI.' \
+            'Wikimedia Commons CC0 Hlaing Thar Yar photo remains provenance-bound in lineage; V2.9 renders no photo-card set extension.' \
+            > "$dir/PROVENANCE.txt"
+
+      - name: Materialize canonical V2.9 WIDE + blend + receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          out='outputs/bien-anh-v23-public-bootstrap'
+          receipt="$out/bien-anh-v23-public-bootstrap-receipt.json"
+          mkdir -p "$out"
+          "./blender-${BLENDER_VERSION}-linux-x64/blender" -b \
+            --python compute/bien-anh-v23/bootstrap_scene_reality_v29_fix.py -- \
+            --output-dir "$out" \
+            --source-revision "$CANONICAL_FORGE_HANDOFF_REVISION"
+          test -s "$out/bien-anh-v23-public-bootstrap.blend"
+          test -s "$out/plate-wide-interior-v23-public-bootstrap.png"
+          test -s "$receipt"
+          grep -q 'PHYSICAL_WIDE_V29_METRIC_MATERIAL_REALISM_PRODUCED_REVIEW_REQUIRED' "$receipt"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('outputs/bien-anh-v23-public-bootstrap/bien-anh-v23-public-bootstrap-receipt.json')
+          r = json.loads(p.read_text(encoding='utf-8'))
+          canonical = os.environ['CANONICAL_FORGE_HANDOFF_REVISION']
+          public_exec = os.environ['PUBLIC_EXECUTION_REVISION']
+          public_base = os.environ['PUBLIC_RENDERER_BASE_REVISION']
+          if r.get('sourceRevision') != canonical:
+              raise SystemExit('receipt_source_revision_not_canonical')
+          r['canonicalForgeHandoffRevision'] = canonical
+          r['publicExecutionRevision'] = public_exec
+          r['publicRendererBaseRevision'] = public_base
+          r['sourceAuthority'] = {
+              'canonicalRepository': 'daubesonntag-dotcom/daube-forge-os',
+              'canonicalHandoffRevision': canonical,
+              'executorRepository': 'daubesonntag-dotcom/daube-public-release',
+              'rendererBaseRevision': public_base,
+              'executionRevision': public_exec,
+              'rendererTreeVerifiedUnchanged': True,
+          }
+          p.write_text(json.dumps(r, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+          grep -q "$CANONICAL_FORGE_HANDOFF_REVISION" "$receipt"
+          sha256sum "$out"/* > "$out/SHA256SUMS"
+          cp compute/bien-anh-v23/assets_runtime/PROVENANCE.txt "$out/PBR-PROVENANCE.txt"
+
+      - name: Upload bounded canonical physical evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: bien-anh-v29-canonical-${{ github.run_id }}-${{ github.run_attempt }}
+          path: outputs/bien-anh-v23-public-bootstrap/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6

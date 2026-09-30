@@ -1,0 +1,49 @@
+name: Sovereign CI V2 Contract
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'farm/sovereign-agent/sovereign-ci-worker-v2.py'
+      - 'farm/sovereign-agent/sovereign-ci-attest.py'
+      - 'farm/sovereign-agent/install-sovereign-ci-toolchain-termux.sh'
+      - 'tests/sovereign-ci-sealed-v2-contract.test.mjs'
+      - '.github/workflows/sovereign-ci-v2-contract.yml'
+  pull_request:
+    paths:
+      - 'farm/sovereign-agent/sovereign-ci-worker-v2.py'
+      - 'farm/sovereign-agent/sovereign-ci-attest.py'
+      - 'farm/sovereign-agent/install-sovereign-ci-toolchain-termux.sh'
+      - 'tests/sovereign-ci-sealed-v2-contract.test.mjs'
+      - '.github/workflows/sovereign-ci-v2-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sovereign-ci-v2-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sealed-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Python and installer syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            farm/sovereign-agent/sovereign-ci-attest.py \
+            farm/sovereign-agent/sovereign-ci-worker-v2.py
+          bash -n farm/sovereign-agent/install-sovereign-ci-toolchain-termux.sh
+      - name: Sealed capsule V2 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/sovereign-ci-sealed-v2-contract.test.mjs

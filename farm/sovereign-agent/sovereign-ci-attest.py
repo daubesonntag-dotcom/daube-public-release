@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -14,7 +16,12 @@ AGENT_PATH = Path(os.environ.get(
     "DAUBE_SOVEREIGN_AGENT_PATH",
     str(Path.home() / ".local/lib/daube-sovereign-agent/direct-agent.py"),
 ))
-RECEIPT = HOME / "ci" / "signed-readiness-receipt.json"
+CI_DIR = HOME / "ci"
+RECEIPT = CI_DIR / "signed-readiness-receipt.json"
+AGE_IDENTITY = Path(os.environ.get("DAUBE_SOVEREIGN_CI_AGE_IDENTITY", str(CI_DIR / "transport-age-identity.txt")))
+AGE_RECIPIENT_FILE = Path(os.environ.get("DAUBE_SOVEREIGN_CI_AGE_RECIPIENT", str(CI_DIR / "transport-age-recipient.txt")))
+AGE_RECIPIENT_RE = re.compile(r"^age1[0-9a-z]{20,4096}$")
+MIN_NODE_MAJOR = 22
 
 
 def load_agent():
@@ -33,8 +40,33 @@ def version(command: list[str]) -> str | None:
         return None
     if completed.returncode != 0:
         return None
-    line = (completed.stdout or completed.stderr or "").strip().splitlines()
-    return line[0][:180] if line else None
+    lines = (completed.stdout or completed.stderr or "").strip().splitlines()
+    return lines[0][:180] if lines else None
+
+
+def node_version_ready(value: str | None) -> bool:
+    if not value:
+        return False
+    match = re.search(r"v?(\d+)(?:\.|$)", value)
+    return bool(match and int(match.group(1)) >= MIN_NODE_MAJOR)
+
+
+def load_age_recipient() -> tuple[str | None, str | None]:
+    try:
+        recipient = AGE_RECIPIENT_FILE.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None, None
+    if not AGE_RECIPIENT_RE.fullmatch(recipient):
+        return None, None
+    if not AGE_IDENTITY.is_file():
+        return None, None
+    try:
+        mode = AGE_IDENTITY.stat().st_mode & 0o777
+    except OSError:
+        return None, None
+    if mode & 0o077:
+        return None, None
+    return recipient, hashlib.sha256(recipient.encode()).hexdigest()
 
 
 def probe_toolchain() -> dict[str, object]:
@@ -45,7 +77,8 @@ def probe_toolchain() -> dict[str, object]:
         "git": ["git", "--version"],
         "python": ["python", "--version"],
         "zstd": ["zstd", "--version"],
-        "age": ["age", "--version"],
+        # Logical wire capability remains `age`; Termux implementation is rage.
+        "age": ["rage", "--version"],
     }
     tools: dict[str, object] = {}
     all_ready = True
@@ -53,11 +86,14 @@ def probe_toolchain() -> dict[str, object]:
         executable = shutil.which(command[0])
         observed_version = version(command) if executable else None
         ready = bool(executable and observed_version)
+        if name == "node":
+            ready = ready and node_version_ready(observed_version)
         all_ready = all_ready and ready
-        tools[name] = {
-            "ready": ready,
-            "version": observed_version,
-        }
+        tools[name] = {"ready": ready, "version": observed_version}
+
+    age_recipient, recipient_fingerprint = load_age_recipient()
+    transport_ready = bool(age_recipient and recipient_fingerprint)
+    all_ready = all_ready and transport_ready
     return {
         "schema": "daube.sovereign-ci-toolchain-proof.v1",
         "ready": all_ready,
@@ -66,6 +102,10 @@ def probe_toolchain() -> dict[str, object]:
         "tools": tools,
         "sourceTransport": {
             "mode": "encrypted-exact-command-closure",
+            "implementation": "rage",
+            "recipientType": "age-x25519",
+            "ageRecipient": age_recipient,
+            "recipientFingerprint": recipient_fingerprint,
             "githubCredentialRequiredOnHost": False,
             "cloudBearerCredentialRequiredOnHost": False,
             "inboundPortRequired": False,
@@ -114,6 +154,8 @@ def main() -> int:
         "hostId": attestation["hostId"],
         "runtimeKind": attestation["runtimeKind"],
         "ciToolchainReady": ci_toolchain["ready"],
+        "recipientFingerprint": ci_toolchain["sourceTransport"]["recipientFingerprint"],
+        "minimumNodeMajor": MIN_NODE_MAJOR,
         "publicKeySha256": attestation["identity"]["publicKeySha256"],
         "paidSpendAuthorized": False,
         "nextGate": (

@@ -119,6 +119,8 @@ a{color:inherit}img{display:block;max-width:100%}button{font:inherit}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.hero__media img,.work-card,.work-card::before,.button{transition:none}}
 
 /* 2026-10-21: visible editorial text must meet normal-text contrast on pale panels. */
-.service-grid .service p,.section-copy,.work-card p,.process-step p{color:#4a5c67}
+.service-grid .service p,.section-copy,.process-step p{color:#4a5c67}
+/* Cards have a deep image-gradient backdrop, so keep their copy light. */
+.work-card p{color:rgba(255,255,255,.94)}
 .surface-dark .section-copy,.surface-dark .panel p{color:rgba(255,255,255,.88)}
 .footer-note{color:#455761}

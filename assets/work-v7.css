@@ -6,7 +6,7 @@
   --paper:#fbfaf7;
   --paper-2:#f4f2ed;
   --white:#fff;
-  --muted:#66727c;
+  --muted:#475866;
   --muted-dark:rgba(255,255,255,.66);
   --line:rgba(11,29,45,.12);
   --line-dark:rgba(255,255,255,.14);
@@ -93,14 +93,14 @@ a{color:inherit}img{display:block;max-width:100%}button{font:inherit}
 .service h3{margin:0;font:500 28px/1 var(--serif)}.service p{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.62}
 
 .process-section{background:#f3f2ee}.process{display:grid;grid-template-columns:repeat(4,1fr);margin-top:44px;border-top:1px solid var(--line)}
-.process-step{position:relative;min-height:210px;padding:26px 24px 0 0}.process-step::after{content:'›';position:absolute;top:7px;right:22px;font:400 28px/1 var(--serif);color:#98a0a6}.process-step:last-child::after{display:none}
+.process-step{position:relative;min-height:210px;padding:26px 24px 0 0}.process-step::after{content:'›';position:absolute;top:7px;right:22px;font:400 28px/1 var(--serif);color:#526775}.process-step:last-child::after{display:none}
 .process-step__n{display:block;font:500 34px/1 var(--serif)}.process-step h3{margin:27px 0 7px;font:500 25px/1 var(--serif)}.process-step p{max-width:26ch;margin:0;color:var(--muted);font-size:11px;line-height:1.58}
 
 .evidence-section{background:#fff;color:var(--ink)}.evidence-section .section-title{max-width:10ch}.evidence-grid{display:grid;grid-template-columns:1.2fr .8fr .8fr;gap:12px;margin-top:52px}.evidence-item{min-height:300px;padding:30px;display:flex;flex-direction:column;border:1px solid var(--line);background:#f8f7f3}.evidence-item:first-child{background:linear-gradient(160deg,#0f283c,#071724);color:#fff;border-color:transparent}.evidence-item span{font:500 15px/1 var(--serif);opacity:.64}.evidence-item strong{margin-top:46px;font:500 31px/1.02 var(--serif)}.evidence-item p{margin:15px 0 0;color:var(--muted);font-size:12px;line-height:1.65}.evidence-item:first-child p{color:rgba(255,255,255,.64)}.evidence-item small{margin-top:auto;padding-top:36px;color:var(--gold);font-size:7px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 
 .cta-section{padding:0 var(--gutter) clamp(72px,8vw,110px);background:#fff}.cta-panel{width:min(var(--max),100%);min-height:230px;margin:auto;display:grid;grid-template-columns:1.05fr .72fr;gap:50px;align-items:center;padding:clamp(36px,4.6vw,64px);overflow:hidden;border-radius:18px;background:linear-gradient(90deg,rgba(8,26,40,.96),rgba(8,26,40,.68)),url('https://cdn.creativeclaw.co/u/218f016f/images/c2b5ff65-757c-4da3-b4fc-06a9e4f9a72f.png') center 54%/cover;color:#fff;box-shadow:0 24px 70px rgba(8,24,37,.13)}.cta-panel .section-label{color:#d7bd95}.cta-panel h2{max-width:12ch;margin:0;font:500 clamp(48px,5.4vw,80px)/.88 var(--serif);letter-spacing:-.045em}.cta-panel p{max-width:38ch;margin:0;color:rgba(255,255,255,.68);font-size:13px;line-height:1.7}.cta-panel .button{margin-top:24px;background:#fff;color:var(--ink);border-color:#fff}
 
-.site-footer{padding:30px var(--gutter) 36px;background:#fff;border-top:1px solid var(--line)}.footer-inner{width:min(var(--max),100%);margin:auto;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:end}.footer-brand{font:500 23px/1 var(--serif)}.footer-note{margin-top:8px;color:#7b848a;font-size:9px}.footer-nav{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:14px 22px}.footer-nav a{font-size:8px;font-weight:700;letter-spacing:.09em;text-decoration:none;text-transform:uppercase;color:#596672}
+.site-footer{padding:30px var(--gutter) 36px;background:#fff;border-top:1px solid var(--line)}.footer-inner{width:min(var(--max),100%);margin:auto;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:end}.footer-brand{font:500 23px/1 var(--serif)}.footer-note{margin-top:8px;color:#465866;font-size:10px}.footer-nav{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:14px 22px}.footer-nav a{font-size:8px;font-weight:700;letter-spacing:.09em;text-decoration:none;text-transform:uppercase;color:#596672}
 
 .reveal{opacity:0;transform:translateY(18px);transition:opacity .75s ease,transform .9s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}
 

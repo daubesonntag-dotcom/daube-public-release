@@ -339,6 +339,24 @@ def safe_code(value: object) -> str:
     return re.sub(r"[^A-Za-z0-9_.:-]", "_", str(value or "unknown"))[:180]
 
 
+def poll_failure_delay(error: Exception, failures: int) -> float:
+    """Fail closed on provider quota/rate failures; never hot-loop a blocked API.
+
+    Delay only the daemon polling loop. Never retry unwrap/completion jobs.
+    A 402 reflects a provider-side quota/billing restriction: periodic recovery
+    probes are capped at approximately hourly, with bounded jitter.
+    """
+    match = re.match(r"^kms_poll_failed:(402|429):", str(error))
+    if match:
+        attempts = max(1, min(16, failures))
+        if match.group(1) == "402":
+            base = min(3600, 60 * (2 ** min(attempts - 1, 6)))
+        else:
+            base = min(300, 15 * (2 ** min(attempts - 1, 5)))
+        return base * (0.90 + secrets.randbelow(201) / 1000.0)
+    return min(5.0, max(1.0, POLL_SECONDS * 2))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="D'AUBE fixed-profile sovereign KMS unwrap worker")
     parser.add_argument("--register-only", action="store_true")
@@ -372,15 +390,25 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False))
         return 0
 
+    consecutive_poll_failures = 0
     while True:
+        delay = max(0.2, POLL_SECONDS)
         try:
             result = run_once(host, public_pem, fingerprint)
+            consecutive_poll_failures = 0
             if result.get("status") != "NO_JOB":
                 print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
         except Exception as error:
-            print(json.dumps({**summary, "status": "DEGRADED", "errorCode": safe_code(error)}, ensure_ascii=False), flush=True)
-            time.sleep(min(5.0, max(1.0, POLL_SECONDS * 2)))
-        time.sleep(max(0.2, POLL_SECONDS))
+            if re.match(r"^kms_poll_failed:(402|429):", str(error)):
+                consecutive_poll_failures += 1
+            else:
+                consecutive_poll_failures = 0
+            delay = poll_failure_delay(error, consecutive_poll_failures)
+            print(json.dumps({
+                **summary, "status": "DEGRADED",
+                "errorCode": safe_code(error), "retryAfterSeconds": round(delay, 1)
+            }, ensure_ascii=False), flush=True)
+        time.sleep(delay)
 
 
 if __name__ == "__main__":

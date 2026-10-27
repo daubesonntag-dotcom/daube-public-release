@@ -161,6 +161,23 @@ def activate_root(kms, host, public_pem: str, fingerprint: str) -> dict[str, obj
     }
 
 
+
+def activate_with_retries(kms, host, public_pem: str, fingerprint: str, *, continuous: bool):
+    if not continuous:
+        return activate_root(kms, host, public_pem, fingerprint)
+    failures = 0
+    while True:
+        try:
+            return activate_root(kms, host, public_pem, fingerprint)
+        except Exception as error:
+            failures += 1
+            retry = kms.retry_delay_seconds(error, failures)
+            print(json.dumps({"status": "WAITING_PROVIDER", "errorCode": kms.safe_code(error),
+                "retryAfterSeconds": retry, "rootPrivateKeyExported": False,
+                "paidSpendAuthorized": False}), flush=True)
+            time.sleep(retry)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="D'AUBE sovereign KMS worker v2 with activation canary")
     parser.add_argument("--register-only", action="store_true")
@@ -176,8 +193,8 @@ def main() -> int:
     if host.runtime_kind() != "android-termux":
         raise SystemExit("D'AUBE Sovereign KMS worker v2 requires the paired Android/Termux sovereign host.")
     public_pem, fingerprint = host.ensure_identity()
-    registration = kms.register(host, public_pem, fingerprint)
-    activation = activate_root(kms, host, public_pem, fingerprint)
+    registration = kms.register_with_retries(host, public_pem, fingerprint, continuous=args.daemon)
+    activation = activate_with_retries(kms, host, public_pem, fingerprint, continuous=args.daemon)
     summary: dict[str, object] = {
         "schema": "daube.sovereign-kms-worker-status.v2",
         "hostId": f"sovereign-{fingerprint[:20]}",
@@ -195,14 +212,20 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False))
         return 0
 
+    consecutive_failures = 0
     while True:
         try:
             result = kms.run_once(host, public_pem, fingerprint)
+            consecutive_failures = 0
             if result.get("status") != "NO_JOB":
                 print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
         except Exception as error:
-            print(json.dumps({**summary, "status": "DEGRADED", "errorCode": kms.safe_code(error)}, ensure_ascii=False), flush=True)
-            time.sleep(min(5.0, max(1.0, kms.POLL_SECONDS * 2)))
+            consecutive_failures += 1
+            retry = kms.retry_delay_seconds(error, consecutive_failures)
+            print(json.dumps({**summary, "status": "DEGRADED",
+                "errorCode": kms.safe_code(error), "retryAfterSeconds": retry}, ensure_ascii=False), flush=True)
+            time.sleep(retry)
+            continue
         time.sleep(max(0.2, kms.POLL_SECONDS))
 
 

@@ -339,6 +339,39 @@ def safe_code(value: object) -> str:
     return re.sub(r"[^A-Za-z0-9_.:-]", "_", str(value or "unknown"))[:180]
 
 
+
+# Provider-aware retry policy: quota restrictions must never become a sub-second
+# poll storm.  This is a local transport policy, not payment authorization.
+def retry_delay_seconds(error: Exception, consecutive_failures: int) -> float:
+    message = str(error)
+    status_match = re.search(r"(?:kms_(?:poll|register|complete)_failed|activation_(?:challenge|complete)_failed):([0-9]{3}):", message)
+    http_status = int(status_match.group(1)) if status_match else None
+    if http_status == 402:
+        return 1800.0  # Supabase Fair Use quota; no HTTP retry for 30 minutes.
+    if http_status in (401, 403):
+        return 900.0  # Permission/identity failure: do not hammer.
+    if http_status == 429:
+        return 300.0  # Respect provider throttle even when Retry-After is absent.
+    count = max(1, min(int(consecutive_failures), 7))
+    return float(min(120, 2 ** count))
+
+
+def register_with_retries(host, public_pem: str, fingerprint: str, *, continuous: bool):
+    if not continuous:
+        return register(host, public_pem, fingerprint)
+    failures = 0
+    while True:
+        try:
+            return register(host, public_pem, fingerprint)
+        except Exception as error:
+            failures += 1
+            retry = retry_delay_seconds(error, failures)
+            print(json.dumps({"status": "WAITING_PROVIDER", "errorCode": safe_code(error),
+                "retryAfterSeconds": retry, "rootPrivateKeyExported": False,
+                "paidSpendAuthorized": False}), flush=True)
+            time.sleep(retry)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="D'AUBE fixed-profile sovereign KMS unwrap worker")
     parser.add_argument("--register-only", action="store_true")
@@ -353,7 +386,7 @@ def main() -> int:
     if host.runtime_kind() != "android-termux":
         raise SystemExit("D'AUBE Sovereign KMS worker requires the paired Android/Termux sovereign host.")
     public_pem, fingerprint = host.ensure_identity()
-    registration = register(host, public_pem, fingerprint)
+    registration = register_with_retries(host, public_pem, fingerprint, continuous=args.daemon)
     summary: dict[str, object] = {
         "schema": "daube.sovereign-kms-worker-status.v1",
         "hostId": f"sovereign-{fingerprint[:20]}",
@@ -372,14 +405,20 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False))
         return 0
 
+    consecutive_failures = 0
     while True:
         try:
             result = run_once(host, public_pem, fingerprint)
+            consecutive_failures = 0
             if result.get("status") != "NO_JOB":
                 print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
         except Exception as error:
-            print(json.dumps({**summary, "status": "DEGRADED", "errorCode": safe_code(error)}, ensure_ascii=False), flush=True)
-            time.sleep(min(5.0, max(1.0, POLL_SECONDS * 2)))
+            consecutive_failures += 1
+            retry = retry_delay_seconds(error, consecutive_failures)
+            print(json.dumps({**summary, "status": "DEGRADED",
+                "errorCode": safe_code(error), "retryAfterSeconds": retry}, ensure_ascii=False), flush=True)
+            time.sleep(retry)
+            continue
         time.sleep(max(0.2, POLL_SECONDS))
 
 

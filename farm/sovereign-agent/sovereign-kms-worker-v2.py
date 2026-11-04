@@ -195,15 +195,7 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False))
         return 0
 
-    while True:
-        try:
-            result = kms.run_once(host, public_pem, fingerprint)
-            if result.get("status") != "NO_JOB":
-                print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
-        except Exception as error:
-            print(json.dumps({**summary, "status": "DEGRADED", "errorCode": kms.safe_code(error)}, ensure_ascii=False), flush=True)
-            time.sleep(min(5.0, max(1.0, kms.POLL_SECONDS * 2)))
-        time.sleep(max(0.2, kms.POLL_SECONDS))
+    return kms.run_daemon(host, public_pem, fingerprint, summary)
 
 
 if __name__ == "__main__":

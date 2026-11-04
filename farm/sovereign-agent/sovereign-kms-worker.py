@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import random
 import re
 import secrets
 import shutil
@@ -339,6 +340,46 @@ def safe_code(value: object) -> str:
     return re.sub(r"[^A-Za-z0-9_.:-]", "_", str(value or "unknown"))[:180]
 
 
+def retry_delay_seconds(error: Exception, consecutive_failures: int, *, random_value: float | None = None) -> float:
+    """Bound client retries when an authenticated KMS broker is degraded.
+
+    Persistent HTTP 4xx (including wrapped database 503 returned as 422)
+    are slow-probed, not retried in a rapid loop. Transient network/5xx
+    errors use shorter capped backoff. Jitter spreads multiple clients.
+    """
+    match = re.match(r"^kms_poll_failed:(\d{3}):", str(error))
+    status = int(match.group(1)) if match else 0
+    persistent = 400 <= status < 500 and status != 429
+    base = 30.0 if persistent else 5.0
+    cap = 900.0 if persistent else 120.0
+    attempts = max(1, int(consecutive_failures))
+    ceiling = min(cap, base * (2 ** min(attempts - 1, 8)))
+    jitter = random.random() if random_value is None else max(0.0, min(1.0, float(random_value)))
+    return min(cap, max(base, ceiling * (0.75 + 0.5 * jitter)))
+
+
+def run_daemon(host, public_pem: str, fingerprint: str, summary: dict[str, object]) -> int:
+    """Single existing daemon loop: reset on success; one sleep per outcome."""
+    consecutive_failures = 0
+    while True:
+        try:
+            result = run_once(host, public_pem, fingerprint)
+            consecutive_failures = 0
+            if result.get("status") != "NO_JOB":
+                print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
+        except Exception as error:
+            consecutive_failures = min(32, consecutive_failures + 1)
+            print(json.dumps({
+                **summary,
+                "status": "DEGRADED",
+                "errorCode": safe_code(error),
+                "consecutiveFailures": consecutive_failures,
+            }, ensure_ascii=False), flush=True)
+            time.sleep(retry_delay_seconds(error, consecutive_failures))
+            continue
+        time.sleep(max(0.2, POLL_SECONDS))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="D'AUBE fixed-profile sovereign KMS unwrap worker")
     parser.add_argument("--register-only", action="store_true")
@@ -372,15 +413,7 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False))
         return 0
 
-    while True:
-        try:
-            result = run_once(host, public_pem, fingerprint)
-            if result.get("status") != "NO_JOB":
-                print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
-        except Exception as error:
-            print(json.dumps({**summary, "status": "DEGRADED", "errorCode": safe_code(error)}, ensure_ascii=False), flush=True)
-            time.sleep(min(5.0, max(1.0, POLL_SECONDS * 2)))
-        time.sleep(max(0.2, POLL_SECONDS))
+    return run_daemon(host, public_pem, fingerprint, summary)
 
 
 if __name__ == "__main__":

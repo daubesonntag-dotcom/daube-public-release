@@ -350,7 +350,7 @@ def retry_delay_seconds(error: Exception, consecutive_failures: int, *, random_v
     match = re.match(r"^kms_poll_failed:(\d{3}):", str(error))
     status = int(match.group(1)) if match else 0
     persistent = 400 <= status < 500 and status != 429
-    base = 30.0 if persistent else 5.0
+    base = (600.0 if status == 422 else 30.0) if persistent else 5.0
     cap = 900.0 if persistent else 120.0
     attempts = max(1, int(consecutive_failures))
     ceiling = min(cap, base * (2 ** min(attempts - 1, 8)))
@@ -358,16 +358,33 @@ def retry_delay_seconds(error: Exception, consecutive_failures: int, *, random_v
     return min(cap, max(base, ceiling * (0.75 + 0.5 * jitter)))
 
 
+def idle_delay_seconds(consecutive_idle: int, retry_after_ms: object) -> float:
+    """Slow successful empty polls, honoring a bounded broker hint."""
+    try:
+        broker_seconds = max(0.0, float(retry_after_ms) / 1000)
+    except (ValueError, TypeError, OverflowError):
+        broker_seconds = 0.0
+    count = max(1, int(consecutive_idle))
+    return min(60.0, max(10.0, broker_seconds, 10.0 * (2 ** min(count - 1, 3))))
+
+
 def run_daemon(host, public_pem: str, fingerprint: str, summary: dict[str, object]) -> int:
     """Single existing daemon loop: reset on success; one sleep per outcome."""
     consecutive_failures = 0
+    consecutive_idle = 0
     while True:
         try:
             result = run_once(host, public_pem, fingerprint)
             consecutive_failures = 0
-            if result.get("status") != "NO_JOB":
+            if result.get("status") == "NO_JOB":
+                consecutive_idle = min(16, consecutive_idle + 1)
+                sleep_seconds = idle_delay_seconds(consecutive_idle, result.get("retryAfterMilliseconds"))
+            else:
+                consecutive_idle = 0
+                sleep_seconds = max(0.2, POLL_SECONDS)
                 print(json.dumps({**summary, **result}, ensure_ascii=False), flush=True)
         except Exception as error:
+            consecutive_idle = 0
             consecutive_failures = min(32, consecutive_failures + 1)
             print(json.dumps({
                 **summary,
@@ -377,7 +394,7 @@ def run_daemon(host, public_pem: str, fingerprint: str, summary: dict[str, objec
             }, ensure_ascii=False), flush=True)
             time.sleep(retry_delay_seconds(error, consecutive_failures))
             continue
-        time.sleep(max(0.2, POLL_SECONDS))
+        time.sleep(sleep_seconds)
 
 
 def main() -> int:

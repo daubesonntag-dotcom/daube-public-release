@@ -12,7 +12,37 @@ def recent(db,kind,since): return bool(db.execute("SELECT 1 FROM tasks WHERE kin
 def enqueue(db,kind,payload,oid,pri,cap):
     tid=uid('task'); t=now(); db.execute("INSERT INTO tasks(id,objective_id,kind,payload,priority,state,attempts,max_attempts,not_before,capability,risk,cost_ceiling,founder_gate,created_at,updated_at) VALUES(?,?,?,?,?,'QUEUED',0,3,0,?,'low',0,0,?,?)",(tid,oid,kind,jd(payload),pri,cap,t,t)); event(db,tid,'PLANNED',{'kind':kind,'objective':oid,'capability':cap}); return tid
 
+def quarantine_stale_runs(db, older_than_seconds=1800, current_time=None, limit=100):
+    """Fail closed for abandoned RUNNING tasks. NEVER requeue or replay side effects."""
+    if not isinstance(older_than_seconds,(int,float)) or older_than_seconds < 600:
+        raise ValueError('stale_running_threshold_invalid')
+    if not isinstance(limit,int) or not 1 <= limit <= 100:
+        raise ValueError('stale_running_limit_invalid')
+    when=now() if current_time is None else float(current_time)
+    cutoff=when-older_than_seconds
+    db.execute("BEGIN IMMEDIATE")
+    quarantined=[]
+    try:
+        rows=db.execute(
+            "SELECT id,kind,updated_at FROM tasks WHERE state='RUNNING' AND updated_at < ? ORDER BY updated_at,id LIMIT ?",
+            (cutoff,limit)).fetchall()
+        for row in rows:
+            updated=db.execute(
+                "UPDATE tasks SET state='REVIEW_REQUIRED',updated_at=? WHERE id=? AND state='RUNNING' AND updated_at < ?",
+                (when,row['id'],cutoff)).rowcount
+            if updated==1:
+                event(db,row['id'],'STALE_RUNNING_REVIEW_REQUIRED',{
+                    'kind':row['kind'],'last_updated_at':row['updated_at'],
+                    'reason':'run_outlived_execution_window','replay_authorized':False})
+                quarantined.append(row['id'])
+        db.execute("COMMIT")
+        return quarantined
+    except BaseException:
+        db.execute("ROLLBACK")
+        raise
+
 def tick(db):
+    quarantined=quarantine_stale_runs(db)
     planned=[]; gaps=[]; caps={}
     for r in db.execute("SELECT kind,id,enabled,last_health,priority FROM capabilities WHERE enabled=1 ORDER BY priority DESC"):
         caps.setdefault(r['kind'],r)
@@ -36,7 +66,7 @@ def tick(db):
                 if need not in caps: gaps.append({'objective':oid,'missing':need})
         if 'evidence' in title and 'host' in caps and not recent(db,'host',21600): planned.append(enqueue(db,'host',{'op':'service_status','reason':'planner-v2-evidence-assurance'},oid,pri,'host'))
     for g in gaps: event(db,g['objective'],'CAPABILITY_GAP',g)
-    return {'planned':planned,'gaps':gaps,'ts':now()}
+    return {'planned':planned,'gaps':gaps,'ts':now(),'stale_running_review_required':len(quarantined)}
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--db',required=True); ap.add_argument('--forever',action='store_true'); ap.add_argument('--sleep',type=float,default=60); a=ap.parse_args(); db=connect(a.db)

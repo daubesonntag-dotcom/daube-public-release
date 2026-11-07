@@ -4,15 +4,21 @@ on:
   pull_request:
     paths:
       - 'compute-commons/README.md'
+      - 'compute-commons/WORKER.md'
       - 'compute-commons/volunteer-host.mjs'
       - 'compute-commons/volunteer-host.test.mjs'
+      - 'compute-commons/volunteer-worker.mjs'
+      - 'compute-commons/volunteer-worker.test.mjs'
       - '.github/workflows/compute-commons-volunteer-host-v1-validate.yml'
   push:
     branches: [main]
     paths:
       - 'compute-commons/README.md'
+      - 'compute-commons/WORKER.md'
       - 'compute-commons/volunteer-host.mjs'
       - 'compute-commons/volunteer-host.test.mjs'
+      - 'compute-commons/volunteer-worker.mjs'
+      - 'compute-commons/volunteer-worker.test.mjs'
       - '.github/workflows/compute-commons-volunteer-host-v1-validate.yml'
   workflow_dispatch:
 
@@ -39,11 +45,15 @@ jobs:
         with:
           node-version: 24
 
-      - name: Parse public host client
-        run: node --check compute-commons/volunteer-host.mjs
+      - name: Parse public host + worker clients
+        run: |
+          node --check compute-commons/volunteer-host.mjs
+          node --check compute-commons/volunteer-worker.mjs
 
-      - name: Run volunteer host contract harness
-        run: node --test compute-commons/volunteer-host.test.mjs
+      - name: Run volunteer host + fixed-worker contract harnesses
+        run: |
+          node --test compute-commons/volunteer-host.test.mjs
+          node --test compute-commons/volunteer-worker.test.mjs
 
       - name: Enforce PUBLIC_SAFE and local-secret boundary
         shell: bash
@@ -59,8 +69,12 @@ jobs:
           grep -Fq "remoteCodeAllowed: false" compute-commons/volunteer-host.mjs
           grep -Fq "arbitraryShellAllowed: false" compute-commons/volunteer-host.mjs
           grep -Fq "commercialOptIn: false" compute-commons/volunteer-host.mjs
-          ! grep -Eiq '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk_live_[A-Za-z0-9]{10,}|service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_)' compute-commons/README.md compute-commons/volunteer-host.mjs compute-commons/volunteer-host.test.mjs
-          ! grep -Eq "node:child_process|require\(['\"]child_process['\"]\)|from ['\"]child_process['\"]" compute-commons/volunteer-host.mjs
+          grep -Fq "export const KERNEL_ID = 'rgba-premultiply-u8-v1'" compute-commons/volunteer-worker.mjs
+          grep -Fq "export const TASK_MODE = 'public-rgba8-artifact-v1'" compute-commons/volunteer-worker.mjs
+          grep -Fq "remoteCodeAllowed: false" compute-commons/volunteer-worker.mjs
+          grep -Fq "arbitraryShellAllowed: false" compute-commons/volunteer-worker.mjs
+          ! grep -Eiq '(BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk_live_[A-Za-z0-9]{10,}|service_role|SUPABASE_SERVICE_ROLE_KEY|pdl_live_apikey_)' compute-commons/README.md compute-commons/WORKER.md compute-commons/volunteer-host.mjs compute-commons/volunteer-host.test.mjs compute-commons/volunteer-worker.mjs compute-commons/volunteer-worker.test.mjs
+          ! grep -Eq "node:child_process|require\(['\"]child_process['\"]\)|from ['\"]child_process['\"]" compute-commons/volunteer-host.mjs compute-commons/volunteer-worker.mjs
 
       - name: Verify no production-capacity overclaim
         shell: bash
@@ -69,3 +83,4 @@ jobs:
           grep -Fq 'A GitHub comment, pairing token, self-reported GPU receipt, or live heartbeat is **not** production capacity by itself.' compute-commons/README.md
           grep -Fq 'PAIRED_CAPABILITY_REGISTERED_NOT_MEASURED' compute-commons/README.md
           grep -Fq 'PAIRED_RUNTIME_PROBED_NOT_PRODUCTION' compute-commons/README.md
+          grep -Fq 'community capacity, not release authority' compute-commons/WORKER.md

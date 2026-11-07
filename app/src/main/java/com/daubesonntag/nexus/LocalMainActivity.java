@@ -22,8 +22,10 @@ public class LocalMainActivity extends Activity {
     settings.setDatabaseEnabled(true);
     settings.setAllowFileAccess(true);
     settings.setAllowContentAccess(false);
+    settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+    settings.setCacheMode(WebSettings.LOAD_DEFAULT);
     webView.setWebViewClient(new WebViewClient());
-    webView.loadUrl("file:///android_asset/index.html");
+    webView.loadUrl("file:///android_asset/payment-preview.html");
   }
 
   @Override

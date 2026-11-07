@@ -1,0 +1,61 @@
+name: open-weight-cpu-reasoning-canary
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/open-weight-cpu-reasoning-canary.yml'
+      - 'scripts/open-weight-cpu-reasoning-canary.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/open-weight-cpu-reasoning-canary.yml'
+      - 'scripts/open-weight-cpu-reasoning-canary.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: open-weight-cpu-reasoning-canary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qwen3-cpu-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HF_HUB_DISABLE_IMPLICIT_TOKEN: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      DO_NOT_TRACK: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned CPU inference stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --index-url https://download.pytorch.org/whl/cpu 'torch==2.7.1'
+          python -m pip install --disable-pip-version-check \
+            'transformers==4.51.3' \
+            'huggingface_hub==0.30.2' \
+            'safetensors==0.5.3'
+
+      - name: Execute exact-revision open-weight inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/open-weight-cpu-reasoning-canary.py
+
+      - name: Upload evidence receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-weight-cpu-reasoning-canary
+          path: evidence/open-weight-cpu-reasoning-canary.json
+          if-no-files-found: warn
+          retention-days: 7

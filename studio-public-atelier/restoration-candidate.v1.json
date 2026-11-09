@@ -26,15 +26,15 @@
     "styles.css",
     "sw.js"
   ],
-  "artifactDigest": "sha256:47dae4fd5e8cb7827b24b0c93cda19f3b9b6818a038647d95d07dcb10772155e",
+  "artifactDigest": "sha256:44bdf5ed7c9b1b9959a9644719c0bd2b3101d96b8bd29cdea7fa6aec7ca687d2",
   "gitBlobIds": {
-    "app.js": "b5c9a12567633a546984ba61a89d0f01919be426",
+    "app.js": "11c61b188577ab396ba426f785b0bc7b72332528",
     "bootstrap.js": "c6e1fc0023d1145a380d1e206996eacf3d03fe82",
     "icon.svg": "4467d0bac8c5f2ea139b69cc42edcbe706460790",
     "index.html": "fe533963b472127cca6c485e33730ce45b83699f",
     "manifest.webmanifest": "1f070f1d91395ec0b2b5a7891cd171cc80c5e316",
     "styles.css": "caf660177cf8fd529b4efa65c16b064ec8de73c5",
-    "sw.js": "27f400a95e033b950ce33db79a0cb4fd49c16b69"
+    "sw.js": "a8900a311dd2b4e98b27dd2ca8b05111c99f44b3"
   },
   "historicalMetadata": {
     "role": "baseline evidence only, not approval or availability proof for this candidate",
@@ -45,21 +45,21 @@
     "forgeHandoffCommit": "594c224aa0ea8fcd19e7370a799071efd8b38c62"
   },
   "serviceWorker": {
-    "candidateCacheIdentity": "daube-studio-public-v1.1.1-qc-sw-r1",
+    "candidateCacheIdentity": "daube-studio-public-v1.1.1-qc-storage-r2",
     "releaseMetadata": "network-only",
     "privateOrApiPathsIntercepted": false,
     "queryVariantsIntercepted": false
   },
   "verification": {
-    "behaviorTests": 21,
-    "behaviorTestsPassed": 21,
+    "behaviorTests": 28,
+    "behaviorTestsPassed": 28,
     "kind": "Node VM with minimal DOM and CacheStorage adapters",
     "syntaxChecks": [
       "app.js",
       "bootstrap.js",
       "sw.js"
     ],
-    "negativeControl": "Three original QC click scenarios fail with visible score 6/8 instead of required 0/8.",
+    "negativeControl": "Original QC code fails three click scenarios (6/8 rather than 0/8). Prior candidate storage code fails six of seven new storage tests: metadata startup crash, storage exceptions, or false saved status.",
     "realBrowserCandidateQA": "NOT_RUN",
     "hostedCI": "NOT_CLAIMED"
   },
@@ -92,5 +92,9 @@
     "real-browser installation, update or offline acceptance",
     "new Forge handoff approved",
     "original provider application recoverable"
-  ]
+  ],
+  "sourceParent": {
+    "repository": "daubesonntag-dotcom/daube-public-release",
+    "commit": "a345f54e2700cc292fc3e0cb3b16d31b814f8bb2"
+  }
 }

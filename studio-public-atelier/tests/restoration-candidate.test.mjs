@@ -21,6 +21,8 @@ test('candidate identity matches the exact seven executable source blobs', () =>
     hash.update(`${path}\0${sha}\0`);
   }
   assert.equal(record.artifactDigest, `sha256:${hash.digest('hex')}`);
+  const cacheIdentity = readFileSync(new URL('sw.js', root), 'utf8').match(/^const CACHE = '([^']+)'/)[1];
+  assert.equal(record.serviceWorker.candidateCacheIdentity, cacheIdentity);
 });
 
 test('candidate cannot represent historical stable metadata as current release approval', () => {

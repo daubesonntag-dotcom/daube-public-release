@@ -11,6 +11,7 @@ This branch repairs the existing `studio-public-atelier` module. It is not deplo
 ## Repairs
 
 - Reviewing prototype QC creates no evidence. All eight gates remain NOT VERIFIED, the score stays 0/8, and Ship remains locked, including after edits and undo/redo.
+- Storage read/write failures no longer crash editing, undo or redo. The status says when changes are not saved and only claims a local save after a successful write. Invalid metadata is recovered without discarding valid project fields; invalid stored projects are not overwritten on boot.
 - The update notification no longer calls an unverified update verified.
 - A fresh service-worker cache identity prevents the previous cached JavaScript from being reused after a successful upgrade.
 - Offline caching is limited to the exact public entry and five static assets. Private/API paths, arbitrary resources, query variants, foreign origins, non-GET requests and release metadata are not intercepted.

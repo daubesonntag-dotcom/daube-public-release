@@ -1,4 +1,4 @@
-const CACHE = 'daube-studio-public-v1.1.1-qc-sw-r1';
+const CACHE = 'daube-studio-public-v1.1.1-qc-storage-r2';
 const scopeUrl = self.registration.scope;
 const entryUrls = new Set([
   new URL('./', scopeUrl).href,

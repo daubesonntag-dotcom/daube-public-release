@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 const scope = 'https://studio.example/atelier/';
-const cacheName = 'daube-studio-public-v1.1.1-qc-sw-r1';
+const cacheName = 'daube-studio-public-v1.1.1-qc-storage-r2';
 function boot(faults = {}) {
   const handlers = {}, stores = new Map(), calls = [];
   let network = async () => new Response('network', { headers: {'content-type':'text/html'} });

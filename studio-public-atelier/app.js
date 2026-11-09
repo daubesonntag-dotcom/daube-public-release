@@ -5,18 +5,52 @@ const AI_TOOLS=[['generative-fill','Generative Fill','Image Atelier'],['smart-ma
 const GATES=['visual-harmony','readability','responsive-layout','interaction-integrity','accessibility','asset-rights-provenance','performance-runtime','release-evidence'];
 const clone=(v)=>JSON.parse(JSON.stringify(v));
 const freshProject=()=>({id:'public-sunday-sanctuary',theme:'golden-dawn',mode:'craft',nodes:[],composeTray:[],selection:[],metadata:{revision:0}});
-function hydrate(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return freshProject();const value=JSON.parse(raw);return value&&Array.isArray(value.nodes)&&Array.isArray(value.composeTray)?value:freshProject()}catch{return freshProject()}}
+let saveStatus = 'not saved yet';
+function hydrate() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) return freshProject();
+    const value = JSON.parse(raw);
+    if (!value || !Array.isArray(value.nodes) || !Array.isArray(value.composeTray) ||
+        !value.nodes.every((node) => node && typeof node === 'object' && !Array.isArray(node))) {
+      throw new Error('Invalid saved project');
+    }
+    const metadata = value.metadata;
+    const validMetadata = metadata && typeof metadata === 'object' && !Array.isArray(metadata);
+    const validRevision = validMetadata && Number.isSafeInteger(metadata.revision) && metadata.revision >= 0;
+    if (!validRevision) {
+      value.metadata = { ...(validMetadata ? metadata : {}), revision: 0 };
+      saveStatus = 'not saved · recovered project metadata';
+    } else {
+      saveStatus = 'saved locally';
+    }
+    return value;
+  } catch {
+    // Keep the stored bytes untouched on boot, including malformed projects.
+    saveStatus = 'not saved · local project unavailable';
+    return freshProject();
+  }
+}
 let history = { past: [], present: hydrate(), future: [] };
 let activeCategory = 'all';
 // Public preview actions cannot create independently verified evidence.
 const receipts = Object.freeze([]);
 let toastTimer;function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
-function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(history.present));const el=$('#saveState');if(el)el.textContent='saved locally'}
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history.present));
+    saveStatus = 'saved locally';
+  } catch {
+    saveStatus = 'not saved · browser storage unavailable';
+  }
+  const el = $('#saveState');
+  if (el) el.textContent = saveStatus;
+}
 function commit(mutator){history.past.push(clone(history.present));if(history.past.length>80)history.past.shift();const next=clone(history.present);mutator(next);next.metadata.revision=(next.metadata.revision||0)+1;history.present=next;history.future=[];persist();render()}
 function undo(){if(!history.past.length)return;history.future.unshift(clone(history.present));history.present=history.past.pop();persist();render()}
 function redo(){if(!history.future.length)return;history.past.push(clone(history.present));history.present=history.future.shift();persist();render()}
 function escapeHTML(value){return String(value).replace(/[&<>'"]/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]))}
-function render(){const p=history.present;document.body.dataset.theme=p.theme;$('#revision').textContent=`r${p.metadata.revision||0}`;$('#nodeCount').textContent=String(p.nodes.length);$('#undoButton').disabled=!history.past.length;$('#redoButton').disabled=!history.future.length;$$('.mode-rail button').forEach((b)=>b.classList.toggle('active',b.dataset.mode===p.mode));renderNodes();renderTray();renderGate()}
+function render(){const p=history.present;$('#saveState').textContent=saveStatus;document.body.dataset.theme=p.theme;$('#revision').textContent=`r${p.metadata.revision||0}`;$('#nodeCount').textContent=String(p.nodes.length);$('#undoButton').disabled=!history.past.length;$('#redoButton').disabled=!history.future.length;$$('.mode-rail button').forEach((b)=>b.classList.toggle('active',b.dataset.mode===p.mode));renderNodes();renderTray();renderGate()}
 function renderNodes(){const layer=$('#placedLayer');layer.replaceChildren();for(const node of history.present.nodes){const el=document.createElement('button');el.className='placed-node';el.dataset.nodeId=node.id;el.style.left=`${node.x}%`;el.style.top=`${node.y}%`;el.style.transform='translate(-50%,-50%)';el.innerHTML=`<strong>${escapeHTML(node.name)}</strong><small>${escapeHTML(node.kind)}</small>`;el.draggable=true;el.addEventListener('click',()=>{commit((p)=>{p.selection=[node.id]});toast(`Selected ${node.name}`)});el.addEventListener('dragstart',(event)=>event.dataTransfer.setData('application/daube-node',node.id));layer.append(el)}}
 function renderTray(){const root=$('#composeTray');root.replaceChildren();for(const id of history.present.composeTray){const asset=CATALOG.assets.find((a)=>a.id===id);const button=document.createElement('button');button.className='compose-chip';button.textContent=asset?asset.name:id;button.title='Remove ingredient';button.addEventListener('click',()=>commit((p)=>{p.composeTray=p.composeTray.filter((x)=>x!==id)}));root.append(button)}if(!history.present.composeTray.length)root.innerHTML='<small>Click an ingredient to collect it here.</small>'}
 function renderFilters(){const root=$('#assetFilters');root.replaceChildren();for(const category of ['all',...CATALOG.categories]){const button=document.createElement('button');button.textContent=category;button.classList.toggle('active',category===activeCategory);button.addEventListener('click',()=>{activeCategory=category;renderFilters();renderAssets()});root.append(button)}}

@@ -6,7 +6,10 @@ const GATES=['visual-harmony','readability','responsive-layout','interaction-int
 const clone=(v)=>JSON.parse(JSON.stringify(v));
 const freshProject=()=>({id:'public-sunday-sanctuary',theme:'golden-dawn',mode:'craft',nodes:[],composeTray:[],selection:[],metadata:{revision:0}});
 function hydrate(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return freshProject();const value=JSON.parse(raw);return value&&Array.isArray(value.nodes)&&Array.isArray(value.composeTray)?value:freshProject()}catch{return freshProject()}}
-let history={past:[],present:hydrate(),future:[]};let activeCategory='all';let receipts=[];
+let history = { past: [], present: hydrate(), future: [] };
+let activeCategory = 'all';
+// Public preview actions cannot create independently verified evidence.
+const receipts = Object.freeze([]);
 let toastTimer;function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200)}
 function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(history.present));const el=$('#saveState');if(el)el.textContent='saved locally'}
 function commit(mutator){history.past.push(clone(history.present));if(history.past.length>80)history.past.shift();const next=clone(history.present);mutator(next);next.metadata.revision=(next.metadata.revision||0)+1;history.present=next;history.future=[];persist();render()}
@@ -19,8 +22,26 @@ function renderTray(){const root=$('#composeTray');root.replaceChildren();for(co
 function renderFilters(){const root=$('#assetFilters');root.replaceChildren();for(const category of ['all',...CATALOG.categories]){const button=document.createElement('button');button.textContent=category;button.classList.toggle('active',category===activeCategory);button.addEventListener('click',()=>{activeCategory=category;renderFilters();renderAssets()});root.append(button)}}
 function renderAssets(){const query=$('#assetSearch').value.trim().toLowerCase();const assets=CATALOG.assets.filter((a)=>(activeCategory==='all'||a.category===activeCategory)&&(!query||`${a.name} ${a.tags.join(' ')}`.toLowerCase().includes(query)));$('#assetCount').textContent=`${assets.length}/${CATALOG.assets.length}`;const root=$('#assetGrid');root.replaceChildren();for(const asset of assets){const card=document.createElement('button');card.className='asset-card';card.draggable=true;card.innerHTML=`<span class="badge">${escapeHTML(asset.category)}</span><span class="${asset.productionApproved?'ship-ok':'ship-no'}">${asset.productionApproved?'✓':'△'}</span><strong>${escapeHTML(asset.name)}</strong><small>${escapeHTML(asset.tags.slice(0,2).join(' · '))}</small>`;card.addEventListener('click',()=>{commit((p)=>{if(!p.composeTray.includes(asset.id))p.composeTray.push(asset.id)});toast(`${asset.name} added to Compose Tray`)});card.addEventListener('dragstart',(event)=>event.dataTransfer.setData('application/daube-asset',asset.id));root.append(card)}}
 function renderAITools(){const root=$('#aiTools');root.replaceChildren();for(const [id,label,route] of AI_TOOLS){const button=document.createElement('button');button.textContent=label;button.dataset.ai=id;button.addEventListener('click',()=>{const key=`public:${history.present.id}:${id}:${history.present.metadata.revision}`;$('#commandReceipt').textContent=`SIMULATED_ROUTE · ${route} · ${key} · no execution / no upload`;toast(`${label} previewed locally. Private execution is not exposed in this shell.`)});root.append(button)}}
-function renderGate(){const passed=new Set(receipts.filter((r)=>r.status==='pass').map((r)=>r.gate));$('#qcScore').textContent=`${passed.size}/${GATES.length}`;const root=$('#gateList');root.replaceChildren();for(const gate of GATES){const ok=passed.has(gate);const row=document.createElement('div');row.className=`gate ${ok?'pass':'fail'}`;row.innerHTML=`<span>${escapeHTML(gate)}</span><b>${ok?'PASS':'WAIT'}</b>`;root.append(row)}$('#shipState').textContent='PUBLIC RELEASE LOCKED';$('#shipReason').textContent=passed.size>=6?'Runtime + release evidence stay private':'Prototype evidence not run';$('#shipStateDot').classList.remove('ready');$('#shipButton').dataset.ready='false'}
-function prototypeQC(){const stamp=Date.now();const passes=['visual-harmony','readability','responsive-layout','interaction-integrity','accessibility'];receipts=passes.map((gate)=>({gate,status:'pass',evidence:`public-prototype://${stamp}/${gate}`}));const used=history.present.nodes.map((n)=>CATALOG.assets.find((a)=>a.id===n.assetId)).filter(Boolean);if(used.every((a)=>a.productionApproved&&a.provenance))receipts.push({gate:'asset-rights-provenance',status:'pass',evidence:`public-catalog://${stamp}`});renderGate();toast('Prototype checks complete. Runtime and release gates remain private.')}
+function renderGate() {
+  $('#qcScore').textContent = `0/${GATES.length}`;
+  const root = $('#gateList');
+  root.replaceChildren();
+  for (const gate of GATES) {
+    const row = document.createElement('div');
+    row.className = 'gate fail';
+    row.innerHTML = `<span>${escapeHTML(gate)}</span><b>NOT VERIFIED</b>`;
+    root.append(row);
+  }
+  $('#shipState').textContent = 'PUBLIC RELEASE LOCKED';
+  $('#shipReason').textContent = 'Not verified · independent evidence required';
+  $('#shipStateDot').classList.remove('ready');
+  $('#shipButton').dataset.ready = 'false';
+  $('#runPrototypeQC').textContent = 'Review QC status';
+}
+function prototypeQC() {
+  renderGate();
+  toast('Preview only. No quality checks were executed and no evidence was created.');
+}
 function addAsset(assetId,x,y){const asset=CATALOG.assets.find((a)=>a.id===assetId);if(!asset)return;commit((p)=>p.nodes.push({id:`${asset.id}-${Date.now().toString(36)}`,kind:asset.category,name:asset.name,assetId:asset.id,x,y}));toast(`${asset.name} placed in the world`)}
 function addKind(kind,x,y){commit((p)=>p.nodes.push({id:`${kind}-${Date.now().toString(36)}`,kind,name:kind.replaceAll('-',' '),x,y}))}
 function install(){renderFilters();renderAssets();renderAITools();$$('.mode-rail button').forEach((b)=>b.addEventListener('click',()=>commit((p)=>{p.mode=b.dataset.mode})));$$('.mood').forEach((b)=>b.addEventListener('click',()=>{commit((p)=>{p.theme=b.dataset.theme});$('#themeLabel').textContent=b.getAttribute('aria-label')}));$('#assetSearch').addEventListener('input',renderAssets);$('#undoButton').addEventListener('click',undo);$('#redoButton').addEventListener('click',redo);$('#clearTrayButton').addEventListener('click',()=>commit((p)=>{p.composeTray=[]}));$('#runPrototypeQC').addEventListener('click',prototypeQC);$('#previewButton').addEventListener('click',async()=>{try{await $('#worldStage').requestFullscreen?.()}catch{}toast('Public prototype preview — no production state changed.')});$('#shipButton').addEventListener('click',()=>toast('Public shell cannot publish. Release authority stays in the private D’AUBE runtime.'));$('#craftCore').addEventListener('click',()=>toast('Craft Core: structure · form · behavior · memory · proof.'));$('#addBlockButton').addEventListener('click',()=>addKind('atelier-block',50+Math.min(20,history.present.nodes.length*3),52));$$('.atelier').forEach((el)=>{el.draggable=true;el.addEventListener('dragstart',(event)=>event.dataTransfer.setData('application/daube-kind',el.dataset.seedKind))});const stage=$('#worldStage');stage.addEventListener('dragover',(e)=>e.preventDefault());stage.addEventListener('drop',(e)=>{e.preventDefault();const rect=stage.getBoundingClientRect();const x=Math.max(4,Math.min(96,((e.clientX-rect.left)/rect.width)*100));const y=Math.max(8,Math.min(94,((e.clientY-rect.top)/rect.height)*100));const assetId=e.dataTransfer.getData('application/daube-asset');const nodeId=e.dataTransfer.getData('application/daube-node');const kind=e.dataTransfer.getData('application/daube-kind');if(assetId)addAsset(assetId,x,y);else if(nodeId)commit((p)=>{const node=p.nodes.find((n)=>n.id===nodeId);if(node){node.x=x;node.y=y}});else if(kind)addKind(kind,x,y)});render()}

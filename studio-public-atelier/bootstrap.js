@@ -55,7 +55,7 @@ async function registerServiceWorker(){
       const worker=registration.installing;
       if(!worker) return;
       worker.addEventListener('statechange',()=>{
-        if(worker.state==='installed'&&navigator.serviceWorker.controller) notify('A verified Public Atelier update is ready. Reload when convenient.');
+        if(worker.state==='installed'&&navigator.serviceWorker.controller) notify('A Public Atelier update is ready. Reload when convenient.');
       });
     });
   }catch(error){
